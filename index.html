@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buddy Products</title>
+
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      background: linear-gradient(135deg, #eef2f7, #f9f9f9);
+      padding: 30px;
+      margin: 0;
+    }
+
+    h1 {
+      color: #2c6bed;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .products {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 25px;
+    }
+
+    .product {
+      background: #ffffff;
+      padding: 25px;
+      width: 320px;
+      border-radius: 14px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      text-align: center;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .product:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .product h2 {
+      margin-top: 0;
+      color: #333;
+    }
+
+    .product p {
+      color: #666;
+      font-size: 15px;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      display: inline-block;
+      margin: 6px 4px;
+      padding: 12px 22px;
+      background: #2c6bed;
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: background 0.2s ease;
+    }
+
+    .btn:hover {
+      background: #1f55c7;
+    }
+
+    .btn.secondary {
+      background: #6c757d;
+    }
+
+    .btn.secondary:hover {
+      background: #545b62;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 50px;
+      color: #888;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Buddy Products</h1>
+
+  <div class="products">
+
+    <!-- Buddy Anti-Theft App -->
+    <div class="product">
+      <h2>Buddy Anti-Theft App</h2>
+      <p>
+        Secure your phone against theft with SIM change alerts,
+        location tracking, and silent protection.
+      </p>
+      <a
+        href="https://drive.google.com/uc?export=download&id=1k2aF_9WrqY6nvADIPTx57vM4DkHHGQtr"
+        class="btn"
+        download
+      >
+        Download APK
+      </a>
+    </div>
+
+    <!-- Buddy Bot -->
+    <div class="product">
+      <h2>Buddy Bot (Windows)</h2>
+      <p>
+        Powerful automation and monitoring bot for Windows systems.
+        Easy to use, reliable, and secure.
+      </p>
+
+      <a
+        href="https://drive.google.com/uc?export=download&id=1V_8HSPIg3n0jzcpAkxfcLrSNp4vI22UX"
+        class="btn"
+        download
+      >
+        Download EXE
+      </a>
+
+      <br>
+
+      <a
+        href="https://drive.google.com/uc?export=download&id=1TBiAqfMPrKwQ00cKQE6Plx0kuN0TzOaM"
+        class="btn secondary"
+        download
+      >
+        Download Bot User Guide
+      </a>
+    </div>
+
+  </div>
+
+  <footer>
+    © 2026 Buddy Security • All rights reserved
+  </footer>
+
+</body>
+</html>
