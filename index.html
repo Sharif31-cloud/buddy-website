@@ -131,9 +131,9 @@
 
   <h1>Buddy Products</h1>
 
-  <!-- Visit Counter -->
+  <!-- Local Visit Counter -->
   <div id="visit-counter">
-    Loading total visits...
+    Loading your visit count...
   </div>
 
   <div class="products">
@@ -212,18 +212,20 @@
     © 2026 Buddy Security • All rights reserved
   </footer>
 
-  <!-- CountAPI Visit Counter -->
+  <!-- LocalStorage Visit Counter -->
   <script>
-    fetch('https://api.countapi.xyz/hit/buddy-antitheft-site/visits')
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById('visit-counter').innerHTML =
-          `Total site visits: <strong>${data.value}</strong>`;
-      })
-      .catch(err => {
-        document.getElementById('visit-counter').innerHTML =
-          "Visit counter unavailable";
-      });
+    // Get previous visit count
+    let visits = localStorage.getItem("buddySiteVisits") || 0;
+
+    // Increment
+    visits = parseInt(visits) + 1;
+
+    // Save updated value
+    localStorage.setItem("buddySiteVisits", visits);
+
+    // Display
+    document.getElementById("visit-counter").innerHTML =
+      `You have visited this site <strong>${visits}</strong> time(s).`;
   </script>
 
 </body>
