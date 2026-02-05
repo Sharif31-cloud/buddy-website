@@ -6,7 +6,6 @@
 
   <title>Buddy Products</title>
 
-  <!-- 🔹 Browser / Search Bar Icon -->
   <link rel="icon" type="image/png" href="icon.png">
   <link rel="shortcut icon" href="icon.ico">
   <link rel="apple-touch-icon" href="icon.png">
@@ -62,10 +61,15 @@
     .product p {
       color: #666;
       font-size: 15px;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
     }
 
-    /* 🔐 Security Notice */
+    .download-count {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 12px;
+    }
+
     .security-note {
       background: #f1f5ff;
       border-left: 4px solid #2c6bed;
@@ -101,15 +105,16 @@
       background: #545b62;
     }
 
-    /* FAQ Section */
     .faq {
       max-width: 700px;
       margin: 50px auto 0 auto;
     }
+
     .faq h2 {
       text-align: center;
       color: #2c6bed;
     }
+
     .faq div {
       background: #f9f9f9;
       padding: 15px;
@@ -131,7 +136,6 @@
 
   <h1>Buddy Products</h1>
 
-  <!-- Local Visit Counter -->
   <div id="visit-counter">
     Loading your visit count...
   </div>
@@ -146,6 +150,10 @@
         location tracking, and silent protection.
       </p>
 
+      <div class="download-count" id="apk-count">
+        Downloads: 0
+      </div>
+
       <div class="security-note">
         <strong>Security Notice</strong><br>
         Buddy Anti-Theft is a security app that uses device protection features.
@@ -156,6 +164,7 @@
       <a
         href="https://drive.google.com/uc?export=download&id=1k2aF_9WrqY6nvADIPTx57vM4DkHHGQtr"
         class="btn"
+        id="apk-download"
         download
       >
         Download APK
@@ -170,9 +179,14 @@
         Easy to use, reliable, and secure.
       </p>
 
+      <div class="download-count" id="exe-count">
+        Downloads: 0
+      </div>
+
       <a
         href="https://drive.google.com/uc?export=download&id=1V_8HSPIg3n0jzcpAkxfcLrSNp4vI22UX"
         class="btn"
+        id="exe-download"
         download
       >
         Download EXE
@@ -212,20 +226,33 @@
     © 2026 Buddy Security • All rights reserved
   </footer>
 
-  <!-- LocalStorage Visit Counter -->
   <script>
-    // Get previous visit count
+    // ---- Visit Counter (LocalStorage) ----
     let visits = localStorage.getItem("buddySiteVisits") || 0;
-
-    // Increment
     visits = parseInt(visits) + 1;
-
-    // Save updated value
     localStorage.setItem("buddySiteVisits", visits);
-
-    // Display
     document.getElementById("visit-counter").innerHTML =
       `You have visited this site <strong>${visits}</strong> time(s).`;
+
+    // ---- Download Counters ----
+    function setupDownloadCounter(buttonId, countId, storageKey) {
+      const button = document.getElementById(buttonId);
+      const countDisplay = document.getElementById(countId);
+
+      // Initialize counter
+      let count = localStorage.getItem(storageKey) || 0;
+      countDisplay.textContent = `Downloads: ${count}`;
+
+      // Increment counter on click
+      button.addEventListener("click", () => {
+        count++;
+        localStorage.setItem(storageKey, count);
+        countDisplay.textContent = `Downloads: ${count}`;
+      });
+    }
+
+    setupDownloadCounter("apk-download", "apk-count", "buddyApkDownloads");
+    setupDownloadCounter("exe-download", "exe-count", "buddyExeDownloads");
   </script>
 
 </body>
