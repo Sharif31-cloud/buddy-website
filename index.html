@@ -22,7 +22,14 @@
     h1 {
       color: #2c6bed;
       text-align: center;
-      margin-bottom: 40px;
+      margin-bottom: 20px;
+    }
+
+    #visit-counter {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 14px;
+      color: #555;
     }
 
     .products {
@@ -94,6 +101,23 @@
       background: #545b62;
     }
 
+    /* FAQ Section */
+    .faq {
+      max-width: 700px;
+      margin: 50px auto 0 auto;
+    }
+    .faq h2 {
+      text-align: center;
+      color: #2c6bed;
+    }
+    .faq div {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+
     footer {
       text-align: center;
       margin-top: 50px;
@@ -107,12 +131,16 @@
 
   <h1>Buddy Products</h1>
 
+  <!-- Visit Counter -->
+  <div id="visit-counter">
+    Loading total visits...
+  </div>
+
   <div class="products">
 
     <!-- Buddy Anti-Theft App -->
     <div class="product">
       <h2>Buddy Anti-Theft App</h2>
-
       <p>
         Secure your phone against theft with SIM change alerts,
         location tracking, and silent protection.
@@ -163,9 +191,40 @@
 
   </div>
 
+  <!-- FAQ Section -->
+  <div class="faq">
+    <h2>FAQ</h2>
+    <div>
+      <strong>Q: Is Buddy Anti-Theft and SignalHawkBot safe?</strong>
+      <p>A: Yes. Buddy Anti-Theft only collects device info necessary for security alerts. SignalHawkBot only communicates with Firebase for subscription verification. No personal or trading credentials are transmitted.</p>
+    </div>
+    <div>
+      <strong>Q: Why does Google Drive show warnings when downloading the app?</strong>
+      <p>A: Google flags all executable files not from the Play Store. This is normal and expected. Our warning notice explains this for safety and trust.</p>
+    </div>
+    <div>
+      <strong>Q: Can I trust this bot with my trading account?</strong>
+      <p>A: The bot only reads credentials locally to connect with MetaTrader 5. Credentials are encrypted and never sent to any server other than subscription verification via Firebase.</p>
+    </div>
+  </div>
+
   <footer>
     © 2026 Buddy Security • All rights reserved
   </footer>
+
+  <!-- CountAPI Visit Counter -->
+  <script>
+    fetch('https://api.countapi.xyz/hit/buddy-antitheft-site/visits')
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('visit-counter').innerHTML =
+          `Total site visits: <strong>${data.value}</strong>`;
+      })
+      .catch(err => {
+        document.getElementById('visit-counter').innerHTML =
+          "Visit counter unavailable";
+      });
+  </script>
 
 </body>
 </html>
