@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>Buddy Products</title>
 
   <link rel="icon" type="image/png" href="icon.png">
@@ -43,14 +42,14 @@
       padding: 25px;
       width: 320px;
       border-radius: 14px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
       text-align: center;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
     .product:hover {
       transform: translateY(-4px);
-      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.12);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.12);
     }
 
     .product h2 {
@@ -189,143 +188,143 @@
 </head>
 <body>
 
-  <h1>Buddy Products</h1>
+<h1>Buddy Products</h1>
 
-  <!-- Visit Counters -->
-  <div id="visit-counter">Loading your visit count...</div>
-  <div id="global-counter">Loading total site visits...</div>
+<!-- Visit Counters -->
+<div id="visit-counter">Loading your visit count...</div>
+<div id="global-counter">Loading total site visits...</div>
 
-  <div class="products">
+<div class="products">
 
-    <!-- Buddy Anti-Theft App -->
-    <div class="product">
-      <h2>Buddy Anti-Theft App</h2>
-      <p>Secure your phone against theft with SIM change alerts, location tracking, and silent protection.</p>
+  <!-- Buddy Anti-Theft App -->
+  <div class="product">
+    <h2>Buddy Anti-Theft App</h2>
+    <p>Secure your phone against theft with SIM change alerts, location tracking, and silent protection.</p>
 
-      <div class="download-count" id="apk-count">Downloads: 0</div>
+    <div class="download-count" id="apk-count">Downloads: 0</div>
 
-      <div class="security-note">
-        <strong>Security Notice</strong><br>
-        Buddy Anti-Theft is a security app that uses device protection features.
-        Because it is installed outside Google Play, Google Drive may show a warning.
-        This is expected. Only install if you trust the source.
+    <div class="security-note">
+      <strong>Security Notice</strong><br>
+      Buddy Anti-Theft is a security app that uses device protection features.
+      Because it is installed outside Google Play, Google Drive may show a warning.
+      This is expected. Only install if you trust the source.
+    </div>
+
+    <a href="https://drive.google.com/uc?export=download&id=1k2aF_9WrqY6nvADIPTx57vM4DkHHGQtr"
+       class="btn" id="apk-download" target="_blank">Download APK</a>
+  </div>
+
+  <!-- Buddy Bot -->
+  <div class="product">
+    <h2>Buddy Bot (Windows)</h2>
+    <p>Powerful automation and monitoring bot for Windows systems. Easy to use, reliable, and secure.</p>
+
+    <div class="download-count" id="exe-count">Downloads: 0</div>
+
+    <!-- Screenshots for Bot only -->
+    <div class="screenshots">
+      <h3>Screenshots</h3>
+      <div class="screenshot-images">
+        <!-- Replace URLs below with your actual GitHub Pages uploaded images -->
+        <img src="https://Sharif31-cloud.github.io/buddy-website/bot1.png" alt="Screenshot 1">
+        <img src="https://Sharif31-cloud.github.io/buddy-website/bot2.png" alt="Screenshot 2">
+        <img src="https://Sharif31-cloud.github.io/buddy-website/bot3.png" alt="Screenshot 3">
       </div>
-
-      <a href="https://drive.google.com/uc?export=download&id=1k2aF_9WrqY6nvADIPTx57vM4DkHHGQtr"
-         class="btn" id="apk-download" target="_blank">Download APK</a>
     </div>
 
-    <!-- Buddy Bot -->
-    <div class="product">
-      <h2>Buddy Bot (Windows)</h2>
-      <p>Powerful automation and monitoring bot for Windows systems. Easy to use, reliable, and secure.</p>
+    <a href="https://drive.google.com/uc?export=download&id=1V_8HSPIg3n0jzcpAkxfcLrSNp4vI22UX"
+       class="btn" id="exe-download" target="_blank">Download EXE</a>
 
-      <div class="download-count" id="exe-count">Downloads: 0</div>
+    <br>
 
-      <div class="screenshots">
-        <h3>Screenshots</h3>
-        <div class="screenshot-images">
-          <img src="screenshots/bot1.png" alt="Screenshot 1">
-          <img src="screenshots/bot2.png" alt="Screenshot 2">
-          <img src="screenshots/bot3.png" alt="Screenshot 3">
-        </div>
-      </div>
-
-      <a href="https://drive.google.com/uc?export=download&id=1V_8HSPIg3n0jzcpAkxfcLrSNp4vI22UX"
-         class="btn" id="exe-download" target="_blank">Download EXE</a>
-
-      <br>
-
-      <a href="https://drive.google.com/uc?export=download&id=1ys7ZC4DP4-lCQs6ACDwVWvSgrgtdzDzm"
-         class="btn secondary" download>Download Bot User Guide</a>
-    </div>
-
+    <a href="https://drive.google.com/uc?export=download&id=1ys7ZC4DP4-lCQs6ACDwVWvSgrgtdzDzm"
+       class="btn secondary" download>Download Bot User Guide</a>
   </div>
 
-  <!-- Lightbox -->
-  <div id="lightbox" onclick="this.style.display='none'">
-    <img id="lightbox-img" src="">
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="this.style.display='none'">
+  <img id="lightbox-img" src="">
+</div>
+
+<!-- FAQ Section -->
+<div class="faq">
+  <h2>FAQ</h2>
+  <div>
+    <strong>Q: Is Buddy Anti-Theft and SignalHawkBot safe?</strong>
+    <p>A: Buddy Anti-Theft only collects device info necessary for security alerts. SignalHawkBot only communicates with Firebase for subscription verification. No personal or trading credentials are transmitted.</p>
   </div>
-
-  <!-- FAQ Section -->
-  <div class="faq">
-    <h2>FAQ</h2>
-    <div>
-      <strong>Q: Is Buddy Anti-Theft and SignalHawkBot safe?</strong>
-      <p>A: Buddy Anti-Theft only collects device info necessary for security alerts. SignalHawkBot only communicates with Firebase for subscription verification. No personal or trading credentials are transmitted.</p>
-    </div>
-    <div>
-      <strong>Q: Why does Google Drive show warnings when downloading the app?</strong>
-      <p>A: Google flags all executable files not from the Play Store. This is normal and expected. Our warning notice explains this for safety and trust.</p>
-    </div>
-    <div>
-      <strong>Q: Can I trust this bot with my trading account?</strong>
-      <p>A: The bot only reads credentials locally to connect with MetaTrader 5. Credentials are encrypted and never sent to any server other than subscription verification via Firebase.</p>
-    </div>
+  <div>
+    <strong>Q: Why does Google Drive show warnings when downloading the app?</strong>
+    <p>A: Google flags all executable files not from the Play Store. This is normal and expected. Our warning notice explains this for safety and trust.</p>
   </div>
+  <div>
+    <strong>Q: Can I trust this bot with my trading account?</strong>
+    <p>A: The bot only reads credentials locally to connect with MetaTrader 5. Credentials are encrypted and never sent to any server other than subscription verification via Firebase.</p>
+  </div>
+</div>
 
-  <footer>© 2026 Buddy Security • All rights reserved</footer>
+<footer>© 2026 Buddy Security • All rights reserved</footer>
 
-  <script>
-    // ---- Firebase Initialization ----
-    const firebaseConfig = {
-      apiKey: "AIzaSyB1G6DhAZv70YLk65ESgZl0Cm1BHzab4a0",
-      authDomain: "buddydownloads-72e3b.firebaseapp.com",
-      databaseURL: "https://buddydownloads-72e3b-default-rtdb.firebaseio.com",
-      projectId: "buddydownloads-72e3b",
-      storageBucket: "buddydownloads-72e3b.appspot.com",
-      messagingSenderId: "782621240629",
-      appId: "1:782621240629:web:4678fac59caad0f3ac707c"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+<script>
+  // ---- Firebase Initialization ----
+  const firebaseConfig = {
+    apiKey: "AIzaSyB1G6DhAZv70YLk65ESgZl0Cm1BHzab4a0",
+    authDomain: "buddydownloads-72e3b.firebaseapp.com",
+    databaseURL: "https://buddydownloads-72e3b-default-rtdb.firebaseio.com",
+    projectId: "buddydownloads-72e3b",
+    storageBucket: "buddydownloads-72e3b.appspot.com",
+    messagingSenderId: "782621240629",
+    appId: "1:782621240629:web:4678fac59caad0f3ac707c"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
-    // ---- Local Visit Counter ----
-    let visits = parseInt(localStorage.getItem("buddySiteVisits") || "0") + 1;
-    localStorage.setItem("buddySiteVisits", visits);
-    document.getElementById("visit-counter").innerHTML =
-      `You have visited this site <strong>${visits}</strong> time(s).`;
+  // ---- Local Visit Counter ----
+  let visits = parseInt(localStorage.getItem("buddySiteVisits") || "0") + 1;
+  localStorage.setItem("buddySiteVisits", visits);
+  document.getElementById("visit-counter").innerHTML =
+    `You have visited this site <strong>${visits}</strong> time(s).`;
 
-    // ---- Global Visit Counter (Firebase) ----
-    const globalVisitRef = db.ref("buddyGlobalVisits");
-    globalVisitRef.transaction(current => (current || 0) + 1); // Increment for this visit
-    globalVisitRef.on("value", snapshot => {
-      document.getElementById("global-counter").innerHTML =
-        `Total site visits: <strong>${snapshot.val() || 0}</strong>`;
+  // ---- Global Visit Counter ----
+  const globalVisitRef = db.ref("buddyGlobalVisits");
+  globalVisitRef.transaction(current => (current || 0) + 1);
+  globalVisitRef.on("value", snapshot => {
+    document.getElementById("global-counter").innerHTML =
+      `Total site visits: <strong>${snapshot.val() || 0}</strong>`;
+  });
+
+  // ---- Global Download Counters ----
+  function setupGlobalDownloadCounter(buttonId, countId, dbKey) {
+    const button = document.getElementById(buttonId);
+    const countDisplay = document.getElementById(countId);
+    const ref = db.ref("buddyDownloads/" + dbKey);
+
+    ref.on("value", snapshot => {
+      countDisplay.textContent = `Downloads: ${snapshot.val() || 0}`;
     });
 
-    // ---- Global Download Counters (button click only) ----
-    function setupGlobalDownloadCounter(buttonId, countId, dbKey) {
-      const button = document.getElementById(buttonId);
-      const countDisplay = document.getElementById(countId);
-      const ref = db.ref("buddyDownloads/" + dbKey);
-
-      // Live updates
-      ref.on("value", snapshot => {
-        countDisplay.textContent = `Downloads: ${snapshot.val() || 0}`;
-      });
-
-      // Increment on click
-      button.addEventListener("click", () => {
-        ref.transaction(current => (current || 0) + 1);
-      });
-    }
-
-    setupGlobalDownloadCounter("apk-download", "apk-count", "buddyApk");
-    setupGlobalDownloadCounter("exe-download", "exe-count", "buddyExe");
-
-    // ---- Lightbox JS ----
-    const screenshotImages = document.querySelectorAll('.screenshot-images img');
-    const lightbox = document.getElementById('lightbox');
-    const lightboxImg = document.getElementById('lightbox-img');
-
-    screenshotImages.forEach(img => {
-      img.addEventListener('click', () => {
-        lightbox.style.display = 'flex';
-        lightboxImg.src = img.src;
-      });
+    button.addEventListener("click", () => {
+      ref.transaction(current => (current || 0) + 1);
     });
-  </script>
+  }
+
+  setupGlobalDownloadCounter("apk-download", "apk-count", "buddyApk");
+  setupGlobalDownloadCounter("exe-download", "exe-count", "buddyExe");
+
+  // ---- Lightbox JS for screenshots ----
+  const screenshotImages = document.querySelectorAll('.screenshot-images img');
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightbox-img');
+
+  screenshotImages.forEach(img => {
+    img.addEventListener('click', () => {
+      lightbox.style.display = 'flex';
+      lightboxImg.src = img.src;
+    });
+  });
+</script>
 
 </body>
 </html>
