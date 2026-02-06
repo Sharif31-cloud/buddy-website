@@ -105,6 +105,58 @@
       background: #545b62;
     }
 
+    /* Screenshots (Bot only) */
+    .screenshots {
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    .screenshots h3 {
+      color: #2c6bed;
+      margin-bottom: 10px;
+    }
+
+    .screenshot-images {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 10px;
+      padding-bottom: 10px;
+    }
+
+    .screenshot-images img {
+      height: 150px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .screenshot-images img:hover {
+      transform: scale(1.05);
+    }
+
+    /* Lightbox */
+    #lightbox {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.8);
+      justify-content: center;
+      align-items: center;
+    }
+
+    #lightbox img {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
     .faq {
       max-width: 700px;
       margin: 50px auto 0 auto;
@@ -134,7 +186,6 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
 </head>
 <body>
 
@@ -160,7 +211,8 @@
         This is expected. Only install if you trust the source.
       </div>
 
-      <a href="https://drive.google.com/uc?export=download&id=1k2aF_9WrqY6nvADIPTx57vM4DkHHGQtr" class="btn" id="apk-download" download>Download APK</a>
+      <a href="https://drive.google.com/uc?export=download&id=1k2aF_9WrqY6nvADIPTx57vM4DkHHGQtr"
+         class="btn" id="apk-download" target="_blank">Download APK</a>
     </div>
 
     <!-- Buddy Bot -->
@@ -170,13 +222,29 @@
 
       <div class="download-count" id="exe-count">Downloads: 0</div>
 
-      <a href="https://drive.google.com/uc?export=download&id=1V_8HSPIg3n0jzcpAkxfcLrSNp4vI22UX" class="btn" id="exe-download" download>Download EXE</a>
+      <div class="screenshots">
+        <h3>Screenshots</h3>
+        <div class="screenshot-images">
+          <img src="screenshots/bot1.png" alt="Screenshot 1">
+          <img src="screenshots/bot2.png" alt="Screenshot 2">
+          <img src="screenshots/bot3.png" alt="Screenshot 3">
+        </div>
+      </div>
+
+      <a href="https://drive.google.com/uc?export=download&id=1V_8HSPIg3n0jzcpAkxfcLrSNp4vI22UX"
+         class="btn" id="exe-download" target="_blank">Download EXE</a>
 
       <br>
 
-      <a href="https://drive.google.com/uc?export=download&id=1ys7ZC4DP4-lCQs6ACDwVWvSgrgtdzDzm" class="btn secondary" download>Download Bot User Guide</a>
+      <a href="https://drive.google.com/uc?export=download&id=1ys7ZC4DP4-lCQs6ACDwVWvSgrgtdzDzm"
+         class="btn secondary" download>Download Bot User Guide</a>
     </div>
 
+  </div>
+
+  <!-- Lightbox -->
+  <div id="lightbox" onclick="this.style.display='none'">
+    <img id="lightbox-img" src="">
   </div>
 
   <!-- FAQ Section -->
@@ -226,7 +294,7 @@
         `Total site visits: <strong>${snapshot.val() || 0}</strong>`;
     });
 
-    // ---- Global Download Counters ----
+    // ---- Global Download Counters (button click only) ----
     function setupGlobalDownloadCounter(buttonId, countId, dbKey) {
       const button = document.getElementById(buttonId);
       const countDisplay = document.getElementById(countId);
@@ -245,6 +313,18 @@
 
     setupGlobalDownloadCounter("apk-download", "apk-count", "buddyApk");
     setupGlobalDownloadCounter("exe-download", "exe-count", "buddyExe");
+
+    // ---- Lightbox JS ----
+    const screenshotImages = document.querySelectorAll('.screenshot-images img');
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+
+    screenshotImages.forEach(img => {
+      img.addEventListener('click', () => {
+        lightbox.style.display = 'flex';
+        lightboxImg.src = img.src;
+      });
+    });
   </script>
 
 </body>
