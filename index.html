@@ -175,26 +175,31 @@
     /* Review Panel */
     .reviews {
       max-width: 700px;
-      margin: 50px auto;
+      margin: 20px auto;
       background: #ffffff;
       padding: 20px;
       border-radius: 12px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.07);
     }
 
-    .reviews h2 {
+    .reviews h3 {
       text-align: center;
       color: #2c6bed;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
+    }
+
+    .reviews .average-rating {
+      margin-bottom: 10px;
+      font-size: 14px;
     }
 
     .reviews form {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
 
-    .reviews input, .reviews textarea {
+    .reviews input, .reviews textarea, .reviews select {
       padding: 10px;
       border-radius: 6px;
       border: 1px solid #ccc;
@@ -204,7 +209,7 @@
     }
 
     .reviews button {
-      padding: 12px;
+      padding: 10px;
       background: #2c6bed;
       color: #fff;
       border: none;
@@ -219,14 +224,14 @@
     }
 
     .reviews-list {
-      margin-top: 20px;
+      margin-top: 15px;
     }
 
     .review-item {
       background: #f1f5ff;
       padding: 12px;
       border-radius: 8px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       font-size: 14px;
       color: #333;
     }
@@ -253,7 +258,7 @@
 <div class="products">
 
   <!-- Buddy Anti-Theft App -->
-  <div class="product">
+  <div class="product" data-app="buddyApk">
     <h2>Buddy Anti-Theft App</h2>
     <p>Secure your phone against theft with SIM change alerts, location tracking, and silent protection.</p>
     <div class="download-count" id="apk-count">Downloads: 0</div>
@@ -265,14 +270,35 @@
     </div>
     <a href="https://drive.google.com/uc?export=download&id=1k2aF_9WrqY6nvADIPTx57vM4DkHHGQtr"
        class="btn" id="apk-download" target="_blank">Download APK</a>
+
+    <div class="reviews">
+      <h3>User Reviews</h3>
+      <div class="average-rating">Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> (<span class="avg-value">0</span>/5)</div>
+      <form class="rating-form">
+        <label>Rate this app:</label>
+        <select class="rating-select">
+          <option value="1">1 ⭐️</option>
+          <option value="2">2 ⭐️</option>
+          <option value="3" selected>3 ⭐️</option>
+          <option value="4">4 ⭐️</option>
+          <option value="5">5 ⭐️</option>
+        </select>
+        <button type="submit">Submit Rating</button>
+      </form>
+      <form class="review-form">
+        <input type="text" placeholder="Your name" class="review-name" required>
+        <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+        <button type="submit">Submit Review</button>
+      </form>
+      <div class="reviews-list"></div>
+    </div>
   </div>
 
   <!-- Buddy Bot -->
-  <div class="product">
+  <div class="product" data-app="buddyExe">
     <h2>Buddy Bot (Windows)</h2>
     <p>Powerful automation and monitoring bot for Windows systems. Easy to use, reliable, and secure.</p>
     <div class="download-count" id="exe-count">Downloads: 0</div>
-
     <div class="screenshots">
       <h3>Screenshots</h3>
       <div class="screenshot-images">
@@ -281,33 +307,71 @@
         <img src="https://Sharif31-cloud.github.io/buddy-website/bot3.png" alt="Screenshot 3">
       </div>
     </div>
-
     <a href="https://drive.google.com/uc?export=download&id=1V_8HSPIg3n0jzcpAkxfcLrSNp4vI22UX"
        class="btn" id="exe-download" target="_blank">Download EXE</a>
     <br>
     <a href="https://drive.google.com/uc?export=download&id=1ys7ZC4DP4-lCQs6ACDwVWvSgrgtdzDzm"
        class="btn secondary" download>Download Bot User Guide</a>
+
+    <div class="reviews">
+      <h3>User Reviews</h3>
+      <div class="average-rating">Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> (<span class="avg-value">0</span>/5)</div>
+      <form class="rating-form">
+        <label>Rate this app:</label>
+        <select class="rating-select">
+          <option value="1">1 ⭐️</option>
+          <option value="2">2 ⭐️</option>
+          <option value="3" selected>3 ⭐️</option>
+          <option value="4">4 ⭐️</option>
+          <option value="5">5 ⭐️</option>
+        </select>
+        <button type="submit">Submit Rating</button>
+      </form>
+      <form class="review-form">
+        <input type="text" placeholder="Your name" class="review-name" required>
+        <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+        <button type="submit">Submit Review</button>
+      </form>
+      <div class="reviews-list"></div>
+    </div>
   </div>
 
-     <!-- JobConnectAdmin App -->
-  <div class="product">
+  <!-- JobConnectAdmin -->
+  <div class="product" data-app="jobConnectAdmin">
     <h2>JobConnectAdmin</h2>
     <p>Discover jobs, apply with ease, and connect with top employers—all in one place! JobConnect makes job searching and hiring smooth, fast, and stress-free for users everywhere.</p>
-
     <div class="download-count" id="admin-count">Downloads: 0</div>
-
     <div class="security-note">
       <strong>Security Notice</strong><br>
       JobConnectAdmin is a trusted app that handles user data securely. 
       Since it is installed outside Google Play, Google Drive may show a warning.
       This is normal. Only install if you trust the source.
     </div>
-
     <a href="https://drive.google.com/uc?export=download&id=12PfjN_egl-nyXWXyeJ7sIOciXvOzR2-I"
        class="btn" id="admin-download" target="_blank">Download APK</a>
+
+    <div class="reviews">
+      <h3>User Reviews</h3>
+      <div class="average-rating">Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> (<span class="avg-value">0</span>/5)</div>
+      <form class="rating-form">
+        <label>Rate this app:</label>
+        <select class="rating-select">
+          <option value="1">1 ⭐️</option>
+          <option value="2">2 ⭐️</option>
+          <option value="3" selected>3 ⭐️</option>
+          <option value="4">4 ⭐️</option>
+          <option value="5">5 ⭐️</option>
+        </select>
+        <button type="submit">Submit Rating</button>
+      </form>
+      <form class="review-form">
+        <input type="text" placeholder="Your name" class="review-name" required>
+        <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+        <button type="submit">Submit Review</button>
+      </form>
+      <div class="reviews-list"></div>
+    </div>
   </div>
-
-
 
 </div>
 
@@ -333,23 +397,10 @@
   </div>
 </div>
 
-<!-- Review Section -->
-<div class="reviews">
-  <h2>User Reviews & Comments</h2>
-  <form id="review-form">
-    <input type="text" id="review-name" placeholder="Your name" required>
-    <textarea id="review-text" placeholder="Your comment about the website or apps..." rows="3" required></textarea>
-    <button type="submit">Submit Review</button>
-  </form>
-  <div class="reviews-list" id="reviews-list">
-    <!-- User reviews will appear here -->
-  </div>
-</div>
-
 <footer>© 2026 Buddy Security • All rights reserved</footer>
 
 <script>
-  // ---- Firebase Initialization ----
+  // Firebase Initialization
   const firebaseConfig = {
     apiKey: "AIzaSyB1G6DhAZv70YLk65ESgZl0Cm1BHzab4a0",
     authDomain: "buddydownloads-72e3b.firebaseapp.com",
@@ -362,13 +413,13 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  // ---- Local Visit Counter ----
+  // Local Visit Counter
   let visits = parseInt(localStorage.getItem("buddySiteVisits") || "0") + 1;
   localStorage.setItem("buddySiteVisits", visits);
   document.getElementById("visit-counter").innerHTML =
     `You have visited this site <strong>${visits}</strong> time(s).`;
 
-  // ---- Global Visit Counter ----
+  // Global Visit Counter
   const globalVisitRef = db.ref("buddyGlobalVisits");
   globalVisitRef.transaction(current => (current || 0) + 1);
   globalVisitRef.on("value", snapshot => {
@@ -376,7 +427,7 @@
       `Total site visits: <strong>${snapshot.val() || 0}</strong>`;
   });
 
-  // ---- Global Download Counters ----
+  // Download Counters
   function setupGlobalDownloadCounter(buttonId, countId, dbKey) {
     const button = document.getElementById(buttonId);
     const countDisplay = document.getElementById(countId);
@@ -395,11 +446,10 @@
   setupGlobalDownloadCounter("exe-download", "exe-count", "buddyExe");
   setupGlobalDownloadCounter("admin-download", "admin-count", "jobConnectAdmin");
 
-  // ---- Lightbox JS for screenshots ----
+  // Lightbox for screenshots
   const screenshotImages = document.querySelectorAll('.screenshot-images img');
   const lightbox = document.getElementById('lightbox');
   const lightboxImg = document.getElementById('lightbox-img');
-
   screenshotImages.forEach(img => {
     img.addEventListener('click', () => {
       lightbox.style.display = 'flex';
@@ -407,34 +457,64 @@
     });
   });
 
-  // ---- Reviews Section ----
-  const reviewForm = document.getElementById('review-form');
-  const reviewsList = document.getElementById('reviews-list');
-  const reviewsRef = db.ref('buddyReviews');
+  // Reviews & Ratings per product
+  document.querySelectorAll('.product').forEach(productDiv => {
+    const appKey = productDiv.dataset.app;
+    const reviewsRef = db.ref('buddyReviews/' + appKey);
+    const ratingsRef = db.ref('buddyRatings/' + appKey);
 
-  // Load existing reviews
-  reviewsRef.on('value', snapshot => {
-    reviewsList.innerHTML = '';
-    const reviews = snapshot.val() || {};
-    Object.values(reviews).forEach(r => {
-      const div = document.createElement('div');
-      div.className = 'review-item';
-      div.innerHTML = `<strong>${r.name}</strong>: ${r.comment}`;
-      reviewsList.appendChild(div);
+    const reviewsList = productDiv.querySelector('.reviews-list');
+    const reviewForm = productDiv.querySelector('.review-form');
+    const reviewName = productDiv.querySelector('.review-name');
+    const reviewText = productDiv.querySelector('.review-text');
+
+    const avgStars = productDiv.querySelector('.avg-stars');
+    const avgValue = productDiv.querySelector('.avg-value');
+    const ratingForm = productDiv.querySelector('.rating-form');
+    const ratingSelect = productDiv.querySelector('.rating-select');
+
+    // Load reviews
+    reviewsRef.on('value', snapshot => {
+      reviewsList.innerHTML = '';
+      const reviews = snapshot.val() || {};
+      const reviewsArray = Object.values(reviews).sort((a,b)=>b.createdAt - a.createdAt);
+      reviewsArray.forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'review-item';
+        div.innerHTML = `<strong>${r.name}</strong>: ${r.comment}`;
+        reviewsList.appendChild(div);
+      });
+    });
+
+    // Submit review
+    reviewForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const name = reviewName.value.trim();
+      const comment = reviewText.value.trim();
+      if(name && comment){
+        reviewsRef.push({ name, comment, createdAt: Date.now() });
+        reviewForm.reset();
+      }
+    });
+
+    // Load ratings & update average
+    ratingsRef.on('value', snapshot => {
+      const ratings = snapshot.val() || {};
+      const values = Object.values(ratings).map(r => parseInt(r.value,10));
+      const avg = values.length ? (values.reduce((a,b)=>a+b,0)/values.length).toFixed(1) : 0;
+      avgValue.textContent = avg;
+      const starsCount = Math.round(avg);
+      avgStars.textContent = '⭐️'.repeat(starsCount) + '☆'.repeat(5-starsCount);
+    });
+
+    // Submit rating
+    ratingForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const value = ratingSelect.value;
+      ratingsRef.push({ value: parseInt(value), createdAt: Date.now() });
     });
   });
 
-  // Submit new review
-  reviewForm.addEventListener('submit', e => {
-    e.preventDefault();
-    const name = document.getElementById('review-name').value.trim();
-    const comment = document.getElementById('review-text').value.trim();
-    if (name && comment) {
-      reviewsRef.push({ name, comment, createdAt: Date.now() });
-      reviewForm.reset();
-    }
-  });
 </script>
-
 </body>
 </html>
