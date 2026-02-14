@@ -1,29 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>AI Signal Dashboard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Signal Dashboard</title>
 
-<style>
-body { margin:0; font-family:Arial,sans-serif; background:#0f172a; color:#e5e7eb; }
-header { background:#020617; padding:15px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; }
-select, button, input { padding:8px; border-radius:6px; border:none; }
-button { background:#2563eb; color:white; cursor:pointer; }
-button.secondary { background:#334155; }
-#signals { padding:20px; }
-.signal { background:#020617; padding:20px; border-radius:12px; max-width:420px; margin:auto; position:relative; }
-.vip-badge { position:absolute; top:10px; right:10px; background:#22c55e; color:#fff; padding:4px 8px; border-radius:8px; font-weight:bold; font-size:0.9rem; }
-.buy { color:#22c55e; } .sell { color:#ef4444; } .hold { color:#9ca3af; }
-.vip-lock { filter:blur(7px); pointer-events:none; }
-#authBox { display:flex; gap:6px; flex-wrap:wrap; align-items:flex-end; }
-#tidBox { display:none; flex-direction:column; gap:6px; margin-top:10px; background:#1e293b; padding:12px; border-radius:10px; max-width:420px; }
-#chart { margin:20px auto; max-width:900px; }
-#explain { background:#020617; margin:30px auto; padding:20px; max-width:900px; border-radius:12px; line-height:1.6; }
-.lock { color:#fbbf24; }
-.signal button { margin-top:8px; padding:6px 12px; border:none; border-radius:6px; cursor:pointer; background:#2563eb; color:white; }
-</style>
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="icon.png">
+  <!-- Optional: fallback for older browsers -->
+  <link rel="shortcut icon" href="favicon.ico">
+
+  <!-- Meta description for SEO -->
+  <meta name="description" content="AI Signal Dashboard for Forex, Crypto, and Commodities with EMA, RSI, and MACD indicators. VIP access for premium signals.">
+
+  <!-- Styles -->
+  <style>
+    body { margin:0; font-family:Arial,sans-serif; background:#0f172a; color:#e5e7eb; }
+    header { background:#020617; padding:15px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; }
+    select, button, input { padding:8px; border-radius:6px; border:none; }
+    button { background:#2563eb; color:white; cursor:pointer; }
+    button.secondary { background:#334155; }
+    #signals { padding:20px; }
+    .signal { background:#020617; padding:20px; border-radius:12px; max-width:420px; margin:auto; position:relative; }
+    .vip-badge { position:absolute; top:10px; right:10px; background:#22c55e; color:#fff; padding:4px 8px; border-radius:8px; font-weight:bold; font-size:0.9rem; }
+    .buy { color:#22c55e; } 
+    .sell { color:#ef4444; } 
+    .hold { color:#9ca3af; }
+    .vip-lock { filter:blur(7px); pointer-events:none; }
+    #authBox { display:flex; gap:6px; flex-wrap:wrap; align-items:flex-end; }
+    #tidBox { display:none; flex-direction:column; gap:6px; margin-top:10px; background:#1e293b; padding:12px; border-radius:10px; max-width:420px; }
+    #chart { margin:20px auto; max-width:900px; }
+    #explain { background:#020617; margin:30px auto; padding:20px; max-width:900px; border-radius:12px; line-height:1.6; }
+    .lock { color:#fbbf24; }
+    .signal button { margin-top:8px; padding:6px 12px; border:none; border-radius:6px; cursor:pointer; background:#2563eb; color:white; }
+  </style>
 </head>
+
 
 <body>
 
