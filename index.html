@@ -367,46 +367,61 @@
     </div>
 
     <!-- AI Street Racer -->
-    <div class="product" data-app="aiStreetRacer">
-      <div class="icon">🏎️🔥</div>
-      <h2>AI Street Racer (Windows)</h2>
-      <p>
-        Race through neon-lit streets against intelligent AI drivers.
-        High-speed action, smooth controls, and adrenaline-packed gameplay
-        designed for Windows PCs.
-      </p>
-      <div class="download-count">
-        Ready to burn rubber? 🏁
-      </div>
-      <a href="https://github.com/Sharif31-cloud/buddy-website/releases/download/v1.0/AI_Street_Racer.exe"
-         class="btn" target="_blank">🎮 Download Game</a>
+<div class="product" data-app="aiStreetRacer">
+  <div class="icon">🏎️🔥</div>
 
-      <!-- Reviews -->
-      <div class="reviews">
-        <h3>User Reviews</h3>
-        <div class="average-rating">
-          Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
-          (<span class="avg-value">0</span>/5)
-        </div>
-        <form class="rating-form">
-          <label>Rate this game:</label>
-          <select class="rating-select">
-            <option value="1">1 ⭐️</option>
-            <option value="2">2 ⭐️</option>
-            <option value="3" selected>3 ⭐️</option>
-            <option value="4">4 ⭐️</option>
-            <option value="5">5 ⭐️</option>
-          </select>
-          <button type="submit">Submit Rating</button>
-        </form>
-        <form class="review-form">
-          <input type="text" placeholder="Your name" class="review-name" required>
-          <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
-          <button type="submit">Submit Review</button>
-        </form>
-        <div class="reviews-list"></div>
-      </div>
+  <h2>AI Street Racer (Windows)</h2>
+
+  <p>
+    Race through neon-lit streets against intelligent AI drivers.
+    High-speed action, smooth controls, and adrenaline-packed gameplay
+    designed for Windows PCs.
+  </p>
+
+  <!-- Download count (same style as JobConnectAdmin) -->
+  <div class="download-count" id="aiStreetRacer-count">
+    Downloads: 0
+  </div>
+
+  <a href="https://github.com/Sharif31-cloud/buddy-website/raw/refs/heads/main/AI_Street_racer.exe"
+     class="btn"
+     id="aiStreetRacer-download"
+     target="_blank">
+     🎮 Download Game
+  </a>
+
+  <!-- Reviews -->
+  <div class="reviews">
+    <h3>User Reviews</h3>
+
+    <div class="average-rating">
+      Average Rating:
+      <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span>
+      (<span class="avg-value">0</span>/5)
     </div>
+
+    <form class="rating-form">
+      <label>Rate this game:</label>
+      <select class="rating-select">
+        <option value="1">1 ⭐️</option>
+        <option value="2">2 ⭐️</option>
+        <option value="3" selected>3 ⭐️</option>
+        <option value="4">4 ⭐️</option>
+        <option value="5">5 ⭐️</option>
+      </select>
+      <button type="submit">Submit Rating</button>
+    </form>
+
+    <form class="review-form">
+      <input type="text" placeholder="Your name" class="review-name" required>
+      <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+      <button type="submit">Submit Review</button>
+    </form>
+
+    <div class="reviews-list"></div>
+  </div>
+</div>
+
 
     <!-- JobConnectAdmin -->
     <div class="product" data-app="jobConnectAdmin">
