@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Signal Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body { margin:0; font-family:Arial,sans-serif; background:#0f172a; color:#e5e7eb; }
+header { background:#020617; padding:15px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; }
+select, button, input { padding:8px; border-radius:6px; border:none; }
+button { background:#2563eb; color:white; cursor:pointer; }
+button.secondary { background:#334155; }
+#signals { padding:20px; }
+.signal { background:#020617; padding:20px; border-radius:12px; max-width:420px; margin:auto; }
+.buy { color:#22c55e; } .sell { color:#ef4444; } .hold { color:#9ca3af; }
+.vip-lock { filter:blur(7px); pointer-events:none; }
+#authBox { display:flex; gap:6px; }
+#chart { margin:20px auto; max-width:900px; }
+#explain { background:#020617; margin:30px auto; padding:20px; max-width:900px; border-radius:12px; line-height:1.6; }
+.lock { color:#fbbf24; }
+</style>
+</head>
+
+<body>
+
+<header>
+  <div>
+    <h3>📊 AI Signal Dashboard</h3>
+    <select id="symbol">
+      <option value="XAU/USD">XAUUSD</option>
+      <option value="EUR/USD">EURUSD</option>
+      <option value="GBP/USD">GBPUSD</option>
+      <option value="USD/JPY">USDJPY</option>
+      <option value="BTC/USD">BTCUSD</option>
+    </select>
+  </div>
+
+  <div id="authBox">
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button id="loginBtn">Login</button>
+    <button id="registerBtn" class="secondary">Register</button>
+  </div>
+</header>
+
+<div id="chart"></div>
+<div id="signals">Loading…</div>
+
+<!-- 🧠 MODEL EXPLANATION -->
+<div id="explain">
+<!-- same explanation as before -->
+</div>
+
+<!-- Firebase + TradingView -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
+<script src="https://s3.tradingview.com/tv.js"></script>
+
+<script>
+/* ================= CONFIG ================= */
+const TWELVE_KEY = "894c1cdec16d47b98980a4423f254352";
+const INTERVAL = "5min";
+
+/* ================= FIREBASE ================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyB1G6DhAZv70YLk65ESgZl0Cm1BHzab4a0",
+  authDomain: "buddydownloads-72e3b.firebaseapp.com",
+  databaseURL: "https://buddydownloads-72e3b-default-rtdb.firebaseio.com",
+  projectId: "buddydownloads-72e3b",
+  storageBucket: "buddydownloads-72e3b.appspot.com",
+  messagingSenderId: "782621240629",
+  appId: "1:782621240629:web:4678fac59caad0f3ac707c"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+
+let isVIP = false;
+
+/* ================= INDICATORS ================= */
+function EMA(v,p){let k=2/(p+1),e=v[0];for(let i=1;i<v.length;i++)e=v[i]*k+e*(1-k);return e;}
+function RSI(v,p=7){let g=0,l=0;for(let i=v.length-p;i<v.length-1;i++){let d=v[i+1]-v[i];d>0?g+=d:l-=d}let rs=g/(l||1);return 100-100/(1+rs);}
+function ATR(h,l,c,p=14){let t=[];for(let i=1;i<c.length;i++)t.push(Math.max(h[i]-l[i],Math.abs(h[i]-c[i-1]),Math.abs(l[i]-c[i-1])));return EMA(t.slice(-p),p);}
+function MACD(v){let a=EMA(v.slice(-26),12),b=EMA(v.slice(-26),26);return{macd:a-b,signal:EMA([a-b],9)}}
+
+/* ================= SIGNAL ================= */
+function generateSignal(d){
+  let s=0;
+  d.ema10>d.ema20?s+=30:s-=30;
+  d.rsi>55?s+=20:d.rsi<45?s-=20:null;
+  d.macd>d.macdSignal?s+=20:s-=20;
+  if(s>=35)return{signal:"BUY",strength:s};
+  if(s<=-35)return{signal:"SELL",strength:Math.abs(s)};
+  return{signal:"HOLD",strength:Math.abs(s)};
+}
+
+function SLTP(e,a,s){
+  let r=a*1.2,t=r*1.5;
+  if(s==="BUY")return{sl:e-r,tp:e+t};
+  if(s==="SELL")return{sl:e+r,tp:e-t};
+  return{sl:e,tp:e};
+}
+
+/* ================= MARKET ================= */
+async function fetchData(symbol){
+  let url=`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${INTERVAL}&outputsize=200&apikey=${TWELVE_KEY}`;
+  let r=await fetch(url),j=await r.json();
+  return j.values.reverse();
+}
+
+/* ================= CHART ================= */
+function loadChart(symbol){
+  chart.innerHTML="";
+  new TradingView.widget({
+    container_id:"chart",
+    symbol:symbol.replace("/",""),
+    interval:"5",
+    theme:"dark",
+    width:"100%",
+    height:400
+  });
+}
+
+/* ================= MAIN ================= */
+async function run(){
+  const symbolVal = symbol.value;
+  loadChart(symbolVal);
+
+  let c = await fetchData(symbolVal);
+  let cl=c.map(x=>+x.close),h=c.map(x=>+x.high),l=c.map(x=>+x.low);
+
+  let sig=generateSignal({
+    ema10:EMA(cl.slice(-20),10),
+    ema20:EMA(cl.slice(-30),20),
+    rsi:RSI(cl),
+    macd:MACD(cl).macd,
+    macdSignal:MACD(cl).signal
+  });
+
+  let entry=cl.at(-1);
+  let sltp=SLTP(entry,ATR(h,l,cl),sig.signal);
+
+  signals.innerHTML=`
+    <div class="signal ${isVIP?"":"vip-lock"}">
+      <h3>${symbolVal}</h3>
+      <h2 class="${sig.signal.toLowerCase()}">${sig.signal}</h2>
+      <p>Entry: ${entry.toFixed(2)}</p>
+      <p>SL: ${sltp.sl.toFixed(2)}</p>
+      <p>TP: ${sltp.tp.toFixed(2)}</p>
+      <p>Strength: ${sig.strength}%</p>
+    </div>
+    ${isVIP?"":"<p style='text-align:center'>🔒 Upgrade to VIP to unlock signals</p>"}
+  `;
+}
+
+/* ================= AUTH ================= */
+loginBtn.onclick = () => {
+  auth.signInWithEmailAndPassword(email.value,password.value)
+      .catch(e=>alert(e.message));
+};
+
+registerBtn.onclick = () => {
+  auth.createUserWithEmailAndPassword(email.value,password.value)
+      .then(userCred=>{
+        db.ref('users/'+userCred.user.uid).set({
+          email: userCred.user.email,
+          vip: false,
+          created: new Date().toISOString()
+        });
+        alert("Account created. Please upgrade to VIP.");
+      })
+      .catch(e=>alert(e.message));
+};
+
+auth.onAuthStateChanged(user=>{
+  if(!user) return;
+  db.ref('users/'+user.uid).once('value').then(snapshot=>{
+    const data = snapshot.val() || {};
+    const expired = data.expiry && Date.now() > new Date(data.expiry).getTime();
+    isVIP = data.vip === true && !expired;
+    run();
+  });
+});
+
+symbol.onchange = run;
+run();
+setInterval(run,60000);
+</script>
+
+</body>
+</html>
