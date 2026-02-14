@@ -41,7 +41,7 @@ button.secondary { background:#334155; }
     <input id="password" type="password" placeholder="Password">
     <button id="loginBtn">Login</button>
     <button id="registerBtn" class="secondary">Register</button>
-    <button id="upgradeBtn" class="secondary" style="display:none;">Upgrade to VIP</button>
+    <button id="upgradeBtn" class="secondary" style="display:none;">Request VIP</button>
   </div>
 </header>
 
@@ -56,7 +56,7 @@ button.secondary { background:#334155; }
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, set, get, child, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 // ================= CONFIG =================
 const TWELVE_KEY = "894c1cdec16d47b98980a4423f254352";
@@ -161,7 +161,7 @@ async function run(){
       <p>TP: ${sltp.tp.toFixed(2)}</p>
       <p>Strength: ${sig.strength}%</p>
     </div>
-    ${isVIP?"":"<p style='text-align:center'>🔒 Upgrade to VIP to unlock signals</p>"}
+    ${isVIP?"":"<p style='text-align:center'>🔒 Request VIP to unlock signals</p>"}
   `;
 }
 
@@ -179,21 +179,23 @@ registerBtn.onclick = () => {
         vip: false,
         created: new Date().toISOString()
       });
-      alert("Account created. Please upgrade to VIP.");
+      alert("Account created. You can request VIP from the button.");
     })
     .catch(e => alert(e.message));
 };
 
-// ================= VIP =================
+// ================= VIP REQUEST =================
 onAuthStateChanged(auth, user => {
-  if (!user) return;
+  if(!user) return;
 
+  // Check VIP status
   get(child(ref(db), 'users/' + user.uid)).then(snapshot => {
     const data = snapshot.val() || {};
-    const expired = data.expiry && Date.now() > new Date(data.expiry).getTime();
-    isVIP = data.vip === true && !expired;
+    isVIP = data.vip === true;
 
     upgradeBtn.style.display = isVIP ? 'none' : 'inline-block';
+    upgradeBtn.disabled = false;
+    upgradeBtn.innerText = "Request VIP";
     run();
   });
 });
@@ -202,24 +204,21 @@ upgradeBtn.onclick = () => {
   const user = auth.currentUser;
   if (!user) return alert("Please login first.");
 
-  const expiryDate = new Date();
-  expiryDate.setMonth(expiryDate.getMonth() + 1); // 1 month VIP
-  set(ref(db, 'users/' + user.uid), {
+  // Write request to Firebase for admin approval
+  set(ref(db, 'vip_requests/' + user.uid), {
     email: user.email,
-    vip: true,
-    created: new Date().toISOString(),
-    expiry: expiryDate.toISOString()
+    requestedAt: new Date().toISOString(),
+    status: "pending"
   }).then(() => {
-    alert("🎉 VIP Activated! Signals unlocked.");
-    isVIP = true;
-    upgradeBtn.style.display = 'none';
-    run();
+    alert("✅ VIP request sent! Admin will verify via Telegram.");
+    upgradeBtn.disabled = true;
+    upgradeBtn.innerText = "Request Pending...";
   }).catch(err => alert(err.message));
 };
 
 // ================= EVENTS =================
 symbol.addEventListener('change', run);
-setInterval(run,60000);
+setInterval(run, 60000);
 
 </script>
 <script src="https://s3.tradingview.com/tv.js"></script>
