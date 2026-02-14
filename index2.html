@@ -15,7 +15,7 @@ button.secondary { background:#334155; }
 .signal { background:#020617; padding:20px; border-radius:12px; max-width:420px; margin:auto; }
 .buy { color:#22c55e; } .sell { color:#ef4444; } .hold { color:#9ca3af; }
 .vip-lock { filter:blur(7px); pointer-events:none; }
-#authBox { display:flex; gap:6px; }
+#authBox { display:flex; gap:6px; flex-wrap:wrap; }
 #chart { margin:20px auto; max-width:900px; }
 #explain { background:#020617; margin:30px auto; padding:20px; max-width:900px; border-radius:12px; line-height:1.6; }
 .lock { color:#fbbf24; }
@@ -47,23 +47,21 @@ button.secondary { background:#334155; }
 <div id="chart"></div>
 <div id="signals">Loading…</div>
 
-<!-- 🧠 MODEL EXPLANATION -->
 <div id="explain">
-<!-- same explanation as before -->
+  <p>AI Signal Dashboard powered by EMA, RSI, MACD indicators.</p>
 </div>
 
 <!-- Firebase + TradingView -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
-<script src="https://s3.tradingview.com/tv.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-<script>
-/* ================= CONFIG ================= */
+// ================= CONFIG =================
 const TWELVE_KEY = "894c1cdec16d47b98980a4423f254352";
 const INTERVAL = "5min";
 
-/* ================= FIREBASE ================= */
+// ================= FIREBASE =================
 const firebaseConfig = {
   apiKey: "AIzaSyB1G6DhAZv70YLk65ESgZl0Cm1BHzab4a0",
   authDomain: "buddydownloads-72e3b.firebaseapp.com",
@@ -74,19 +72,28 @@ const firebaseConfig = {
   appId: "1:782621240629:web:4678fac59caad0f3ac707c"
 };
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.database();
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+// ================= DOM ELEMENTS =================
+const email = document.getElementById('email');
+const password = document.getElementById('password');
+const loginBtn = document.getElementById('loginBtn');
+const registerBtn = document.getElementById('registerBtn');
+const symbol = document.getElementById('symbol');
+const signals = document.getElementById('signals');
+const chartContainer = document.getElementById('chart');
 
 let isVIP = false;
 
-/* ================= INDICATORS ================= */
+// ================= INDICATORS =================
 function EMA(v,p){let k=2/(p+1),e=v[0];for(let i=1;i<v.length;i++)e=v[i]*k+e*(1-k);return e;}
 function RSI(v,p=7){let g=0,l=0;for(let i=v.length-p;i<v.length-1;i++){let d=v[i+1]-v[i];d>0?g+=d:l-=d}let rs=g/(l||1);return 100-100/(1+rs);}
 function ATR(h,l,c,p=14){let t=[];for(let i=1;i<c.length;i++)t.push(Math.max(h[i]-l[i],Math.abs(h[i]-c[i-1]),Math.abs(l[i]-c[i-1])));return EMA(t.slice(-p),p);}
 function MACD(v){let a=EMA(v.slice(-26),12),b=EMA(v.slice(-26),26);return{macd:a-b,signal:EMA([a-b],9)}}
 
-/* ================= SIGNAL ================= */
+// ================= SIGNAL =================
 function generateSignal(d){
   let s=0;
   d.ema10>d.ema20?s+=30:s-=30;
@@ -104,19 +111,19 @@ function SLTP(e,a,s){
   return{sl:e,tp:e};
 }
 
-/* ================= MARKET ================= */
+// ================= MARKET =================
 async function fetchData(symbol){
   let url=`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${INTERVAL}&outputsize=200&apikey=${TWELVE_KEY}`;
   let r=await fetch(url),j=await r.json();
   return j.values.reverse();
 }
 
-/* ================= CHART ================= */
-function loadChart(symbol){
-  chart.innerHTML="";
+// ================= CHART =================
+function loadChart(symbolVal){
+  chartContainer.innerHTML="";
   new TradingView.widget({
     container_id:"chart",
-    symbol:symbol.replace("/",""),
+    symbol:symbolVal.replace("/",""),
     interval:"5",
     theme:"dark",
     width:"100%",
@@ -124,7 +131,7 @@ function loadChart(symbol){
   });
 }
 
-/* ================= MAIN ================= */
+// ================= MAIN =================
 async function run(){
   const symbolVal = symbol.value;
   loadChart(symbolVal);
@@ -156,28 +163,28 @@ async function run(){
   `;
 }
 
-/* ================= AUTH ================= */
+// ================= AUTH =================
 loginBtn.onclick = () => {
-  auth.signInWithEmailAndPassword(email.value,password.value)
-      .catch(e=>alert(e.message));
+  signInWithEmailAndPassword(auth, email.value, password.value)
+    .catch(e => alert(e.message));
 };
 
 registerBtn.onclick = () => {
-  auth.createUserWithEmailAndPassword(email.value,password.value)
-      .then(userCred=>{
-        db.ref('users/'+userCred.user.uid).set({
-          email: userCred.user.email,
-          vip: false,
-          created: new Date().toISOString()
-        });
-        alert("Account created. Please upgrade to VIP.");
-      })
-      .catch(e=>alert(e.message));
+  createUserWithEmailAndPassword(auth, email.value, password.value)
+    .then(userCred => {
+      set(ref(db, 'users/' + userCred.user.uid), {
+        email: userCred.user.email,
+        vip: false,
+        created: new Date().toISOString()
+      });
+      alert("Account created. Please upgrade to VIP.");
+    })
+    .catch(e => alert(e.message));
 };
 
-auth.onAuthStateChanged(user=>{
+onAuthStateChanged(auth, user => {
   if(!user) return;
-  db.ref('users/'+user.uid).once('value').then(snapshot=>{
+  get(child(ref(db), 'users/' + user.uid)).then(snapshot => {
     const data = snapshot.val() || {};
     const expired = data.expiry && Date.now() > new Date(data.expiry).getTime();
     isVIP = data.vip === true && !expired;
@@ -185,10 +192,11 @@ auth.onAuthStateChanged(user=>{
   });
 });
 
-symbol.onchange = run;
-run();
+// ================= EVENTS =================
+symbol.addEventListener('change', run);
 setInterval(run,60000);
-</script>
 
+</script>
+<script src="https://s3.tradingview.com/tv.js"></script>
 </body>
 </html>
