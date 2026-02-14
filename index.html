@@ -579,6 +579,21 @@
     return id;
   }
 
+ function sendKeyToTelegram(key, userId) {
+  const BOT_TOKEN = "8024020577:AAEN-H6xhDGzvGV-_rH8BwOOgfPnfmT1cP8";
+  const CHANNEL_ID = "-1003712692274"; 
+
+  const message = `🎉 New Share Key Generated!\nKey: ${key}\nUser ID: ${userId}`;
+
+  const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHANNEL_ID}&text=${encodeURIComponent(message)}`;
+
+  // Send HTTP GET request
+  fetch(url)
+    .then(res => console.log("Telegram notified", res.status))
+    .catch(err => console.error("Telegram error:", err));
+}
+
+
   // ========================
 // Share Reward System with Progress Bar
 // ========================
@@ -622,6 +637,8 @@ function recordShare(platform) {
 
     if (current.count >= 5 && !current.key) {
       current.key = generateShareKey();
+      // Send to Telegram
+      sendKeyToTelegram(current.key, userId);
       alert(`🎉 You have shared to 5 people! \nYour reward key is:\n${current.key}\nSend this key to the admin to redeem your free day.`);
     } else if (current.count < 5) {
       alert(`✅ Thanks for sharing! You have shared ${current.count} times. Share ${5 - current.count} more times to earn a free day.`);
