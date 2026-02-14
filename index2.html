@@ -41,6 +41,7 @@ button.secondary { background:#334155; }
     <input id="password" type="password" placeholder="Password">
     <button id="loginBtn">Login</button>
     <button id="registerBtn" class="secondary">Register</button>
+    <button id="upgradeBtn" class="secondary" style="display:none;">Upgrade to VIP</button>
   </div>
 </header>
 
@@ -81,6 +82,7 @@ const email = document.getElementById('email');
 const password = document.getElementById('password');
 const loginBtn = document.getElementById('loginBtn');
 const registerBtn = document.getElementById('registerBtn');
+const upgradeBtn = document.getElementById('upgradeBtn');
 const symbol = document.getElementById('symbol');
 const signals = document.getElementById('signals');
 const chartContainer = document.getElementById('chart');
@@ -182,15 +184,38 @@ registerBtn.onclick = () => {
     .catch(e => alert(e.message));
 };
 
+// ================= VIP =================
 onAuthStateChanged(auth, user => {
-  if(!user) return;
+  if (!user) return;
+
   get(child(ref(db), 'users/' + user.uid)).then(snapshot => {
     const data = snapshot.val() || {};
     const expired = data.expiry && Date.now() > new Date(data.expiry).getTime();
     isVIP = data.vip === true && !expired;
+
+    upgradeBtn.style.display = isVIP ? 'none' : 'inline-block';
     run();
   });
 });
+
+upgradeBtn.onclick = () => {
+  const user = auth.currentUser;
+  if (!user) return alert("Please login first.");
+
+  const expiryDate = new Date();
+  expiryDate.setMonth(expiryDate.getMonth() + 1); // 1 month VIP
+  set(ref(db, 'users/' + user.uid), {
+    email: user.email,
+    vip: true,
+    created: new Date().toISOString(),
+    expiry: expiryDate.toISOString()
+  }).then(() => {
+    alert("🎉 VIP Activated! Signals unlocked.");
+    isVIP = true;
+    upgradeBtn.style.display = 'none';
+    run();
+  }).catch(err => alert(err.message));
+};
 
 // ================= EVENTS =================
 symbol.addEventListener('change', run);
