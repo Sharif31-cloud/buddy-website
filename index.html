@@ -289,42 +289,36 @@
   <div id="visit-counter">Loading your visit count...</div>
   <div id="global-counter">Loading total site visits...</div>
  
-  <!-- Share Website -->
+  <!-- Share Bar -->
 <div class="share-bar">
   <span class="share-label">🌍 Share this website:</span>
 
+  <!-- Copy Link -->
   <button class="btn secondary share-btn" onclick="copyWebsiteLink()">
     🔗 Copy Link
   </button>
 
-  <a class="btn secondary share-btn"
-     href="https://wa.me/?text=🚀%20Check%20out%20Buddy%20Products!%20%0A"
-     target="_blank"
-     onclick="appendShareUrl(this)">
-    🟢 WhatsApp
+  <!-- WhatsApp -->
+  <a class="btn secondary share-btn" href="https://wa.me/?text=" target="_blank">
+    💬 WhatsApp
   </a>
 
-  <a class="btn secondary share-btn"
-     href="https://www.facebook.com/sharer/sharer.php?u="
-     target="_blank"
-     onclick="appendShareUrl(this)">
-    🔵 Facebook
+  <!-- Facebook -->
+  <a class="btn secondary share-btn" href="https://www.facebook.com/sharer/sharer.php?u=" target="_blank">
+    📘 Facebook
   </a>
 
-  <a class="btn secondary share-btn"
-     href="https://twitter.com/intent/tweet?text=🚀%20Check%20out%20Buddy%20Products!&url="
-     target="_blank"
-     onclick="appendShareUrl(this)">
-    ❌ X
+  <!-- X / Twitter -->
+  <a class="btn secondary share-btn" href="https://twitter.com/intent/tweet?text=Check%20out%20Buddy%20Products!&url=" target="_blank">
+    🐦 X
   </a>
 
-  <a class="btn secondary share-btn"
-     href="https://t.me/share/url?text=🚀%20Check%20out%20Buddy%20Products!&url="
-     target="_blank"
-     onclick="appendShareUrl(this)">
-    🔷 Telegram
+  <!-- Telegram -->
+  <a class="btn secondary share-btn" href="https://t.me/share/url?text=Check%20out%20Buddy%20Products!&url=" target="_blank">
+    ✈️ Telegram
   </a>
 </div>
+
 
 
   <!-- Products Section -->
@@ -549,154 +543,226 @@
   <footer>© 2026 Buddy Security • All rights reserved</footer>
 
   <!-- Scripts -->
-  <script>
-    // Firebase Initialization
-    const firebaseConfig = {
-      apiKey: "AIzaSyB1G6DhAZv70YLk65ESgZl0Cm1BHzab4a0",
-      authDomain: "buddydownloads-72e3b.firebaseapp.com",
-      databaseURL: "https://buddydownloads-72e3b-default-rtdb.firebaseio.com",
-      projectId: "buddydownloads-72e3b",
-      storageBucket: "buddydownloads-72e3b.appspot.com",
-      messagingSenderId: "782621240629",
-      appId: "1:782621240629:web:4678fac59caad0f3ac707c"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+<script>
+  // ========================
+  // Firebase Initialization
+  // ========================
+  const firebaseConfig = {
+    apiKey: "AIzaSyB1G6DhAZv70YLk65ESgZl0Cm1BHzab4a0",
+    authDomain: "buddydownloads-72e3b.firebaseapp.com",
+    databaseURL: "https://buddydownloads-72e3b-default-rtdb.firebaseio.com",
+    projectId: "buddydownloads-72e3b",
+    storageBucket: "buddydownloads-72e3b.appspot.com",
+    messagingSenderId: "782621240629",
+    appId: "1:782621240629:web:4678fac59caad0f3ac707c"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
-    // Local Visit Counter
-    let visits = parseInt(localStorage.getItem("buddySiteVisits") || "0") + 1;
-    localStorage.setItem("buddySiteVisits", visits);
-    document.getElementById("visit-counter").innerHTML =
-      `You have visited this site <strong>${visits}</strong> time(s).`;
-
-    // Global Visit Counter
-    const globalVisitRef = db.ref("buddyGlobalVisits");
-    globalVisitRef.transaction(current => (current || 0) + 1);
-    globalVisitRef.on("value", snapshot => {
-      document.getElementById("global-counter").innerHTML =
-        `Total site visits: <strong>${snapshot.val() || 0}</strong>`;
-    });
-
-    // Download Counters
-    // Download Counters (anti-spam enabled)
-function setupGlobalDownloadCounter(buttonId, countId, dbKey) {
-  const button = document.getElementById(buttonId);
-  const countDisplay = document.getElementById(countId);
-
-  // Safety check (prevents JS errors)
-  if (!button || !countDisplay) return;
-
-  const ref = db.ref("buddyDownloads/" + dbKey);
-
-  // Live count
-  ref.on("value", snapshot => {
-    countDisplay.textContent = `Downloads: ${snapshot.val() || 0}`;
-  });
-
-  // Anti-spam logic (1 per browser per product)
-  const localKey = "downloaded_" + dbKey;
-
-  button.addEventListener("click", () => {
-    if (localStorage.getItem(localKey)) {
-      console.log("Download already counted for this browser.");
-      return;
+  // ========================
+  // User ID for Share Tracking
+  // ========================
+  function getUserId() {
+    let id = localStorage.getItem('buddyUserId');
+    if (!id) {
+      id = 'user_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+      localStorage.setItem('buddyUserId', id);
     }
+    return id;
+  }
 
-    ref.transaction(current => (current || 0) + 1);
-    localStorage.setItem(localKey, "true");
+  // ========================
+  // Share Reward System
+  // ========================
+  function generateShareKey() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let key = '';
+    for (let i = 0; i < 8; i++) {
+      key += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return key;
+  }
+
+  function recordShare(platform) {
+    const userId = getUserId();
+    if (!userId) return;
+
+    const shareRef = db.ref(`buddyShares/${userId}`);
+    shareRef.transaction(current => {
+      current = current || { count: 0, key: null };
+      if (current.key) return current; // already rewarded
+
+      current.count += 1;
+
+      if (current.count >= 5) {
+        current.key = generateShareKey();
+        alert(`🎉 You have shared to 5 people! \nYour reward key is:\n${current.key}\nSend this key to the admin to redeem your free day.`);
+      } else {
+        alert(`✅ Thanks for sharing! You have shared ${current.count} times. Share ${5 - current.count} more times to earn a free day.`);
+      }
+
+      return current;
+    });
+  }
+
+  // ========================
+  // Share Buttons Setup
+  // ========================
+  function copyWebsiteLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      alert("✅ Website link copied to clipboard!");
+      recordShare('copy');
+    });
+  }
+
+  function setupShareButtons() {
+    const shareLinks = document.querySelectorAll('.share-btn');
+
+    shareLinks.forEach(btn => {
+      // Append current URL for social share buttons
+      if (btn.tagName === 'A' && ['facebook.com', 'twitter.com', 't.me', 'wa.me'].some(s => btn.href.includes(s))) {
+        btn.href += encodeURIComponent(window.location.href);
+      }
+
+      // Ensure clicks call recordShare if not copy link
+      if (!btn.onclick) {
+        const platform = btn.textContent.trim().toLowerCase();
+        btn.addEventListener('click', () => {
+          if (!btn.href.includes('wa.me') && !btn.href.includes('facebook.com') && !btn.href.includes('twitter.com') && !btn.href.includes('t.me')) {
+            recordShare(platform);
+          }
+        });
+      }
+    });
+  }
+
+  // ========================
+  // Visit Counters
+  // ========================
+  // Local
+  let visits = parseInt(localStorage.getItem("buddySiteVisits") || "0") + 1;
+  localStorage.setItem("buddySiteVisits", visits);
+  document.getElementById("visit-counter").innerHTML =
+    `You have visited this site <strong>${visits}</strong> time(s).`;
+
+  // Global
+  const globalVisitRef = db.ref("buddyGlobalVisits");
+  globalVisitRef.transaction(current => (current || 0) + 1);
+  globalVisitRef.on("value", snapshot => {
+    document.getElementById("global-counter").innerHTML =
+      `Total site visits: <strong>${snapshot.val() || 0}</strong>`;
   });
-}
 
+  // ========================
+  // Download Counters
+  // ========================
+  function setupGlobalDownloadCounter(buttonId, countId, dbKey) {
+    const button = document.getElementById(buttonId);
+    const countDisplay = document.getElementById(countId);
+    if (!button || !countDisplay) return;
 
-    setupGlobalDownloadCounter("apk-download", "apk-count", "buddyApk");
-    setupGlobalDownloadCounter("exe-download", "exe-count", "buddyExe");
-    setupGlobalDownloadCounter("admin-download", "admin-count", "jobConnectAdmin");
-    setupGlobalDownloadCounter("aiStreetRacer-download", "aiStreetRacer-count", "aiStreetRacer");
+    const ref = db.ref("buddyDownloads/" + dbKey);
 
-    // Lightbox for screenshots
-    const screenshotImages = document.querySelectorAll('.screenshot-images img');
-    const lightbox = document.getElementById('lightbox');
-    const lightboxImg = document.getElementById('lightbox-img');
-    screenshotImages.forEach(img => {
-      img.addEventListener('click', () => {
-        lightbox.style.display = 'flex';
-        lightboxImg.src = img.src;
-      });
+    // Live count
+    ref.on("value", snapshot => {
+      countDisplay.textContent = `Downloads: ${snapshot.val() || 0}`;
     });
 
-    // Reviews & Ratings per product
-    document.querySelectorAll('.product').forEach(productDiv => {
-      const appKey = productDiv.dataset.app;
-      const reviewsRef = db.ref('buddyReviews/' + appKey);
-      const ratingsRef = db.ref('buddyRatings/' + appKey);
+    const localKey = "downloaded_" + dbKey;
+    button.addEventListener("click", () => {
+      if (localStorage.getItem(localKey)) {
+        console.log("Download already counted for this browser.");
+        return;
+      }
+      ref.transaction(current => (current || 0) + 1);
+      localStorage.setItem(localKey, "true");
+    });
+  }
 
-      const reviewsList = productDiv.querySelector('.reviews-list');
-      const reviewForm = productDiv.querySelector('.review-form');
-      const reviewName = productDiv.querySelector('.review-name');
-      const reviewText = productDiv.querySelector('.review-text');
+  setupGlobalDownloadCounter("apk-download", "apk-count", "buddyApk");
+  setupGlobalDownloadCounter("exe-download", "exe-count", "buddyExe");
+  setupGlobalDownloadCounter("admin-download", "admin-count", "jobConnectAdmin");
+  setupGlobalDownloadCounter("aiStreetRacer-download", "aiStreetRacer-count", "aiStreetRacer");
 
-      const avgStars = productDiv.querySelector('.avg-stars');
-      const avgValue = productDiv.querySelector('.avg-value');
-      const ratingForm = productDiv.querySelector('.rating-form');
-      const ratingSelect = productDiv.querySelector('.rating-select');
+  // ========================
+  // Lightbox for Screenshots
+  // ========================
+  const screenshotImages = document.querySelectorAll('.screenshot-images img');
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightbox-img');
+  screenshotImages.forEach(img => {
+    img.addEventListener('click', () => {
+      lightbox.style.display = 'flex';
+      lightboxImg.src = img.src;
+    });
+  });
 
-      // Load reviews
-      reviewsRef.on('value', snapshot => {
-        reviewsList.innerHTML = '';
-        const reviews = snapshot.val() || {};
-        const reviewsArray = Object.values(reviews).sort((a,b)=>b.createdAt - a.createdAt);
-        reviewsArray.forEach(r => {
+  // ========================
+  // Reviews & Ratings
+  // ========================
+  document.querySelectorAll('.product').forEach(productDiv => {
+    const appKey = productDiv.dataset.app;
+    const reviewsRef = db.ref('buddyReviews/' + appKey);
+    const ratingsRef = db.ref('buddyRatings/' + appKey);
+
+    const reviewsList = productDiv.querySelector('.reviews-list');
+    const reviewForm = productDiv.querySelector('.review-form');
+    const reviewName = productDiv.querySelector('.review-name');
+    const reviewText = productDiv.querySelector('.review-text');
+
+    const avgStars = productDiv.querySelector('.avg-stars');
+    const avgValue = productDiv.querySelector('.avg-value');
+    const ratingForm = productDiv.querySelector('.rating-form');
+    const ratingSelect = productDiv.querySelector('.rating-select');
+
+    // Load reviews
+    reviewsRef.on('value', snapshot => {
+      reviewsList.innerHTML = '';
+      const reviews = snapshot.val() || {};
+      Object.values(reviews)
+        .sort((a,b) => b.createdAt - a.createdAt)
+        .forEach(r => {
           const div = document.createElement('div');
           div.className = 'review-item';
           div.innerHTML = `<strong>${r.name}</strong>: ${r.comment}`;
           reviewsList.appendChild(div);
         });
-      });
-
-      // Submit review
-      reviewForm.addEventListener('submit', e => {
-        e.preventDefault();
-        const name = reviewName.value.trim();
-        const comment = reviewText.value.trim();
-        if(name && comment){
-          reviewsRef.push({ name, comment, createdAt: Date.now() });
-          reviewForm.reset();
-        }
-      });
-
-      // Load ratings & update average
-      ratingsRef.on('value', snapshot => {
-        const ratings = snapshot.val() || {};
-        const values = Object.values(ratings).map(r => parseInt(r.value,10));
-        const avg = values.length ? (values.reduce((a,b)=>a+b,0)/values.length).toFixed(1) : 0;
-        avgValue.textContent = avg;
-        const starsCount = Math.round(avg);
-        avgStars.textContent = '⭐️'.repeat(starsCount) + '☆'.repeat(5-starsCount);
-      });
-
-      // Submit rating
-      ratingForm.addEventListener('submit', e => {
-        e.preventDefault();
-        const value = ratingSelect.value;
-        ratingsRef.push({ value: parseInt(value), createdAt: Date.now() });
-      });
     });
 
-    function copyWebsiteLink() {
-  navigator.clipboard.writeText(window.location.href).then(() => {
-    alert("✅ Website link copied to clipboard!");
+    // Submit review
+    reviewForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const name = reviewName.value.trim();
+      const comment = reviewText.value.trim();
+      if(name && comment){
+        reviewsRef.push({ name, comment, createdAt: Date.now() });
+        reviewForm.reset();
+      }
+    });
+
+    // Load ratings & update average
+    ratingsRef.on('value', snapshot => {
+      const ratings = snapshot.val() || {};
+      const values = Object.values(ratings).map(r => parseInt(r.value,10));
+      const avg = values.length ? (values.reduce((a,b)=>a+b,0)/values.length).toFixed(1) : 0;
+      avgValue.textContent = avg;
+      const starsCount = Math.round(avg);
+      avgStars.textContent = '⭐️'.repeat(starsCount) + '☆'.repeat(5-starsCount);
+    });
+
+    // Submit rating
+    ratingForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const value = ratingSelect.value;
+      ratingsRef.push({ value: parseInt(value), createdAt: Date.now() });
+    });
   });
-}
 
-function appendShareUrl(anchor) {
-  if (anchor.dataset.shared) return;
+  // ========================
+  // Initialize Share Buttons
+  // ========================
+  setupShareButtons();
+</script>
 
-  const url = encodeURIComponent(window.location.href);
-  anchor.href += url;
-  anchor.dataset.shared = "true";
-}
-
-
-  </script>
 </body>
 </html>
