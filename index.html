@@ -319,7 +319,15 @@
   </a>
 </div>
 
-
+<!-- ======================== -->
+<!-- Share Progress Bar -->
+<!-- ======================== -->
+<div id="share-container" style="margin: 15px 0; max-width: 400px;">
+  <div style="margin-bottom:5px;">Share Progress: <span id="share-count">0/5</span></div>
+  <div style="width:100%; background:#ddd; border-radius:8px; overflow:hidden; height:20px;">
+    <div id="share-progress-bar" style="width:0%; height:100%; background:#4CAF50; transition: width 0.3s;"></div>
+  </div>
+</div>
 
   <!-- Products Section -->
   <div class="products">
@@ -572,65 +580,103 @@
   }
 
   // ========================
-  // Share Reward System
-  // ========================
-  function generateShareKey() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let key = '';
-    for (let i = 0; i < 8; i++) {
-      key += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return key;
+// Share Reward System with Progress Bar
+// ========================
+function generateShareKey() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let key = '';
+  for (let i = 0; i < 8; i++) {
+    key += chars.charAt(Math.floor(Math.random() * chars.length));
   }
+  return key;
+}
 
-  function recordShare(platform) {
-    const userId = getUserId();
-    if (!userId) return;
+function updateShareProgressDisplay(userId) {
+  const shareRef = db.ref(`buddyShares/${userId}`);
+  const progressBar = document.getElementById('share-progress-bar');
+  const shareCount = document.getElementById('share-count');
 
-    const shareRef = db.ref(`buddyShares/${userId}`);
-    shareRef.transaction(current => {
-      current = current || { count: 0, key: null };
-      if (current.key) return current; // already rewarded
+  shareRef.on('value', snapshot => {
+    const data = snapshot.val() || { count: 0 };
+    const count = data.count || 0;
+    const percent = Math.min((count / 5) * 100, 100);
 
-      current.count += 1;
+    progressBar.style.width = percent + '%';
+    shareCount.textContent = `${count}/5`;
+  });
+}
 
-      if (current.count >= 5) {
-        current.key = generateShareKey();
-        alert(`🎉 You have shared to 5 people! \nYour reward key is:\n${current.key}\nSend this key to the admin to redeem your free day.`);
-      } else {
-        alert(`✅ Thanks for sharing! You have shared ${current.count} times. Share ${5 - current.count} more times to earn a free day.`);
-      }
+function recordShare(platform) {
+  const userId = getUserId();
+  if (!userId) return;
 
-      return current;
+  const shareRef = db.ref(`buddyShares/${userId}`);
+  shareRef.transaction(current => {
+    current = current || { count: 0, key: null };
+    if (current.key) return current; // already rewarded
+
+    current.count += 1;
+
+    // Update progress display
+    updateShareProgressDisplay(userId);
+
+    if (current.count >= 5 && !current.key) {
+      current.key = generateShareKey();
+      alert(`🎉 You have shared to 5 people! \nYour reward key is:\n${current.key}\nSend this key to the admin to redeem your free day.`);
+    } else if (current.count < 5) {
+      alert(`✅ Thanks for sharing! You have shared ${current.count} times. Share ${5 - current.count} more times to earn a free day.`);
+    }
+
+    return current;
+  });
+}
+
+// Initialize progress for current user
+updateShareProgressDisplay(getUserId());
+
+
+  // ========================
+  // Copy Link Function
+  // ========================
+  function copyWebsiteLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      alert("✅ Website link copied to clipboard!");
+      recordShare('copy'); // Increment share count
     });
   }
 
   // ========================
   // Share Buttons Setup
   // ========================
-  function copyWebsiteLink() {
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      alert("✅ Website link copied to clipboard!");
-      recordShare('copy');
-    });
-  }
-
   function setupShareButtons() {
-    const shareLinks = document.querySelectorAll('.share-btn');
+    const shareButtons = document.querySelectorAll('.share-btn');
+    const userId = getUserId();
+    updateShareProgressDisplay(userId); // Initialize progress display
 
-    shareLinks.forEach(btn => {
-      // Append current URL for social share buttons
-      if (btn.tagName === 'A' && ['facebook.com', 'twitter.com', 't.me', 'wa.me'].some(s => btn.href.includes(s))) {
-        btn.href += encodeURIComponent(window.location.href);
-      }
+    shareButtons.forEach(btn => {
+      const platform = btn.textContent.trim().toLowerCase();
 
-      // Ensure clicks call recordShare if not copy link
-      if (!btn.onclick) {
-        const platform = btn.textContent.trim().toLowerCase();
+      // Append current URL to social links
+      if (btn.tagName === 'A') {
+        if (btn.href.includes('wa.me')) {
+          btn.href = `https://wa.me/?text=${encodeURIComponent("Check out Buddy Products! " + window.location.href)}`;
+        } else if (btn.href.includes('facebook.com')) {
+          btn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`;
+        } else if (btn.href.includes('twitter.com')) {
+          btn.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent("Check out Buddy Products!")}&url=${encodeURIComponent(window.location.href)}`;
+        } else if (btn.href.includes('t.me')) {
+          btn.href = `https://t.me/share/url?text=${encodeURIComponent("Check out Buddy Products! " + window.location.href)}&url=${encodeURIComponent(window.location.href)}`;
+        }
+
+        // Record share when social link is clicked
         btn.addEventListener('click', () => {
-          if (!btn.href.includes('wa.me') && !btn.href.includes('facebook.com') && !btn.href.includes('twitter.com') && !btn.href.includes('t.me')) {
-            recordShare(platform);
-          }
+          recordShare(platform);
+        });
+
+      } else if (btn.tagName === 'BUTTON' && btn.onclick === null) {
+        // Copy link button
+        btn.addEventListener('click', () => {
+          copyWebsiteLink(); // Already calls recordShare('copy')
         });
       }
     });
