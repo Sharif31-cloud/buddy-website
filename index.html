@@ -815,34 +815,29 @@ updateShareProgressDisplay(getUserId());
   // ========================
   // Download Counters
   // ========================
-  // ========================
-// Global Visit Counter for AI Signal Dashboard
-// ========================
-function setupGlobalVisitCounter(buttonId, countId, dbKey) {
-  const button = document.getElementById(buttonId);
-  const countDisplay = document.getElementById(countId);
-  if (!button || !countDisplay) return;
+  function setupGlobalDownloadCounter(buttonId, countId, dbKey) {
+    const button = document.getElementById(buttonId);
+    const countDisplay = document.getElementById(countId);
+    if (!button || !countDisplay) return;
 
-  const ref = db.ref("buddyVisits/" + dbKey);
+    const ref = db.ref("buddyDownloads/" + dbKey);
 
-  // Live count
-  ref.on("value", snapshot => {
-    countDisplay.textContent = `Visits: ${snapshot.val() || 0}`;
-  });
+    // Live count
+    ref.on("value", snapshot => {
+      countDisplay.textContent = `Downloads: ${snapshot.val() || 0}`;
+    });
 
-  const localKey = "visited_" + dbKey;
-  button.addEventListener("click", () => {
-    if (localStorage.getItem(localKey)) {
-      console.log("Visit already counted for this browser.");
-      return;
-    }
-    ref.transaction(current => (current || 0) + 1);
-    localStorage.setItem(localKey, "true");
-  });
-}
+    const localKey = "downloaded_" + dbKey;
+    button.addEventListener("click", () => {
+      if (localStorage.getItem(localKey)) {
+        console.log("Download already counted for this browser.");
+        return;
+      }
+      ref.transaction(current => (current || 0) + 1);
+      localStorage.setItem(localKey, "true");
+    });
+  }
 
-  // Initialize visit counter for AI Signal Dashboard
-  setupGlobalVisitCounter("aiSignalDashboard-visit", "aiSignalDashboard-count", "aiSignalDashboard");
   setupGlobalDownloadCounter("apk-download", "apk-count", "buddyApk");
   setupGlobalDownloadCounter("exe-download", "exe-count", "buddyExe");
   setupGlobalDownloadCounter("admin-download", "admin-count", "jobConnectAdmin");
