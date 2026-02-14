@@ -21,6 +21,7 @@ button.secondary { background:#334155; }
 #chart { margin:20px auto; max-width:900px; }
 #explain { background:#020617; margin:30px auto; padding:20px; max-width:900px; border-radius:12px; line-height:1.6; }
 .lock { color:#fbbf24; }
+.signal button { margin-top:8px; padding:6px 12px; border:none; border-radius:6px; cursor:pointer; background:#2563eb; color:white; }
 </style>
 </head>
 
@@ -134,7 +135,9 @@ async function fetchData(symbol){
 }
 
 // ================= CHART =================
+let chartLoaded = null;
 function loadChart(symbolVal){
+  if(chartLoaded === symbolVal) return; // only load once per symbol
   chartContainer.innerHTML="";
   new TradingView.widget({
     container_id:"chart",
@@ -144,17 +147,27 @@ function loadChart(symbolVal){
     width:"100%",
     height:400
   });
+  chartLoaded = symbolVal;
 }
 
-// ================= MAIN =================
-async function run(){
+// ================= CACHING & DISPLAY =================
+let cachedSignals = {};
+const cacheTime = 5 * 60 * 1000; // 5 min
+
+async function runSignals(){
   const symbolVal = symbol.value;
   loadChart(symbolVal);
 
-  let c = await fetchData(symbolVal);
-  let cl=c.map(x=>+x.close),h=c.map(x=>+x.high),l=c.map(x=>+x.low);
+  const now = Date.now();
+  if(cachedSignals[symbolVal] && now - cachedSignals[symbolVal].time < cacheTime){
+    displaySignals(cachedSignals[symbolVal].data);
+    return;
+  }
 
-  let sig=generateSignal({
+  let c = await fetchData(symbolVal);
+  let cl=c.map(x=>+x.close), h=c.map(x=>+x.high), l=c.map(x=>+x.low);
+
+  let sig = generateSignal({
     ema10:EMA(cl.slice(-20),10),
     ema20:EMA(cl.slice(-30),20),
     rsi:RSI(cl),
@@ -162,10 +175,17 @@ async function run(){
     macdSignal:MACD(cl).signal
   });
 
-  let entry=cl.at(-1);
-  let sltp=SLTP(entry,ATR(h,l,cl),sig.signal);
+  let entry = cl.at(-1);
+  let sltp = SLTP(entry, ATR(h,l,cl), sig.signal);
 
-  signals.innerHTML=`
+  const signalData = {symbolVal, sig, entry, sltp};
+  cachedSignals[symbolVal] = {data: signalData, time: now};
+
+  displaySignals(signalData);
+}
+
+function displaySignals({symbolVal, sig, entry, sltp}){
+  signals.innerHTML = `
     <div class="signal ${isVIP?"":"vip-lock"}">
       ${isVIP?'<div class="vip-badge">VIP Active</div>':""}
       <h3>${symbolVal}</h3>
@@ -174,9 +194,16 @@ async function run(){
       <p>SL: ${sltp.sl.toFixed(2)}</p>
       <p>TP: ${sltp.tp.toFixed(2)}</p>
       <p>Strength: ${sig.strength}%</p>
+      ${isVIP ? `<button onclick="copySignal('${symbolVal} ${sig.signal} Entry:${entry.toFixed(2)} SL:${sltp.sl.toFixed(2)} TP:${sltp.tp.toFixed(2)}')">Copy Signal</button>` : ''}
     </div>
     ${isVIP?"":"<p style='text-align:center'>🔒 Request VIP to unlock signals</p>"}
   `;
+}
+
+function copySignal(text){
+  navigator.clipboard.writeText(text).then(()=>{
+    alert("✅ Signal copied!");
+  }).catch(err=>alert("❌ Copy failed: "+err));
 }
 
 // ================= AUTH =================
@@ -198,30 +225,25 @@ registerBtn.onclick = () => {
     .catch(e => alert(e.message));
 };
 
-// ================= VIP REQUEST =================
 onAuthStateChanged(auth, user => {
   if(!user) return;
-
   get(child(ref(db), 'users/' + user.uid)).then(snapshot => {
     const data = snapshot.val() || {};
     isVIP = data.vip === true;
 
     upgradeBtn.style.display = isVIP ? 'none' : 'inline-block';
     tidBox.style.display = "none";
-    run();
+    runSignals();
   });
 });
 
-// Show TID box when user clicks "Request VIP"
 upgradeBtn.onclick = () => {
   const user = auth.currentUser;
   if (!user) return alert("Please login first.");
-
   tidBox.style.display = "flex";
   upgradeBtn.style.display = "none";
 };
 
-// Submit TID and send VIP request
 activateVipBtn.onclick = () => {
   const tidValue = tidInput.value.trim();
   const tidPattern = /^TID\s\d{12}$/;
@@ -246,23 +268,12 @@ activateVipBtn.onclick = () => {
   }).catch(err => alert(err.message));
 };
 
-// ================= AUTO-REFRESH VIP STATUS =================
-function checkVipStatus() {
-  const user = auth.currentUser;
-  if (!user) return;
+// ================= EVENTS =================
+symbol.addEventListener('change', runSignals);
 
-  get(child(ref(db), 'users/' + user.uid)).then(snapshot => {
-    const data = snapshot.val() || {};
-    isVIP = data.vip === true;
-
-    upgradeBtn.style.display = isVIP ? 'none' : 'inline-block';
-    tidBox.style.display = isVIP ? 'none' : tidBox.style.display;
-    run();
-  });
-}
-
-setInterval(checkVipStatus, 10000);
-symbol.addEventListener('change', run);
+// ================= AUTO-REFRESH =================
+// refresh signals only every 5 minutes to avoid Twelve limit
+setInterval(runSignals, 5*60*1000);
 
 </script>
 <script src="https://s3.tradingview.com/tv.js"></script>
