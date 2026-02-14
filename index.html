@@ -522,19 +522,35 @@
     });
 
     // Download Counters
-    function setupGlobalDownloadCounter(buttonId, countId, dbKey) {
-      const button = document.getElementById(buttonId);
-      const countDisplay = document.getElementById(countId);
-      const ref = db.ref("buddyDownloads/" + dbKey);
+    // Download Counters (anti-spam enabled)
+function setupGlobalDownloadCounter(buttonId, countId, dbKey) {
+  const button = document.getElementById(buttonId);
+  const countDisplay = document.getElementById(countId);
 
-      ref.on("value", snapshot => {
-        countDisplay.textContent = `Downloads: ${snapshot.val() || 0}`;
-      });
+  // Safety check (prevents JS errors)
+  if (!button || !countDisplay) return;
 
-      button.addEventListener("click", () => {
-        ref.transaction(current => (current || 0) + 1);
-      });
+  const ref = db.ref("buddyDownloads/" + dbKey);
+
+  // Live count
+  ref.on("value", snapshot => {
+    countDisplay.textContent = `Downloads: ${snapshot.val() || 0}`;
+  });
+
+  // Anti-spam logic (1 per browser per product)
+  const localKey = "downloaded_" + dbKey;
+
+  button.addEventListener("click", () => {
+    if (localStorage.getItem(localKey)) {
+      console.log("Download already counted for this browser.");
+      return;
     }
+
+    ref.transaction(current => (current || 0) + 1);
+    localStorage.setItem(localKey, "true");
+  });
+}
+
 
     setupGlobalDownloadCounter("apk-download", "apk-count", "buddyApk");
     setupGlobalDownloadCounter("exe-download", "exe-count", "buddyExe");
