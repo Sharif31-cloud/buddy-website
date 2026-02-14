@@ -18,7 +18,7 @@ select, button, input { padding:8px; border-radius:6px; border:none; }
 button { background:#2563eb; color:white; cursor:pointer; }
 button.secondary { background:#334155; }
 #signals { padding:20px; }
-.signal { background:#020617; padding:20px; border-radius:12px; max-width:420px; margin:auto; position:relative; }
+.signal { background:#020617; padding:20px; border-radius:12px; max-width:420px; margin:auto; position:relative; transition: filter 0.3s ease; }
 .vip-badge { position:absolute; top:10px; right:10px; background:#22c55e; color:#fff; padding:4px 8px; border-radius:8px; font-weight:bold; font-size:0.9rem; }
 .buy { color:#22c55e; } 
 .sell { color:#ef4444; } 
@@ -31,6 +31,7 @@ button.secondary { background:#334155; }
 .lock { color:#fbbf24; }
 .signal button { margin-top:8px; padding:6px 12px; border:none; border-radius:6px; cursor:pointer; background:#2563eb; color:white; }
 select option.free-symbol { color: #22c55e; font-weight: bold; }
+#vipTimer { margin-left:10px; font-weight:bold; color:#22c55e; }
 </style>
 </head>
 
@@ -61,6 +62,8 @@ select option.free-symbol { color: #22c55e; font-weight: bold; }
       <input id="tidInput" placeholder="TID 123456789012">
       <button id="activateVipBtn" style="background:#22c55e; color:white; cursor:pointer;">Activate VIP</button>
     </div>
+
+    <div id="vipTimer"></div>
   </div>
 </header>
 
@@ -106,8 +109,10 @@ const activateVipBtn = document.getElementById('activateVipBtn');
 const symbol = document.getElementById('symbol');
 const signals = document.getElementById('signals');
 const chartContainer = document.getElementById('chart');
+const vipTimerDiv = document.getElementById('vipTimer');
 
 let isVIP = false;
+let vipCountdownInterval = null;
 const freeSymbols = ["EUR/USD", "GBP/USD"];
 
 // =============== INDICATORS =================
@@ -172,10 +177,15 @@ async function runSignals(){
 
 function displaySignals({symbolVal, sig, entry, sltp}){
   const isFree = freeSymbols.includes(symbolVal);
+  let vipBadgeHtml = "";
+  let blurClass = "";
+  if(isVIP) vipBadgeHtml = `<div class="vip-badge">VIP Active ${vipTimerDiv.innerText.replace("VIP expires in ","")}</div>`;
+  else if(isFree && !isVIP) vipBadgeHtml = `<div class="vip-badge" style="background:#22c55e">FREE</div>`;
+  else blurClass = "vip-lock";
+
   signals.innerHTML = `
-    <div class="signal ${isVIP||isFree?"":"vip-lock"}">
-      ${isVIP?'<div class="vip-badge">VIP Active</div>':""}
-      ${isFree&&!isVIP?'<div class="vip-badge" style="background:#22c55e">FREE</div>':""}
+    <div class="signal ${blurClass}">
+      ${vipBadgeHtml}
       <h3>${symbolVal}</h3>
       <h2 class="${sig.signal.toLowerCase()}">${sig.signal}</h2>
       <p>Entry: ${entry.toFixed(2)}</p>
@@ -190,24 +200,67 @@ function displaySignals({symbolVal, sig, entry, sltp}){
 
 function copySignal(text){navigator.clipboard.writeText(text).then(()=>alert("✅ Signal copied!")).catch(err=>alert("❌ Copy failed: "+err));}
 
+// =============== VIP COUNTDOWN =================
+function startVipCountdown(expiryIso){
+  clearInterval(vipCountdownInterval);
+  const expiryTime = new Date(expiryIso).getTime();
+
+  vipCountdownInterval = setInterval(()=>{
+    const now = Date.now();
+    const diff = expiryTime - now;
+
+    if(diff <= 0){
+      clearInterval(vipCountdownInterval);
+      isVIP = false;
+      upgradeBtn.style.display = 'inline-block';
+      tidBox.style.display = 'none';
+      vipTimerDiv.innerText = "VIP expired ⏳";
+      runSignals(); // triggers blur automatically
+      return;
+    }
+
+    const days = Math.floor(diff / (1000*60*60*24));
+    const hours = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
+    const minutes = Math.floor((diff % (1000*60*60)) / (1000*60));
+    const seconds = Math.floor((diff % (1000*60)) / 1000);
+
+    vipTimerDiv.innerText = `VIP expires in ${days}d ${hours}h ${minutes}m ${seconds}s ⏳`;
+    runSignals(); // refresh VIP badge in signals
+  }, 1000);
+}
+
 // =============== AUTH =================
 loginBtn.onclick = ()=>signInWithEmailAndPassword(auth,email.value,password.value).catch(e=>alert(e.message));
 registerBtn.onclick = ()=>createUserWithEmailAndPassword(auth,email.value,password.value)
-.then(uc=>{set(ref(db,'users/'+uc.user.uid),{email:uc.user.email,vip:false,created:new Date().toISOString()});alert("Account created. Request VIP from the button.");})
+.then(uc=>{
+  set(ref(db,'users/'+uc.user.uid),{email:uc.user.email,vip:false,created:new Date().toISOString()});
+  alert("Account created. Request VIP from the button.");
+})
 .catch(e=>alert(e.message));
 
 onAuthStateChanged(auth,user=>{
   if(!user) return;
   get(child(ref(db),'users/'+user.uid)).then(snap=>{
     const data=snap.val()||{};
-    isVIP=data.vip===true;
+    isVIP = data.vip===true;
     upgradeBtn.style.display=isVIP?'none':'inline-block';
     tidBox.style.display="none";
+    if(isVIP && data.vipExpiry){
+      startVipCountdown(data.vipExpiry);
+    } else {
+      vipTimerDiv.innerText = "";
+    }
     runSignals();
   });
 });
 
-upgradeBtn.onclick=()=>{const user=auth.currentUser;if(!user)return alert("Please login first.");tidBox.style.display="flex";upgradeBtn.style.display="none";};
+upgradeBtn.onclick=()=>{
+  const user=auth.currentUser;
+  if(!user) return alert("Please login first.");
+  tidBox.style.display="flex";
+  upgradeBtn.style.display="none";
+};
+
 activateVipBtn.onclick=()=>{
   const tidValue=tidInput.value.trim();
   const tidPattern=/^TID\s\d{12}$/;
