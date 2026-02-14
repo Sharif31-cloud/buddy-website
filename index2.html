@@ -44,6 +44,7 @@ button.secondary { background:#334155; }
     <button id="loginBtn">Login</button>
     <button id="registerBtn" class="secondary">Register</button>
     <button id="upgradeBtn" class="secondary" style="display:none;">Request VIP</button>
+
     <div id="tidBox">
       <p style="color:#fbbf24; margin:0;">
         For VIP, send 5k UGX to 0748244415 (Semakula Sharif) and enter your TID below:
@@ -206,27 +207,21 @@ onAuthStateChanged(auth, user => {
     isVIP = data.vip === true;
 
     upgradeBtn.style.display = isVIP ? 'none' : 'inline-block';
-    tidBox.style.display = isVIP ? 'none' : tidBox.style.display;
+    tidBox.style.display = "none";
     run();
   });
 });
 
+// Show TID box when user clicks "Request VIP"
 upgradeBtn.onclick = () => {
   const user = auth.currentUser;
   if (!user) return alert("Please login first.");
 
-  set(ref(db, 'vip_requests/' + user.uid), {
-    email: user.email,
-    requestedAt: new Date().toISOString(),
-    status: "pending"
-  }).then(() => {
-    alert("✅ VIP request sent! Admin will verify.");
-    upgradeBtn.disabled = true;
-    upgradeBtn.innerText = "Request Pending...";
-    tidBox.style.display = "flex";
-  }).catch(err => alert(err.message));
+  tidBox.style.display = "flex";
+  upgradeBtn.style.display = "none";
 };
 
+// Submit TID and send VIP request
 activateVipBtn.onclick = () => {
   const tidValue = tidInput.value.trim();
   const tidPattern = /^TID\s\d{12}$/;
@@ -239,11 +234,13 @@ activateVipBtn.onclick = () => {
   const user = auth.currentUser;
   if (!user) return alert("Please login first.");
 
-  update(ref(db, 'vip_requests/' + user.uid), {
+  set(ref(db, 'vip_requests/' + user.uid), {
+    email: user.email,
+    requestedAt: new Date().toISOString(),
     tid: tidValue,
-    tidSubmittedAt: new Date().toISOString()
+    status: "pending"
   }).then(() => {
-    alert("✅ TID submitted! Admin will verify your VIP status soon.");
+    alert("✅ VIP request sent! Admin will verify your payment.");
     activateVipBtn.disabled = true;
     activateVipBtn.innerText = "TID Submitted";
   }).catch(err => alert(err.message));
@@ -264,10 +261,7 @@ function checkVipStatus() {
   });
 }
 
-// Auto-refresh every 10 seconds
 setInterval(checkVipStatus, 10000);
-
-// ================= EVENTS =================
 symbol.addEventListener('change', run);
 
 </script>
