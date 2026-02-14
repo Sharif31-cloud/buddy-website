@@ -12,10 +12,12 @@ select, button, input { padding:8px; border-radius:6px; border:none; }
 button { background:#2563eb; color:white; cursor:pointer; }
 button.secondary { background:#334155; }
 #signals { padding:20px; }
-.signal { background:#020617; padding:20px; border-radius:12px; max-width:420px; margin:auto; }
+.signal { background:#020617; padding:20px; border-radius:12px; max-width:420px; margin:auto; position:relative; }
+.vip-badge { position:absolute; top:10px; right:10px; background:#22c55e; color:#fff; padding:4px 8px; border-radius:8px; font-weight:bold; font-size:0.9rem; }
 .buy { color:#22c55e; } .sell { color:#ef4444; } .hold { color:#9ca3af; }
 .vip-lock { filter:blur(7px); pointer-events:none; }
-#authBox { display:flex; gap:6px; flex-wrap:wrap; }
+#authBox { display:flex; gap:6px; flex-wrap:wrap; align-items:flex-end; }
+#tidBox { display:none; flex-direction:column; gap:6px; margin-top:10px; background:#1e293b; padding:12px; border-radius:10px; max-width:420px; }
 #chart { margin:20px auto; max-width:900px; }
 #explain { background:#020617; margin:30px auto; padding:20px; max-width:900px; border-radius:12px; line-height:1.6; }
 .lock { color:#fbbf24; }
@@ -42,6 +44,13 @@ button.secondary { background:#334155; }
     <button id="loginBtn">Login</button>
     <button id="registerBtn" class="secondary">Register</button>
     <button id="upgradeBtn" class="secondary" style="display:none;">Request VIP</button>
+    <div id="tidBox">
+      <p style="color:#fbbf24; margin:0;">
+        For VIP, send 5k UGX to 0748244415 (Semakula Sharif) and enter your TID below:
+      </p>
+      <input id="tidInput" placeholder="TID 123456789012">
+      <button id="activateVipBtn" style="background:#22c55e; color:white; cursor:pointer;">Activate VIP</button>
+    </div>
   </div>
 </header>
 
@@ -52,7 +61,6 @@ button.secondary { background:#334155; }
   <p>AI Signal Dashboard powered by EMA, RSI, MACD indicators.</p>
 </div>
 
-<!-- Firebase + TradingView -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -83,6 +91,10 @@ const password = document.getElementById('password');
 const loginBtn = document.getElementById('loginBtn');
 const registerBtn = document.getElementById('registerBtn');
 const upgradeBtn = document.getElementById('upgradeBtn');
+const tidBox = document.getElementById('tidBox');
+const tidInput = document.getElementById('tidInput');
+const activateVipBtn = document.getElementById('activateVipBtn');
+
 const symbol = document.getElementById('symbol');
 const signals = document.getElementById('signals');
 const chartContainer = document.getElementById('chart');
@@ -154,6 +166,7 @@ async function run(){
 
   signals.innerHTML=`
     <div class="signal ${isVIP?"":"vip-lock"}">
+      ${isVIP?'<div class="vip-badge">VIP Active</div>':""}
       <h3>${symbolVal}</h3>
       <h2 class="${sig.signal.toLowerCase()}">${sig.signal}</h2>
       <p>Entry: ${entry.toFixed(2)}</p>
@@ -188,14 +201,12 @@ registerBtn.onclick = () => {
 onAuthStateChanged(auth, user => {
   if(!user) return;
 
-  // Check VIP status
   get(child(ref(db), 'users/' + user.uid)).then(snapshot => {
     const data = snapshot.val() || {};
     isVIP = data.vip === true;
 
     upgradeBtn.style.display = isVIP ? 'none' : 'inline-block';
-    upgradeBtn.disabled = false;
-    upgradeBtn.innerText = "Request VIP";
+    tidBox.style.display = isVIP ? 'none' : tidBox.style.display;
     run();
   });
 });
@@ -204,21 +215,60 @@ upgradeBtn.onclick = () => {
   const user = auth.currentUser;
   if (!user) return alert("Please login first.");
 
-  // Write request to Firebase for admin approval
   set(ref(db, 'vip_requests/' + user.uid), {
     email: user.email,
     requestedAt: new Date().toISOString(),
     status: "pending"
   }).then(() => {
-    alert("✅ VIP request sent! Admin will verify via Telegram.");
+    alert("✅ VIP request sent! Admin will verify.");
     upgradeBtn.disabled = true;
     upgradeBtn.innerText = "Request Pending...";
+    tidBox.style.display = "flex";
   }).catch(err => alert(err.message));
 };
 
+activateVipBtn.onclick = () => {
+  const tidValue = tidInput.value.trim();
+  const tidPattern = /^TID\s\d{12}$/;
+
+  if (!tidPattern.test(tidValue)) {
+    alert("❌ Invalid TID format. Use: TID 123456789012");
+    return;
+  }
+
+  const user = auth.currentUser;
+  if (!user) return alert("Please login first.");
+
+  update(ref(db, 'vip_requests/' + user.uid), {
+    tid: tidValue,
+    tidSubmittedAt: new Date().toISOString()
+  }).then(() => {
+    alert("✅ TID submitted! Admin will verify your VIP status soon.");
+    activateVipBtn.disabled = true;
+    activateVipBtn.innerText = "TID Submitted";
+  }).catch(err => alert(err.message));
+};
+
+// ================= AUTO-REFRESH VIP STATUS =================
+function checkVipStatus() {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  get(child(ref(db), 'users/' + user.uid)).then(snapshot => {
+    const data = snapshot.val() || {};
+    isVIP = data.vip === true;
+
+    upgradeBtn.style.display = isVIP ? 'none' : 'inline-block';
+    tidBox.style.display = isVIP ? 'none' : tidBox.style.display;
+    run();
+  });
+}
+
+// Auto-refresh every 10 seconds
+setInterval(checkVipStatus, 10000);
+
 // ================= EVENTS =================
 symbol.addEventListener('change', run);
-setInterval(run, 60000);
 
 </script>
 <script src="https://s3.tradingview.com/tv.js"></script>
