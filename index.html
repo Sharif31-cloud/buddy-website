@@ -639,9 +639,9 @@ function recordShare(platform) {
       current.key = generateShareKey();
       // Send to Telegram
       sendKeyToTelegram(current.key, userId);
-      alert(`🎉 You have shared to 5 people! \nYour reward key is:\n${current.key}\nSend this key to the admin to redeem your free day.`);
+      alert(`🎉 You have shared to 5 people! \nYour reward key is:\n${current.key}\nSend this key to the admin to redeem your free day of using the bot or jobconnect.`);
     } else if (current.count < 5) {
-      alert(`✅ Thanks for sharing! You have shared ${current.count} times. Share ${5 - current.count} more times to earn a free day.`);
+      alert(`✅ Thanks for sharing! You have shared ${current.count} times. Share ${5 - current.count} more times to earn a free day of using the bot or jobconnect.`);
     }
 
     return current;
