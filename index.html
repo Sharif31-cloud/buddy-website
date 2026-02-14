@@ -255,6 +255,24 @@
       color: #888;
       font-size: 14px;
     }
+
+    .share-bar {
+  text-align: center;
+  margin: 25px 0;
+}
+
+.share-label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 500;
+  color: #555;
+}
+
+.share-btn {
+  font-size: 13px;
+  padding: 10px 16px;
+}
+
   </style>
 
   <!-- Firebase SDK -->
@@ -270,6 +288,44 @@
   <!-- Visit Counters -->
   <div id="visit-counter">Loading your visit count...</div>
   <div id="global-counter">Loading total site visits...</div>
+ 
+  <!-- Share Website -->
+<div class="share-bar">
+  <span class="share-label">🌍 Share this website:</span>
+
+  <button class="btn secondary share-btn" onclick="copyWebsiteLink()">
+    🔗 Copy Link
+  </button>
+
+  <a class="btn secondary share-btn"
+     href="https://wa.me/?text=🚀%20Check%20out%20Buddy%20Products!%20%0A"
+     target="_blank"
+     onclick="appendShareUrl(this)">
+    🟢 WhatsApp
+  </a>
+
+  <a class="btn secondary share-btn"
+     href="https://www.facebook.com/sharer/sharer.php?u="
+     target="_blank"
+     onclick="appendShareUrl(this)">
+    🔵 Facebook
+  </a>
+
+  <a class="btn secondary share-btn"
+     href="https://twitter.com/intent/tweet?text=🚀%20Check%20out%20Buddy%20Products!&url="
+     target="_blank"
+     onclick="appendShareUrl(this)">
+    ❌ X
+  </a>
+
+  <a class="btn secondary share-btn"
+     href="https://t.me/share/url?text=🚀%20Check%20out%20Buddy%20Products!&url="
+     target="_blank"
+     onclick="appendShareUrl(this)">
+    🔷 Telegram
+  </a>
+</div>
+
 
   <!-- Products Section -->
   <div class="products">
@@ -625,6 +681,22 @@ function setupGlobalDownloadCounter(buttonId, countId, dbKey) {
         ratingsRef.push({ value: parseInt(value), createdAt: Date.now() });
       });
     });
+
+    function copyWebsiteLink() {
+  navigator.clipboard.writeText(window.location.href).then(() => {
+    alert("✅ Website link copied to clipboard!");
+  });
+}
+
+function appendShareUrl(anchor) {
+  if (anchor.dataset.shared) return;
+
+  const url = encodeURIComponent(window.location.href);
+  anchor.href += url;
+  anchor.dataset.shared = "true";
+}
+
+
   </script>
 </body>
 </html>
