@@ -7,10 +7,9 @@
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="logo_icon.png">
-  <!-- Optional: fallback for older browsers -->
   <link rel="shortcut icon" href="favicon.ico">
 
-  <!-- Meta description for SEO -->
+  <!-- Meta description -->
   <meta name="description" content="AI Signal Dashboard for Forex, Crypto, and Commodities with EMA, RSI, and MACD indicators. VIP access for premium signals.">
 
   <!-- Styles -->
@@ -35,7 +34,6 @@
     .signal button { margin-top:8px; padding:6px 12px; border:none; border-radius:6px; cursor:pointer; background:#2563eb; color:white; }
   </style>
 </head>
-
 
 <body>
 
@@ -78,7 +76,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref, set, get, child, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 // ================= CONFIG =================
 const TWELVE_KEY = "894c1cdec16d47b98980a4423f254352";
@@ -197,44 +195,37 @@ async function runSignals(){
 }
 
 function displaySignals({symbolVal, sig, entry, sltp}){
+  const freeSymbols = ["EUR/USD","GBP/USD"];
+  const unlocked = isVIP || freeSymbols.includes(symbolVal);
+
   signals.innerHTML = `
-    <div class="signal ${isVIP?"":"vip-lock"}">
-      ${isVIP?'<div class="vip-badge">VIP Active</div>':""}
+    <div class="signal ${unlocked ? "" : "vip-lock"}">
+      ${isVIP ? '<div class="vip-badge">VIP Active</div>' : ""}
       <h3>${symbolVal}</h3>
       <h2 class="${sig.signal.toLowerCase()}">${sig.signal}</h2>
       <p>Entry: ${entry.toFixed(2)}</p>
       <p>SL: ${sltp.sl.toFixed(2)}</p>
       <p>TP: ${sltp.tp.toFixed(2)}</p>
       <p>Strength: ${sig.strength}%</p>
-      ${isVIP ? `<button onclick="copySignal('${symbolVal} ${sig.signal} Entry:${entry.toFixed(2)} SL:${sltp.sl.toFixed(2)} TP:${sltp.tp.toFixed(2)}')">Copy Signal</button>` : ''}
+      ${unlocked ? `<button onclick="copySignal('${symbolVal} ${sig.signal} Entry:${entry.toFixed(2)} SL:${sltp.sl.toFixed(2)} TP:${sltp.tp.toFixed(2)}')">Copy Signal</button>` : ''}
     </div>
-    ${isVIP?"":"<p style='text-align:center'>🔒 Request VIP to unlock signals</p>"}
+    ${unlocked ? "" : "<p style='text-align:center'>🔒 Request VIP to unlock signals</p>"}
   `;
 }
 
 function copySignal(text){
-  navigator.clipboard.writeText(text).then(()=>{
-    alert("✅ Signal copied!");
-  }).catch(err=>alert("❌ Copy failed: "+err));
+  navigator.clipboard.writeText(text).then(()=>{ alert("✅ Signal copied!"); })
+  .catch(err=>alert("❌ Copy failed: "+err));
 }
 
 // ================= AUTH =================
-loginBtn.onclick = () => {
-  signInWithEmailAndPassword(auth, email.value, password.value)
-    .catch(e => alert(e.message));
-};
-
+loginBtn.onclick = () => { signInWithEmailAndPassword(auth, email.value, password.value).catch(e => alert(e.message)); };
 registerBtn.onclick = () => {
   createUserWithEmailAndPassword(auth, email.value, password.value)
-    .then(userCred => {
-      set(ref(db, 'users/' + userCred.user.uid), {
-        email: userCred.user.email,
-        vip: false,
-        created: new Date().toISOString()
-      });
-      alert("Account created. You can request VIP from the button.");
-    })
-    .catch(e => alert(e.message));
+  .then(userCred => {
+    set(ref(db, 'users/' + userCred.user.uid), { email: userCred.user.email, vip: false, created: new Date().toISOString() });
+    alert("Account created. You can request VIP from the button.");
+  }).catch(e => alert(e.message));
 };
 
 onAuthStateChanged(auth, user => {
@@ -242,7 +233,6 @@ onAuthStateChanged(auth, user => {
   get(child(ref(db), 'users/' + user.uid)).then(snapshot => {
     const data = snapshot.val() || {};
     isVIP = data.vip === true;
-
     upgradeBtn.style.display = isVIP ? 'none' : 'inline-block';
     tidBox.style.display = "none";
     runSignals();
@@ -259,33 +249,18 @@ upgradeBtn.onclick = () => {
 activateVipBtn.onclick = () => {
   const tidValue = tidInput.value.trim();
   const tidPattern = /^TID\s\d{12}$/;
-
-  if (!tidPattern.test(tidValue)) {
-    alert("❌ Invalid TID format. Use: TID 123456789012");
-    return;
-  }
-
+  if (!tidPattern.test(tidValue)) { alert("❌ Invalid TID format. Use: TID 123456789012"); return; }
   const user = auth.currentUser;
   if (!user) return alert("Please login first.");
 
-  set(ref(db, 'vip_requests/' + user.uid), {
-    email: user.email,
-    requestedAt: new Date().toISOString(),
-    tid: tidValue,
-    status: "pending"
-  }).then(() => {
-    alert("✅ VIP request sent! Admin will verify your payment.");
-    activateVipBtn.disabled = true;
-    activateVipBtn.innerText = "TID Submitted";
-  }).catch(err => alert(err.message));
+  set(ref(db, 'vip_requests/' + user.uid), { email: user.email, requestedAt: new Date().toISOString(), tid: tidValue, status: "pending" })
+    .then(() => { alert("✅ VIP request sent! Admin will verify your payment."); activateVipBtn.disabled=true; activateVipBtn.innerText="TID Submitted"; })
+    .catch(err => alert(err.message));
 };
 
 // ================= EVENTS =================
 symbol.addEventListener('change', runSignals);
-
-// ================= AUTO-REFRESH =================
-// refresh signals only every 5 minutes to avoid Twelve limit
-setInterval(runSignals, 5*60*1000);
+setInterval(runSignals, 5*60*1000); // auto-refresh every 5 min
 
 </script>
 <script src="https://s3.tradingview.com/tv.js"></script>
