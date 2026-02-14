@@ -843,6 +843,36 @@ updateShareProgressDisplay(getUserId());
   setupGlobalDownloadCounter("admin-download", "admin-count", "jobConnectAdmin");
   setupGlobalDownloadCounter("aiStreetRacer-download", "aiStreetRacer-count", "aiStreetRacer");
 
+// ========================
+// Dashboard Visit Counter
+// ========================
+function setupDashboardCounter(buttonSelector, countId, dbKey) {
+  const button = document.querySelector(buttonSelector);
+  const countDisplay = document.getElementById(countId);
+  if (!button || !countDisplay) return;
+
+  const ref = db.ref("buddyDashboardVisits/" + dbKey);
+
+  // Live count
+  ref.on("value", snapshot => {
+    countDisplay.textContent = `Visits: ${snapshot.val() || 0}`;
+  });
+
+  const localKey = "visited_" + dbKey;
+  button.addEventListener("click", () => {
+    if (localStorage.getItem(localKey)) {
+      console.log("Visit already counted for this browser.");
+      return;
+    }
+    ref.transaction(current => (current || 0) + 1);
+    localStorage.setItem(localKey, "true");
+  });
+}
+
+// Call this for your dashboard
+setupDashboardCounter("a.btn[href='index2.html']", "aiSignalDashboard-count", "aiSignalDashboard");
+
+
   // ========================
   // Lightbox for Screenshots
   // ========================
