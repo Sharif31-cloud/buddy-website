@@ -32,6 +32,11 @@
     #explain { background:#020617; margin:30px auto; padding:20px; max-width:900px; border-radius:12px; line-height:1.6; }
     .lock { color:#fbbf24; }
     .signal button { margin-top:8px; padding:6px 12px; border:none; border-radius:6px; cursor:pointer; background:#2563eb; color:white; }
+
+select option.free-symbol {
+    color: #22c55e; /* green */
+    font-weight: bold;
+  }
   </style>
 </head>
 
@@ -39,11 +44,11 @@
 
 <header>
   <div>
-    <h3>📊 AI Signal Dashboard</h3>
+     <h3>📊 AI Signal Dashboard</h3>
     <select id="symbol">
       <option value="XAU/USD">XAUUSD</option>
-      <option value="EUR/USD">EURUSD</option>
-      <option value="GBP/USD">GBPUSD</option>
+      <option value="EUR/USD" class="free-symbol">EURUSD (Free)</option>
+      <option value="GBP/USD" class="free-symbol">GBPUSD (Free)</option>
       <option value="USD/JPY">USDJPY</option>
       <option value="BTC/USD">BTCUSD</option>
     </select>
