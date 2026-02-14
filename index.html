@@ -273,6 +273,57 @@
   padding: 10px 16px;
 }
 
+/* Dark mode overrides */
+body.dark-mode {
+  background: #121212;
+  color: #e0e0e0;
+}
+
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode p {
+  color: #e0e0e0;
+}
+
+body.dark-mode .product {
+  background: #1e1e1e;
+  box-shadow: 0 10px 25px rgba(255,255,255,0.05);
+}
+
+body.dark-mode .reviews .review-item,
+body.dark-mode .reviews,
+body.dark-mode .faq div,
+body.dark-mode .security-note {
+  background: #2a2a2a;
+  color: #e0e0e0;
+}
+
+body.dark-mode .btn {
+  background: #4a90e2;
+}
+
+body.dark-mode .btn.secondary {
+  background: #666;
+}
+
+body.dark-mode .btn:hover {
+  background: #3572c1;
+}
+
+body.dark-mode .btn.secondary:hover {
+  background: #4b4b4b;
+}
+
+body.dark-mode #share-progress-bar {
+  background: #81c784;
+}
+
+body.dark-mode .screenshot-images img {
+  box-shadow: 0 4px 8px rgba(255,255,255,0.1);
+}
+
+
   </style>
 
   <!-- Firebase SDK -->
@@ -825,6 +876,25 @@ updateShareProgressDisplay(getUserId());
   // Initialize Share Buttons
   // ========================
   setupShareButtons();
+
+ // ========================
+// Auto Dark Mode Toggle (7 PM - 6 AM)
+// ========================
+function applyAutoTheme() {
+  const hour = new Date().getHours();
+  if (hour >= 19 || hour < 6) {
+    document.body.classList.add('dark-mode');
+  } else {
+    document.body.classList.remove('dark-mode');
+  }
+}
+
+// Run on page load
+applyAutoTheme();
+
+// Optional: Re-check every 15 minutes in case user leaves page open
+setInterval(applyAutoTheme, 15 * 60 * 1000);
+
 </script>
 
 </body>
