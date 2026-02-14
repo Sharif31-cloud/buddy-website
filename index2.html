@@ -200,21 +200,23 @@ async function runSignals(){
 }
 
 function displaySignals({symbolVal, sig, entry, sltp}){
-  const freeSymbols = ["EUR/USD","GBP/USD"];
-  const unlocked = isVIP || freeSymbols.includes(symbolVal);
+  // Symbols that are free for everyone
+  const freeSymbols = ["EUR/USD", "GBP/USD"];
+  const isFree = freeSymbols.includes(symbolVal);
 
   signals.innerHTML = `
-    <div class="signal ${unlocked ? "" : "vip-lock"}">
+    <div class="signal ${isVIP || isFree ? "" : "vip-lock"}">
       ${isVIP ? '<div class="vip-badge">VIP Active</div>' : ""}
+      ${isFree && !isVIP ? '<div class="vip-badge" style="background:#22c55e">FREE</div>' : ""}
       <h3>${symbolVal}</h3>
       <h2 class="${sig.signal.toLowerCase()}">${sig.signal}</h2>
       <p>Entry: ${entry.toFixed(2)}</p>
       <p>SL: ${sltp.sl.toFixed(2)}</p>
       <p>TP: ${sltp.tp.toFixed(2)}</p>
       <p>Strength: ${sig.strength}%</p>
-      ${unlocked ? `<button onclick="copySignal('${symbolVal} ${sig.signal} Entry:${entry.toFixed(2)} SL:${sltp.sl.toFixed(2)} TP:${sltp.tp.toFixed(2)}')">Copy Signal</button>` : ''}
+      ${(isVIP || isFree) ? `<button onclick="copySignal('${symbolVal} ${sig.signal} Entry:${entry.toFixed(2)} SL:${sltp.sl.toFixed(2)} TP:${sltp.tp.toFixed(2)}')">Copy Signal</button>` : ''}
     </div>
-    ${unlocked ? "" : "<p style='text-align:center'>🔒 Request VIP to unlock signals</p>"}
+    ${(isVIP || isFree) ? "" : "<p style='text-align:center'>🔒 Request VIP to unlock signals</p>"}
   `;
 }
 
