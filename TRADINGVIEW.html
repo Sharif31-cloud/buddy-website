@@ -29,12 +29,70 @@ body{
   color:#94a3b8;
 }
 
-select{
+select, button{
   padding:6px 10px;
   border-radius:6px;
   border:none;
   font-size:13px;
 }
+
+button{
+  background:#ef4444;
+  color:white;
+  cursor:pointer;
+}
+
+#tvWrapper{
+  position:relative;
+  height:calc(100vh - 50px);
+}
+
+#tv{
+  height:100%;
+}
+
+#overlay{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+
+.signal{
+  position:absolute;
+  padding:4px 6px;
+  font-size:11px;
+  border-radius:4px;
+  font-weight:bold;
+  transform:translate(-50%, -50%);
+  transition: all 0.5s ease;
+}
+
+.buy{ background:#16a34a; }
+.sell{ background:#dc2626; }
+
+.win{ box-shadow:0 0 0 2px #22c55e; }
+.loss{ box-shadow:0 0 0 2px #ef4444; }
+
+.current-signal{
+  border:2px dashed #facc15;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse{
+  0%{ transform:translate(-50%, -50%) scale(1);}
+  50%{ transform:translate(-50%, -50%) scale(1.3);}
+  100%{ transform:translate(-50%, -50%) scale(1);}
+}
+
+.line{
+  position:absolute;
+  height:2px;
+  left:0;
+  right:0;
+}
+
+.tp{ background:#22c55e; }
+.sl{ background:#ef4444; }
 </style>
 </head>
 
@@ -49,11 +107,15 @@ select{
     <option value="week">This Week</option>
   </select>
 
+  <button onclick="startReplay()">▶ Replay</button>
+  <button onclick="window.close()">❌ Close</button>
+
   <span id="stats"></span>
 </div>
 
 <div id="tvWrapper">
-  <div id="tv" style="height:100vh;"></div>
+  <div id="tv"></div>
+  <div id="overlay"></div>
 </div>
 
 <script src="https://s3.tradingview.com/tv.js"></script>
@@ -79,12 +141,15 @@ const db = getDatabase(app);
 /* =============================== CHART INIT =============================== */
 const params = new URLSearchParams(window.location.search);
 const rawSymbol = params.get("symbol") || "XAUUSD";
+
+// Normalize TradingView symbol to match Firebase
 const symbol = rawSymbol.replace(/\//g,'').toUpperCase();
+
 let chartWidget, activeChart;
 
 new TradingView.widget({
   container_id:"tv",
-  symbol: rawSymbol,
+  symbol: rawSymbol, // show original TradingView symbol with slash
   interval:"5",
   theme:"dark",
   autosize:true,
@@ -98,7 +163,16 @@ new TradingView.widget({
 
 /* =============================== SIGNAL DATA =============================== */
 let signals = [];
+let replayRunning = false;
 
+function updateStats(){
+  const filteredSignals = applyFilter();
+  const wins = filteredSignals.filter(s=>s.result==="WIN").length;
+  const rate = filteredSignals.length ? Math.round(wins/filteredSignals.length*100):0;
+  stats.innerText = `Signals: ${filteredSignals.length} | Win: ${rate}%`;
+}
+
+/* =============================== FILTERS =============================== */
 function applyFilter(){
   const f = document.getElementById("dateFilter").value;
   const now = Date.now();
@@ -110,64 +184,79 @@ function applyFilter(){
   });
 }
 
-function updateStats(){
-  const filteredSignals = applyFilter();
-  const wins = filteredSignals.filter(s=>s.result==="WIN").length;
-  const rate = filteredSignals.length ? Math.round(wins/filteredSignals.length*100):0;
-  document.getElementById("stats").innerText = `Signals: ${filteredSignals.length} | Win: ${rate}%`;
-}
-
-/* =============================== PLOT SIGNALS =============================== */
-function plotSignalOnChart(s){
-  if(!activeChart) return;
-
-  const tooltip = `Type: ${s.type}\nEntry: ${s.price}\nTP: ${s.tp}\nSL: ${s.sl}\nResult: ${s.result || "N/A"}`;
-
-  // Align time to nearest 5-min bar (for interval "5")
-  const barTime = Math.floor(s.time / 1000 / (5*60)) * (5*60);
-
-  // Entry arrow
-  activeChart.createShape({
-    time: barTime,
-    price: s.price,
-    shape: s.type === "BUY" ? "arrow_up" : "arrow_down",
-    color: s.type === "BUY" ? "#16a34a" : "#dc2626",
-    text: s.type,
-    textColor: "#fff",
-    size: 1,
-    disableSelection: true,
-    tooltip
+/* =============================== POSITION MAPPING =============================== */
+async function getXForTime(time){
+  if(!activeChart) return 50;
+  const bars = await activeChart.getBars(); 
+  if(!bars || bars.length===0) return 50;
+  let closest = bars.reduce((prev, curr)=>{
+    return Math.abs(curr.time - time) < Math.abs(prev.time - time) ? curr : prev;
   });
-
-  // TP line across 10 bars
-  const lineLength = 10;
-  activeChart.createMultipointShape(
-    Array.from({length: lineLength}, (_, i) => ({time: barTime + i*5*60, price: s.tp})),
-    { shape: "line", color: "#22c55e", linewidth: 1, disableSelection: true }
-  );
-
-  // SL line across 10 bars
-  activeChart.createMultipointShape(
-    Array.from({length: lineLength}, (_, i) => ({time: barTime + i*5*60, price: s.sl})),
-    { shape: "line", color: "#ef4444", linewidth: 1, disableSelection: true }
-  );
+  const coords = activeChart.timeToCoordinate(closest.time);
+  return coords || 50;
 }
 
+async function getYForPrice(price){
+  if(!activeChart) return 50;
+  return activeChart.priceToCoordinate(price) || 50;
+}
 
-/* =============================== FIREBASE LISTENER =============================== */
+/* =============================== DRAW LINES =============================== */
+function drawLine(y, cls){
+  const l = document.createElement("div");
+  l.className = `line ${cls}`;
+  l.style.top = y+"px";
+  overlay.appendChild(l);
+}
+
+/* =============================== REPLAY ENGINE =============================== */
+async function plotSignal(s){
+  const overlay = document.getElementById("overlay");
+
+  if(overlay.querySelector(`[data-id='${s.time}']`)) return;
+
+  const x = await getXForTime(new Date(s.time).getTime());
+  const y = await getYForPrice(s.price);
+
+  const el = document.createElement("div");
+  el.className = `signal ${s.type==="BUY"?"buy":"sell"} ${s.result==="WIN"?"win":"loss"} current-signal`;
+  el.style.left = x+"px";
+  el.style.top = y+"px";
+  el.innerText = s.type;
+  el.setAttribute("data-id", s.time);
+  overlay.appendChild(el);
+
+  drawLine(await getYForPrice(s.tp),"tp");
+  drawLine(await getYForPrice(s.sl),"sl");
+
+  setTimeout(()=>el.classList.remove("current-signal"),1000);
+}
+
+async function startReplay(liveUpdate=false){
+  replayRunning = true;
+  if(!liveUpdate) document.getElementById("overlay").innerHTML = "";
+
+  const filtered = applyFilter();
+  for(const s of filtered){
+    await plotSignal(s);
+  }
+}
+
+/* =============================== REALTIME FIREBASE LISTENER =============================== */
 const signalsRef = ref(db,"signals");
-onValue(signalsRef, (snapshot)=>{
+onValue(signalsRef,(snapshot)=>{
   if(!snapshot.exists()) return;
 
   signals = Object.values(snapshot.val())
     .filter(s=>{
+      // Normalize Firebase symbol to match TradingView
       const sSymbol = (s.symbol || "").replace(/\//g,'').toUpperCase();
       return sSymbol === symbol && (s.type==="BUY" || s.type==="SELL");
     })
-    .sort((a,b)=>a.time - b.time);
+    .sort((a,b)=>new Date(a.time)-new Date(b.time));
 
   updateStats();
-  signals.forEach(plotSignalOnChart);
+  startReplay(true);
 });
 </script>
 
