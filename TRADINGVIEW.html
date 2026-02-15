@@ -213,40 +213,37 @@ function drawLine(y, cls){
 async function plotSignal(s){
   if(!activeChart) return;
 
-  // Ensure chart bars are ready
   const bars = await activeChart.getBars();
-  if(!bars || bars.length===0) return;
+  if(!bars || bars.length === 0) return;
 
-  // Find closest bar to signal time
-  const closestBar = bars.reduce((prev, curr)=>{
+  // Find closest bar
+  const closestBar = bars.reduce((prev, curr) => {
     return Math.abs(curr.time - s.time) < Math.abs(prev.time - s.time) ? curr : prev;
   });
 
-  const tvTime = closestBar.time; // Use exact bar time
-
-  const tooltip = `Type: ${s.type}\nEntry: ${s.price}\nTP: ${s.tp}\nSL: ${s.sl}\nResult: ${s.result || "N/A"}`;
+  const tvTime = Math.floor(closestBar.time / 1000); // ✅ convert ms → s
 
   // Entry arrow
   activeChart.createShape({
     time: tvTime,
     price: s.price,
-    shape: s.type==="BUY" ? "arrow_up" : "arrow_down",
-    color: s.type==="BUY" ? "#16a34a" : "#dc2626",
+    shape: s.type === "BUY" ? "arrow_up" : "arrow_down",
+    color: s.type === "BUY" ? "#16a34a" : "#dc2626",
     text: s.type,
     textColor: "#fff",
     size: 1,
-    disableSelection: true,
-    tooltip
+    disableSelection: true
   });
 
-  // TP/SL lines across next 10 bars
-  const startIndex = bars.findIndex(b => b.time === tvTime);
-  const linePoints = bars.slice(startIndex, startIndex + 10).map(b => ({ time: b.time, price: s.tp }));
-  activeChart.createMultipointShape(linePoints, { shape: "line", color:"#22c55e", linewidth:1, disableSelection:true });
+  // TP/SL lines
+  const startIndex = bars.findIndex(b => b.time === closestBar.time);
+  const tpPoints = bars.slice(startIndex, startIndex + 10).map(b => ({ time: Math.floor(b.time / 1000), price: s.tp }));
+  activeChart.createMultipointShape(tpPoints, { shape: "line", color:"#22c55e", linewidth:1, disableSelection:true });
 
-  const slPoints = bars.slice(startIndex, startIndex + 10).map(b => ({ time: b.time, price: s.sl }));
+  const slPoints = bars.slice(startIndex, startIndex + 10).map(b => ({ time: Math.floor(b.time / 1000), price: s.sl }));
   activeChart.createMultipointShape(slPoints, { shape: "line", color:"#ef4444", linewidth:1, disableSelection:true });
 }
+
 
 
 /* =============================== REPLAY ENGINE =============================== */
