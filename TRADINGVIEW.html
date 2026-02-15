@@ -140,12 +140,16 @@ const db = getDatabase(app);
 
 /* =============================== CHART INIT =============================== */
 const params = new URLSearchParams(window.location.search);
-const symbol = params.get("symbol") || "XAUUSD";
+const rawSymbol = params.get("symbol") || "XAUUSD";
+
+// Normalize TradingView symbol to match Firebase
+const symbol = rawSymbol.replace(/\//g,'').toUpperCase();
+
 let chartWidget, activeChart;
 
 new TradingView.widget({
   container_id:"tv",
-  symbol,
+  symbol: rawSymbol, // show original TradingView symbol with slash
   interval:"5",
   theme:"dark",
   autosize:true,
@@ -209,7 +213,6 @@ function drawLine(y, cls){
 async function plotSignal(s){
   const overlay = document.getElementById("overlay");
 
-  // Skip already plotted
   if(overlay.querySelector(`[data-id='${s.time}']`)) return;
 
   const x = await getXForTime(new Date(s.time).getTime());
@@ -244,14 +247,15 @@ const signalsRef = ref(db,"signals");
 onValue(signalsRef,(snapshot)=>{
   if(!snapshot.exists()) return;
 
-  // 🔥 Load all BUY/SELL signals for this symbol
   signals = Object.values(snapshot.val())
-    .filter(s=>s.symbol === symbol && (s.type==="BUY" || s.type==="SELL"))
+    .filter(s=>{
+      // Normalize Firebase symbol to match TradingView
+      const sSymbol = (s.symbol || "").replace(/\//g,'').toUpperCase();
+      return sSymbol === symbol && (s.type==="BUY" || s.type==="SELL");
+    })
     .sort((a,b)=>new Date(a.time)-new Date(b.time));
 
   updateStats();
-
-  // 🔴 Auto-replay for new signals as they arrive
   startReplay(true);
 });
 </script>
