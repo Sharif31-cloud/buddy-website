@@ -239,6 +239,7 @@ async function runSignals(){
   try {
     let data = await fetchData(symbolVal);
     let cl = data.map(x=>+x.close), h=data.map(x=>+x.high), l=data.map(x=>+x.low);
+
     let sig = generateSignal({
       ema10:EMA(cl.slice(-20),10), 
       ema20:EMA(cl.slice(-30),20), 
@@ -246,6 +247,7 @@ async function runSignals(){
       macd:MACD(cl).macd, 
       macdSignal:MACD(cl).signal
     });
+
     let entry = cl.at(-1);
     let sltp = SLTP(entry, ATR(h,l,cl), sig.signal);
     let lastCandleTime = new Date(data.at(-1).datetime).getTime(); 
@@ -254,11 +256,27 @@ async function runSignals(){
     cachedSignals[symbolVal] = {data: signalData, time: now};
 
     displaySignals(signalData);
-    plotSignalOnChart(signalData); // plot on chart
+    plotSignalOnChart(signalData); // plot on main chart
+
+    // 🔴 STORE ONLY BUY/SELL SIGNALS IN FIREBASE
+    if(sig.signal === "BUY" || sig.signal === "SELL"){
+      const newRef = ref(db, 'signals/' + Date.now());
+      set(newRef, {
+        symbol: symbolVal,
+        type: sig.signal,
+        price: entry,
+        sl: sltp.sl,
+        tp: sltp.tp,
+        result: null, // initially null
+        time: lastCandleTime
+      });
+    }
+
   } catch(e){
     signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>❌ Error fetching data from Twelvedata. Check API key or symbol.</p>";
   }
 }
+
 
 
 function displaySignals({symbolVal, sig, entry, sltp}) {
