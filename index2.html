@@ -26,7 +26,13 @@ button.secondary { background:#334155; }
 .vip-lock { filter:blur(7px); pointer-events:none; }
 #authBox { display:flex; gap:6px; flex-wrap:wrap; align-items:flex-end; }
 #tidBox { display:none; flex-direction:column; gap:6px; margin-top:10px; background:#1e293b; padding:12px; border-radius:10px; max-width:420px; }
-#chart { margin:20px auto; max-width:900px; }
+#chart {
+  width: 100%;
+  max-width: 900px;
+  height: 450px;
+  margin: 20px auto;
+}
+
 #explain { background:#020617; margin:30px auto; padding:20px; max-width:900px; border-radius:12px; line-height:1.6; }
 .lock { color:#fbbf24; }
 .signal button { margin-top:8px; padding:6px 12px; border:none; border-radius:6px; cursor:pointer; background:#2563eb; color:white; }
@@ -144,16 +150,15 @@ function loadChart(symbolVal){
   if(chartLoaded === symbolVal) return;
   chartContainer.innerHTML = "";
 
-  chartWidget = new TradingView.widget({
-    container_id:"chart",
-    symbol:symbolVal.replace("/",""),
-    interval:"5",
-    theme:"dark",
-    width:"100%",
-    height:400,
-    studies: [],
-    autosize:true
-  });
+ chartWidget = new TradingView.widget({
+  container_id:"chart",
+  symbol:symbolVal.replace("/",""),
+  interval:"5",
+  theme:"dark",
+  autosize:true,  // keep this
+  studies: []
+});
+
 
   chartLoaded = symbolVal;
 
