@@ -179,9 +179,15 @@ function displaySignals({symbolVal, sig, entry, sltp}){
   const isFree = freeSymbols.includes(symbolVal);
   let vipBadgeHtml = "";
   let blurClass = "";
-  if(isVIP) vipBadgeHtml = `<div class="vip-badge">VIP Active ${vipTimerDiv.innerText.replace("VIP expires in ","")}</div>`;
-  else if(isFree && !isVIP) vipBadgeHtml = `<div class="vip-badge" style="background:#22c55e">FREE</div>`;
-  else blurClass = "vip-lock";
+
+  if (isVIP) {
+    vipBadgeHtml = `<div class="vip-badge">VIP Active</div>`;
+  } else if (isFree) {
+    vipBadgeHtml = `<div class="vip-badge" style="background:#22c55e">FREE</div>`;
+  } else {
+    blurClass = "vip-lock";
+  }
+
 
   signals.innerHTML = `
     <div class="signal ${blurClass}">
@@ -206,28 +212,43 @@ function startVipCountdown(expiryIso){
   const expiryTime = new Date(expiryIso).getTime();
 
   vipCountdownInterval = setInterval(()=>{
-    const now = Date.now();
-    const diff = expiryTime - now;
+    const diff = expiryTime - Date.now();
 
-    if(diff <= 0){
-      clearInterval(vipCountdownInterval);
-      isVIP = false;
-      upgradeBtn.style.display = 'inline-block';
-      tidBox.style.display = 'none';
-      vipTimerDiv.innerText = "VIP expired ⏳";
-      runSignals(); // triggers blur automatically
-      return;
-    }
-
-    const days = Math.floor(diff / (1000*60*60*24));
-    const hours = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
-    const minutes = Math.floor((diff % (1000*60*60)) / (1000*60));
-    const seconds = Math.floor((diff % (1000*60)) / 1000);
-
-    vipTimerDiv.innerText = `VIP expires in ${days}d ${hours}h ${minutes}m ${seconds}s ⏳`;
-    runSignals(); // refresh VIP badge in signals
-  }, 1000);
+if(diff <= 0){
+  clearInterval(vipCountdownInterval);
+  vipTimerDiv.innerText = "⛔ VIP expired";
+  isVIP = false;
+  vipExpired(auth.currentUser.uid); // ← ONLY HERE
+  runSignals();
+  alert("⏳ Your VIP subscription has expired.");
+  return;
 }
+
+
+
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+
+    vipTimerDiv.innerText = `VIP expires in ${d}d ${h}h ${m}m ${s}s`;
+  },1000);
+}
+
+function vipExpired(uid){
+  const userRef = ref(db,'users/'+uid);
+  get(userRef).then(snap=>{
+    const key = snap.val()?.vipKey;
+    if(key){
+      set(ref(db,'vip_keys/'+key+'/active'), false);
+    }
+  });
+
+  set(ref(db,'users/'+uid+'/vip'), false);
+  set(ref(db,'users/'+uid+'/vipKey'), null);
+  set(ref(db,'users/'+uid+'/vipExpiry'), null);
+}
+
 
 // =============== AUTH =================
 loginBtn.onclick = ()=>signInWithEmailAndPassword(auth,email.value,password.value).catch(e=>alert(e.message));
@@ -238,21 +259,45 @@ registerBtn.onclick = ()=>createUserWithEmailAndPassword(auth,email.value,passwo
 })
 .catch(e=>alert(e.message));
 
-onAuthStateChanged(auth,user=>{
-  if(!user) return;
-  get(child(ref(db),'users/'+user.uid)).then(snap=>{
-    const data=snap.val()||{};
-    isVIP = data.vip===true;
-    upgradeBtn.style.display=isVIP?'none':'inline-block';
-    tidBox.style.display="none";
-    if(isVIP && data.vipExpiry){
-      startVipCountdown(data.vipExpiry);
-    } else {
-      vipTimerDiv.innerText = "";
+onAuthStateChanged(auth, user => {
+  if (!user) return;
+
+  const userRef = ref(db);
+
+  // 1️⃣ Check user VIP status
+  get(child(userRef, 'users/' + user.uid)).then(snap => {
+    const data = snap.val() || {};
+    isVIP = false;
+
+    if (data.vip === true && data.vipExpiry) {
+      const expiry = new Date(data.vipExpiry).getTime();
+
+      if (expiry > Date.now()) {
+        isVIP = true;
+        startVipCountdown(data.vipExpiry);
+      } else {
+        vipExpired(user.uid);
+      }
     }
+
+    // Default button state based on VIP
+    upgradeBtn.style.display = isVIP ? 'none' : 'inline-block';
+
+    // 2️⃣ Check pending VIP request
+    return get(child(userRef, 'vip_requests/' + user.uid));
+  }).then(r => {
+    if (r.exists() && r.val().status === "pending") {
+      upgradeBtn.style.display = "none";
+    }
+
+    // 3️⃣ Run signals after all checks
     runSignals();
+  }).catch(err => {
+    console.error("Auth/VIP check error:", err);
   });
 });
+
+
 
 upgradeBtn.onclick=()=>{
   const user=auth.currentUser;
