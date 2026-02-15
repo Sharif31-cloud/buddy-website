@@ -255,7 +255,7 @@ async function runSignals(){
 }
 
 
-function displaySignals({symbolVal, sig, entry, sltp}){
+function displaySignals({symbolVal, sig, entry, sltp}) {
   const isFree = freeSymbols.includes(symbolVal);
   let vipBadgeHtml = "";
   let blurClass = "";
@@ -273,11 +273,11 @@ function displaySignals({symbolVal, sig, entry, sltp}){
       ${vipBadgeHtml}
       <h3>${symbolVal}</h3>
       <h2 class="${sig.signal.toLowerCase()}">${sig.signal}</h2>
-      <p>Entry: ${entry.toFixed(2)} <span class="copy-link" onclick="copySignal('${entry.toFixed(2)}')">🔗</span></p>
-      <p>SL: ${sltp.sl.toFixed(2)} <span class="copy-link" onclick="copySignal('${sltp.sl.toFixed(2)}')">🔗</span></p>
-      <p>TP: ${sltp.tp.toFixed(2)} <span class="copy-link" onclick="copySignal('${sltp.tp.toFixed(2)}')">🔗</span></p>
+      <p>Entry: ${entry.toFixed(2)} <span class="copy-link" data-copy="${entry.toFixed(2)}">🔗</span></p>
+      <p>SL: ${sltp.sl.toFixed(2)} <span class="copy-link" data-copy="${sltp.sl.toFixed(2)}">🔗</span></p>
+      <p>TP: ${sltp.tp.toFixed(2)} <span class="copy-link" data-copy="${sltp.tp.toFixed(2)}">🔗</span></p>
       <p>Strength: ${sig.strength}%</p>
-      ${(isVIP||isFree) ? `<p><span class="copy-link" onclick="copySignal('${symbolVal} ${sig.signal}')">🔗 Copy Signal</span></p>` : ""}
+      ${(isVIP||isFree) ? `<p><span class="copy-link" data-copy="${symbolVal} ${sig.signal}">🔗 Copy Signal</span></p>` : ""}
     </div>
     ${(isVIP||isFree) ? "" : "<p style='text-align:center'>🔒 Request VIP to unlock signals</p>"}
   `;
@@ -286,7 +286,17 @@ function displaySignals({symbolVal, sig, entry, sltp}){
   const style = document.createElement('style');
   style.innerHTML = `.copy-link{cursor:pointer; color:#2563eb; margin-left:5px; text-decoration:underline;}`;
   document.head.appendChild(style);
+
+  // Attach click events safely
+  const copyLinks = signals.querySelectorAll('.copy-link');
+  copyLinks.forEach(el => {
+    el.onclick = () => {
+      const text = el.getAttribute('data-copy');
+      copySignal(text);
+    }
+  });
 }
+
 
 function copySignal(text){
   navigator.clipboard.writeText(text)
