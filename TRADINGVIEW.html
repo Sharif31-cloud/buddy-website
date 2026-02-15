@@ -102,6 +102,7 @@ const rawSymbol = params.get("symbol") || "XAUUSD";
 const symbol = rawSymbol.replace(/\//g,'').toUpperCase();
 
 let chartWidget, activeChart;
+let signals = [];
 
 new TradingView.widget({
   container_id:"tv",
@@ -111,21 +112,23 @@ new TradingView.widget({
   autosize:true,
   studies:[],
   allow_symbol_change:true,
+  timezone: "Etc/UTC",
   onChartReady: function() {
     chartWidget = this;
     activeChart = chartWidget.activeChart();
+
+    // Move chart to show earliest signal time
+    if(signals.length){
+      const firstSignalTime = new Date(signals[0].time).getTime();
+      activeChart.setVisibleRange({
+        from: firstSignalTime / 1000 - 3600, // 1 hour before first signal
+        to: Date.now() / 1000 + 3600        // 1 hour after now
+      });
+    }
+
+    startReplay();
   }
 });
-
-/* =============================== SIGNAL DATA =============================== */
-let signals = [];
-
-function updateStats(){
-  const filteredSignals = applyFilter();
-  const wins = filteredSignals.filter(s=>s.result==="WIN").length;
-  const rate = filteredSignals.length ? Math.round(wins/filteredSignals.length*100):0;
-  stats.innerText = `Signals: ${filteredSignals.length} | Win: ${rate}%`;
-}
 
 /* =============================== FILTERS =============================== */
 function applyFilter(){
@@ -139,65 +142,46 @@ function applyFilter(){
   });
 }
 
-/* =============================== PLOT SIGNALS USING SHAPES =============================== */
+/* =============================== STATS =============================== */
+function updateStats(){
+  const filteredSignals = applyFilter();
+  const wins = filteredSignals.filter(s=>s.result==="WIN").length;
+  const rate = filteredSignals.length ? Math.round(wins/filteredSignals.length*100):0;
+  stats.innerText = `Signals: ${filteredSignals.length} | Win: ${rate}%`;
+}
+
+/* =============================== PLOT SIGNALS =============================== */
 async function plotSignal(s){
   if(!activeChart) return;
 
-  // Convert ISO time from Firebase to milliseconds
   const signalTime = new Date(s.time).getTime();
   if(isNaN(signalTime)) return;
 
-  // Get bars around the signal time
-  const bars = await activeChart.getBars();
-  if(!bars || bars.length === 0) return;
-
-  // Find the closest bar
-  const closestBar = bars.reduce((prev, curr) => 
-    Math.abs(curr.time - signalTime) < Math.abs(prev.time - signalTime) ? curr : prev
-  );
-
-  if(!closestBar) return;
-
-  // Snap BUY to low, SELL to high
-  const priceForSignal = s.type === "BUY" ? closestBar.low : closestBar.high;
-
-  // Draw arrow on chart
   activeChart.createShape({
-    time: closestBar.time,
-    price: priceForSignal,
-    shape: s.type === "BUY" ? "arrow_up" : "arrow_down",
-    color: s.type === "BUY" ? "#16a34a" : "#dc2626",
+    time: signalTime,
+    price: s.price,
+    shape: s.type==="BUY" ? "arrow_up" : "arrow_down",
+    color: s.type==="BUY" ? "#16a34a" : "#dc2626",
     size: "small",
     text: s.type,
     disableSelection: true,
     disableSave: true
   });
 
-  // Draw TP line
+  // TP line
   activeChart.createMultipointShape([
-    { time: closestBar.time, price: s.tp },
-    { time: closestBar.time + 1, price: s.tp }
-  ], {
-    shape: "line",
-    color: "#22c55e",
-    disableSelection: true,
-    disableSave: true
-  });
+    { time: signalTime, price: s.tp },
+    { time: signalTime + 1, price: s.tp }
+  ], { shape: "line", color: "#22c55e", disableSelection:true, disableSave:true });
 
-  // Draw SL line
+  // SL line
   activeChart.createMultipointShape([
-    { time: closestBar.time, price: s.sl },
-    { time: closestBar.time + 1, price: s.sl }
-  ], {
-    shape: "line",
-    color: "#ef4444",
-    disableSelection: true,
-    disableSave: true
-  });
+    { time: signalTime, price: s.sl },
+    { time: signalTime + 1, price: s.sl }
+  ], { shape: "line", color: "#ef4444", disableSelection:true, disableSave:true });
 }
 
-
-/* =============================== REPLAY ENGINE =============================== */
+/* =============================== REPLAY =============================== */
 async function startReplay(){
   const filtered = applyFilter();
   if(!activeChart) return;
