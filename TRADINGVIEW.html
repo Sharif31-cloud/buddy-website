@@ -217,14 +217,25 @@ function drawLine(y, cls){
 async function plotSignal(s){
   const overlay = document.getElementById("overlay");
 
-  // Prevent duplicate signals
   if(overlay.querySelector(`[data-id='${s.time}']`)) return;
-
   if(!activeChart) return;
 
   const signalTime = new Date(s.time).getTime();
+
+  // Get the bar closest to the signal time
+  let bars = await activeChart.getBars();
+  let closestBar;
+  if(bars && bars.length){
+    closestBar = bars.reduce((prev, curr) => 
+      Math.abs(curr.time - signalTime) < Math.abs(prev.time - signalTime) ? curr : prev
+    );
+  }
+
+  // Snap signal to candle close price if bar exists, otherwise fallback to s.price
+  const priceForY = closestBar ? (s.type==="BUY" ? closestBar.close : closestBar.close) : s.price;
+
   const x = activeChart.timeToCoordinate(signalTime);
-  const y = activeChart.priceToCoordinate(s.price);
+  const y = activeChart.priceToCoordinate(priceForY);
 
   if(x === undefined || y === undefined) return;
 
