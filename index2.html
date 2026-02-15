@@ -142,101 +142,80 @@ async function fetchData(symbol){
   return j.values.reverse();
 }
 
-
 // ================= CHART =================
 let chartWidget = null; // store widget instance for plotting
 let chartSymbolsHistory = {}; // keep history per symbol
 
-// Convert your symbols to TradingView format
-function getTVSymbol(symbolVal) {
-  switch(symbolVal) {
-    case "XAU/USD": return "OANDA:XAUUSD";
-    case "EUR/USD": return "FX:EURUSD";
-    case "GBP/USD": return "FX:GBPUSD";
-    case "USD/JPY": return "FX:USDJPY";
-    case "BTC/USD": return "BINANCE:BTCUSDT";
-    default: return symbolVal.replace("/","");
-  }
-}
-
-function loadChart(symbolVal, callback){
-  if(chartLoaded === symbolVal && chartWidget) {
-    if(callback) callback();
-    return;
-  }
-
+function loadChart(symbolVal){
+  if(chartLoaded === symbolVal) return;
   chartContainer.innerHTML = "";
-  const tvSymbol = getTVSymbol(symbolVal);
 
-  chartWidget = new TradingView.widget({
-    container_id: "chart",
-    symbol: tvSymbol,
-    interval: "5",
-    theme: "dark",
-    autosize: true,
-    studies: [],
-    // when chart is ready, call callback
-    onChartReady: ()=>{
-      chartLoaded = symbolVal;
-      // initialize history if doesn't exist
-      if(!chartSymbolsHistory[symbolVal]) chartSymbolsHistory[symbolVal] = [];
-      if(callback) callback();
-    }
-  });
+ chartWidget = new TradingView.widget({
+  container_id:"chart",
+  symbol:symbolVal.replace("/",""),
+  interval:"5",
+  theme:"dark",
+  autosize:true,  // keep this
+  studies: []
+});
+
+
+  chartLoaded = symbolVal;
+
+  // initialize history if doesn't exist
+  if(!chartSymbolsHistory[symbolVal]) chartSymbolsHistory[symbolVal] = [];
 }
 
-// ================= PLOT SIGNALS ON CHART =================
+// ================= PLOT SIGNALS ON CHART WITH TIMESTAMPS =================
 function plotSignalOnChart(sigData){
-  if(!chartWidget) return;
-  const chart = chartWidget.activeChart(); // ← correct method
-  if(!chart) return;
+  if(!chartWidget || !chartWidget.chart) return;
+  const { sig, entry, sltp, symbolVal, candleTime } = sigData; // candleTime in ms
+  const chart = chartWidget.chart();
 
-  const { sig, entry, sltp, symbolVal, candleTime } = sigData;
-
-  if(sig.signal === "HOLD") return;
+  if(sig.signal === "HOLD") return; // skip HOLD
 
   // store current signal in history
-  if(!chartSymbolsHistory[symbolVal]) chartSymbolsHistory[symbolVal] = [];
   chartSymbolsHistory[symbolVal].push({sig, entry, sltp, candleTime});
 
   // clear previous shapes to redraw full history
   chart.removeAllShapes();
 
   chartSymbolsHistory[symbolVal].forEach(s => {
-    const isBuy = s.sig.signal === "BUY";
+    const sIsBuy = s.sig.signal === "BUY";
+    const sArrowShape = sIsBuy ? 'arrow_up' : 'arrow_down';
+    const sArrowColor = sIsBuy ? '#22c55e' : '#ef4444';
 
-    // Entry marker
+    // Entry marker with timestamp
     chart.createShape({
-      time: s.candleTime / 1000, // seconds
+      time: s.candleTime / 1000, // TradingView expects seconds
       price: s.entry,
-      shape: isBuy ? "arrow_up" : "arrow_down",
-      text: `${s.sig.signal}\nEntry:${s.entry.toFixed(2)}`,
-      color: isBuy ? "#22c55e" : "#ef4444",
+      shape: sArrowShape,
+      text: `${s.sig.signal}\nEntry:${s.entry.toFixed(2)}\n${new Date(s.candleTime).toLocaleString()}`,
+      color: sArrowColor,
       size: 2,
     });
 
-    // Stop Loss line
+    // SL line
     chart.createShape({
       time: s.candleTime / 1000,
       price: s.sltp.sl,
-      shape: "line_horizontal",
-      text: "SL",
-      color: "#f87171",
+      shape: 'line_horizontal',
+      text: 'SL',
+      color: '#f87171',
       linewidth: 1
     });
 
-    // Take Profit line
+    // TP line
     chart.createShape({
       time: s.candleTime / 1000,
       price: s.sltp.tp,
-      shape: "line_horizontal",
-      text: "TP",
-      color: "#22c55e",
+      shape: 'line_horizontal',
+      text: 'TP',
+      color: '#22c55e',
       linewidth: 1
     });
   });
 }
-
 
 
 // ================= SIGNALS =================
