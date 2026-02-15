@@ -15,7 +15,6 @@ body{
   background:#020617;
   color:#e5e7eb;
   font-family:Arial, sans-serif;
-  overflow:hidden;
 }
 
 #topBar{
@@ -54,49 +53,6 @@ button{
 #tv{
   height:100%;
 }
-
-#overlay{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-}
-
-.signal{
-  position:absolute;
-  padding:4px 6px;
-  font-size:11px;
-  border-radius:4px;
-  font-weight:bold;
-  transform:translate(-50%, -50%);
-  transition: all 0.5s ease;
-}
-
-.buy{ background:#16a34a; }
-.sell{ background:#dc2626; }
-
-.win{ box-shadow:0 0 0 2px #22c55e; }
-.loss{ box-shadow:0 0 0 2px #ef4444; }
-
-.current-signal{
-  border:2px dashed #facc15;
-  animation: pulse 1s infinite;
-}
-
-@keyframes pulse{
-  0%{ transform:translate(-50%, -50%) scale(1);}
-  50%{ transform:translate(-50%, -50%) scale(1.3);}
-  100%{ transform:translate(-50%, -50%) scale(1);}
-}
-
-.line{
-  position:absolute;
-  height:2px;
-  left:0;
-  right:0;
-}
-
-.tp{ background:#22c55e; }
-.sl{ background:#ef4444; }
 </style>
 </head>
 
@@ -119,11 +75,9 @@ button{
 
 <div id="tvWrapper">
   <div id="tv"></div>
-  <div id="overlay"></div>
 </div>
 
 <script src="https://s3.tradingview.com/tv.js"></script>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -145,15 +99,13 @@ const db = getDatabase(app);
 /* =============================== CHART INIT =============================== */
 const params = new URLSearchParams(window.location.search);
 const rawSymbol = params.get("symbol") || "XAUUSD";
-
-// Normalize TradingView symbol to match Firebase
 const symbol = rawSymbol.replace(/\//g,'').toUpperCase();
 
 let chartWidget, activeChart;
 
 new TradingView.widget({
   container_id:"tv",
-  symbol: rawSymbol, // show original TradingView symbol with slash
+  symbol: rawSymbol,
   interval:"5",
   theme:"dark",
   autosize:true,
@@ -167,7 +119,6 @@ new TradingView.widget({
 
 /* =============================== SIGNAL DATA =============================== */
 let signals = [];
-let replayRunning = false;
 
 function updateStats(){
   const filteredSignals = applyFilter();
@@ -188,39 +139,14 @@ function applyFilter(){
   });
 }
 
-/* =============================== POSITION MAPPING =============================== */
-async function getXForTime(time){
-  if(!activeChart) return 50;
-  const bars = await activeChart.getBars(); 
-  if(!bars || bars.length===0) return 50;
-  let closest = bars.reduce((prev, curr)=>{
-    return Math.abs(curr.time - time) < Math.abs(prev.time - time) ? curr : prev;
-  });
-  const coords = activeChart.timeToCoordinate(closest.time);
-  return coords || 50;
-}
-
-async function getYForPrice(price){
-  if(!activeChart) return 50;
-  return activeChart.priceToCoordinate(price) || 50;
-}
-
-/* =============================== DRAW LINES =============================== */
-function drawLine(y, cls){
-  const l = document.createElement("div");
-  l.className = `line ${cls}`;
-  l.style.top = y+"px";
-  overlay.appendChild(l);
-}
-
-/* =============================== REPLAY ENGINE =============================== */
+/* =============================== PLOT SIGNALS USING SHAPES =============================== */
 async function plotSignal(s){
   if(!activeChart) return;
 
   const signalTime = new Date(s.time).getTime();
   const price = s.price;
 
-  // Draw a small arrow shape for the signal
+  // Draw arrow on candle
   activeChart.createShape({
     time: signalTime,
     price: price,
@@ -255,33 +181,30 @@ async function plotSignal(s){
   });
 }
 
-
-
-async function startReplay(liveUpdate=false){
-  replayRunning = true;
-  if(!liveUpdate) document.getElementById("overlay").innerHTML = "";
-
+/* =============================== REPLAY ENGINE =============================== */
+async function startReplay(){
   const filtered = applyFilter();
+  if(!activeChart) return;
   for(const s of filtered){
     await plotSignal(s);
   }
+  updateStats();
 }
 
-/* =============================== REALTIME FIREBASE LISTENER =============================== */
+/* =============================== FIREBASE LISTENER =============================== */
 const signalsRef = ref(db,"signals");
 onValue(signalsRef,(snapshot)=>{
   if(!snapshot.exists()) return;
 
   signals = Object.values(snapshot.val())
     .filter(s=>{
-      // Normalize Firebase symbol to match TradingView
       const sSymbol = (s.symbol || "").replace(/\//g,'').toUpperCase();
       return sSymbol === symbol && (s.type==="BUY" || s.type==="SELL");
     })
     .sort((a,b)=>new Date(a.time)-new Date(b.time));
 
   updateStats();
-  startReplay(true);
+  startReplay();
 });
 </script>
 
