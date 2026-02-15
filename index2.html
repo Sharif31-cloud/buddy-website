@@ -248,8 +248,11 @@ function plotSignalOnChart(sigData){
 
 
 // ================= SIGNALS =================
+// ================= SIGNALS =================
 async function runSignals(){
   const symbolVal = symbol.value;
+
+  // Load chart using TradingView mapping
   loadChart(symbolVal);
 
   const now = Date.now();
@@ -260,15 +263,23 @@ async function runSignals(){
   }
 
   try {
-    let data = await fetchData(tdSymbols[symbolVal]);  
-    let cl = data.map(x=>+x.close), h=data.map(x=>+x.high), l=data.map(x=>+x.low);
+    // 🔹 Fetch from TwelveData using symbol WITH slash (working format)
+    let data = await fetchData(symbolVal);  
+
+    // Extract OHLC
+    let cl = data.map(x=>+x.close), 
+        h  = data.map(x=>+x.high), 
+        l  = data.map(x=>+x.low);
+
+    // Generate signal
     let sig = generateSignal({
-      ema10:EMA(cl.slice(-20),10), 
-      ema20:EMA(cl.slice(-30),20), 
-      rsi:RSI(cl), 
-      macd:MACD(cl).macd, 
-      macdSignal:MACD(cl).signal
+      ema10: EMA(cl.slice(-20), 10), 
+      ema20: EMA(cl.slice(-30), 20), 
+      rsi: RSI(cl), 
+      macd: MACD(cl).macd, 
+      macdSignal: MACD(cl).signal
     });
+
     let entry = cl.at(-1);
     let sltp = SLTP(entry, ATR(h,l,cl), sig.signal);
     let lastCandleTime = new Date(data.at(-1).datetime).getTime(); 
@@ -276,10 +287,13 @@ async function runSignals(){
     const signalData = {symbolVal, sig, entry, sltp, candleTime: lastCandleTime};
     cachedSignals[symbolVal] = {data: signalData, time: now};
 
+    // Display and plot
     displaySignals(signalData);
-    plotSignalOnChart(signalData); // plot on chart
+    plotSignalOnChart(signalData);
+
   } catch(e){
-    signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>❌ Error fetching data from Twelvedata. Check API key or symbol.</p>";
+    console.error("Error fetching TwelveData:", e);
+    signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>❌ Error fetching data from TwelveData. Check API key or symbol.</p>";
   }
 }
 
