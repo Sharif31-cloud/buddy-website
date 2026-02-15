@@ -140,16 +140,15 @@ const db = getDatabase(app);
 
 /* =============================== CHART INIT =============================== */
 const params = new URLSearchParams(window.location.search);
-const rawSymbol = params.get("symbol") || "XAUUSD";
+const rawSymbol = params.get("symbol") || "BTC/USD"; // default BTC/USD
 
-// Normalize TradingView symbol to match Firebase
 const symbol = rawSymbol.replace(/\//g,'').toUpperCase();
 
 let chartWidget, activeChart;
 
 new TradingView.widget({
   container_id:"tv",
-  symbol: rawSymbol, // show original TradingView symbol with slash
+  symbol: rawSymbol,
   interval:"5",
   theme:"dark",
   autosize:true,
@@ -163,7 +162,6 @@ new TradingView.widget({
 
 /* =============================== SIGNAL DATA =============================== */
 let signals = [];
-let replayRunning = false;
 
 function updateStats(){
   const filteredSignals = applyFilter();
@@ -177,109 +175,76 @@ function applyFilter(){
   const f = document.getElementById("dateFilter").value;
   const now = Date.now();
   return signals.filter(s=>{
-    const t = new Date(s.time).getTime();
+    const t = s.time;
     if(f==="today") return now - t < 86400000;
     if(f==="week") return now - t < 604800000;
     return true;
   });
 }
 
-/* =============================== POSITION MAPPING =============================== */
-async function getXForTime(time){
-  if(!activeChart) return 50;
-  const bars = await activeChart.getBars(); 
-  if(!bars || bars.length===0) return 50;
-  let closest = bars.reduce((prev, curr)=>{
-    return Math.abs(curr.time - time) < Math.abs(prev.time - time) ? curr : prev;
-  });
-  const coords = activeChart.timeToCoordinate(closest.time);
-  return coords || 50;
-}
-
-async function getYForPrice(price){
-  if(!activeChart) return 50;
-  return activeChart.priceToCoordinate(price) || 50;
-}
-
-/* =============================== DRAW LINES =============================== */
-function drawLine(y, cls){
-  const l = document.createElement("div");
-  l.className = `line ${cls}`;
-  l.style.top = y+"px";
-  overlay.appendChild(l);
-}
-
-/* =============================== PLOT SIGNALS ON CHART =============================== */
 /* =============================== PLOT SIGNALS ON CHART =============================== */
 async function plotSignal(s) {
-  if (!activeChart) return;
+  if(!activeChart) return;
 
   // Wait until bars are available
   let bars = await activeChart.getBars();
   let attempts = 0;
-  while ((!bars || bars.length === 0) && attempts < 10) {
-    await new Promise(r => setTimeout(r, 500)); // wait 0.5s
+  while ((!bars || bars.length===0) && attempts < 10) {
+    await new Promise(r => setTimeout(r, 500));
     bars = await activeChart.getBars();
     attempts++;
   }
-  if (!bars || bars.length === 0) {
-    console.warn("No bars available for plotting, using overlay fallback");
-    // fallback to HTML overlay if chart bars not loaded
+  if(!bars || bars.length===0) {
+    console.warn("Bars not loaded yet, using overlay fallback");
     const overlay = document.getElementById("overlay");
     const x = Math.random() * overlay.offsetWidth;
     const y = Math.random() * overlay.offsetHeight;
     const el = document.createElement("div");
-    el.className = `signal ${s.type === "BUY" ? "buy" : "sell"} ${s.result === "WIN" ? "win" : "loss"} current-signal`;
-    el.style.left = x + "px";
-    el.style.top = y + "px";
+    el.className = `signal ${s.type==="BUY"?"buy":"sell"} current-signal`;
+    el.style.left = x+"px";
+    el.style.top = y+"px";
     el.innerText = s.type;
     overlay.appendChild(el);
     return;
   }
 
-  // Find closest bar to signal
-  const closestBar = bars.reduce((prev, curr) =>
-    Math.abs(curr.time - s.time) < Math.abs(prev.time - s.time) ? curr : prev
-  );
-  const tvTime = Math.floor(closestBar.time / 1000); // ms → s
+  // Find closest bar
+  const closestBar = bars.reduce((prev,curr)=> Math.abs(curr.time - s.time) < Math.abs(prev.time - s.time)?curr:prev );
+  const tvTime = Math.floor(closestBar.time/1000);
 
   // Entry arrow
   activeChart.createShape({
     time: tvTime,
     price: s.price,
-    shape: s.type === "BUY" ? "arrow_up" : "arrow_down",
-    color: s.type === "BUY" ? "#16a34a" : "#dc2626",
+    shape: s.type==="BUY"?"arrow_up":"arrow_down",
+    color: s.type==="BUY"?"#16a34a":"#dc2626",
     text: s.type,
-    textColor: "#fff",
-    size: 1,
-    disableSelection: true
+    textColor:"#fff",
+    size:1,
+    disableSelection:true
   });
 
-  // TP/SL lines for next 10 bars
-  const startIndex = bars.findIndex(b => b.time === closestBar.time);
-  const nextBars = bars.slice(startIndex, startIndex + 10);
-
-  const tpPoints = nextBars.map(b => ({ time: Math.floor(b.time / 1000), price: s.tp }));
-  activeChart.createMultipointShape(tpPoints, { shape: "line", color: "#22c55e", linewidth: 1, disableSelection: true });
-
-  const slPoints = nextBars.map(b => ({ time: Math.floor(b.time / 1000), price: s.sl }));
-  activeChart.createMultipointShape(slPoints, { shape: "line", color: "#ef4444", linewidth: 1, disableSelection: true });
+  // TP/SL lines (10 bars)
+  const startIndex = bars.findIndex(b=>b.time===closestBar.time);
+  const nextBars = bars.slice(startIndex,startIndex+10);
+  const tpPoints = nextBars.map(b=>({time:Math.floor(b.time/1000),price:s.tp}));
+  activeChart.createMultipointShape(tpPoints,{shape:"line",color:"#22c55e",linewidth:1,disableSelection:true});
+  const slPoints = nextBars.map(b=>({time:Math.floor(b.time/1000),price:s.sl}));
+  activeChart.createMultipointShape(slPoints,{shape:"line",color:"#ef4444",linewidth:1,disableSelection:true});
 }
 
 /* =============================== REPLAY ENGINE =============================== */
-async function startReplay(liveUpdate = false) {
-  if (!activeChart) return;
+async function startReplay(liveUpdate=false){
+  if(!activeChart) return;
 
   const filtered = applyFilter();
 
-  // Clear old shapes if not live update
-  if (!liveUpdate) {
+  if(!liveUpdate){
     activeChart.removeAllShapes();
-    document.getElementById("overlay").innerHTML = ""; // clear fallback overlay
+    document.getElementById("overlay").innerHTML="";
   }
 
-  // Plot signals one by one
-  for (const s of filtered) {
+  for(const s of filtered){
     await plotSignal(s);
   }
 }
@@ -291,11 +256,10 @@ onValue(signalsRef,(snapshot)=>{
 
   signals = Object.values(snapshot.val())
     .filter(s=>{
-      // Normalize Firebase symbol to match TradingView
-      const sSymbol = (s.symbol || "").replace(/\//g,'').toUpperCase();
+      const sSymbol = (s.symbol||"").replace(/\//g,'').toUpperCase();
       return sSymbol === symbol && (s.type==="BUY" || s.type==="SELL");
     })
-    .sort((a,b)=>new Date(a.time)-new Date(b.time));
+    .sort((a,b)=>a.time-b.time);
 
   updateStats();
   startReplay(true);
