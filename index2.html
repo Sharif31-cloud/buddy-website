@@ -5,38 +5,44 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Signal Dashboard</title>
 
+<!-- Favicon -->
 <link rel="icon" type="image/png" href="logo_icon.png">
 <link rel="shortcut icon" href="favicon.ico">
 
-<meta name="description" content="AI Signal Dashboard for Forex, Crypto, and Commodities with EMA, RSI, MACD indicators.">
+<meta name="description" content="AI Signal Dashboard for Forex, Crypto, and Commodities with EMA, RSI, and MACD indicators. Free symbols available. VIP access for premium signals.">
 
 <style>
-body{margin:0;font-family:Arial,sans-serif;background:#0f172a;color:#e5e7eb}
-header{background:#020617;padding:15px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}
-select,button,input{padding:8px;border-radius:6px;border:none}
-button{background:#2563eb;color:white;cursor:pointer}
-button.secondary{background:#334155}
-#signals{padding:20px}
-.signal{background:#020617;padding:20px;border-radius:12px;max-width:420px;margin:auto;position:relative}
-.vip-badge{position:absolute;top:10px;right:10px;background:#22c55e;color:#fff;padding:4px 8px;border-radius:8px;font-weight:bold;font-size:.9rem}
-.buy{color:#22c55e}.sell{color:#ef4444}.hold{color:#9ca3af}
-.vip-lock{filter:blur(7px);pointer-events:none}
-#authBox{display:flex;gap:6px;flex-wrap:wrap}
-#tidBox{display:none;flex-direction:column;gap:6px;margin-top:10px;background:#1e293b;padding:12px;border-radius:10px}
-#vipTimer{margin-left:10px;font-weight:bold;color:#22c55e}
-#chart{margin:20px auto;max-width:900px}
+body { margin:0; font-family:Arial,sans-serif; background:#0f172a; color:#e5e7eb; }
+header { background:#020617; padding:15px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; }
+select, button, input { padding:8px; border-radius:6px; border:none; }
+button { background:#2563eb; color:white; cursor:pointer; }
+button.secondary { background:#334155; }
+#signals { padding:20px; }
+.signal { background:#020617; padding:20px; border-radius:12px; max-width:420px; margin:auto; position:relative; transition: filter 0.3s ease; }
+.vip-badge { position:absolute; top:10px; right:10px; background:#22c55e; color:#fff; padding:4px 8px; border-radius:8px; font-weight:bold; font-size:0.9rem; }
+.buy { color:#22c55e; } 
+.sell { color:#ef4444; } 
+.hold { color:#9ca3af; }
+.vip-lock { filter:blur(7px); pointer-events:none; }
+#authBox { display:flex; gap:6px; flex-wrap:wrap; align-items:flex-end; }
+#tidBox { display:none; flex-direction:column; gap:6px; margin-top:10px; background:#1e293b; padding:12px; border-radius:10px; max-width:420px; }
+#chart { margin:20px auto; max-width:900px; }
+#explain { background:#020617; margin:30px auto; padding:20px; max-width:900px; border-radius:12px; line-height:1.6; }
+.lock { color:#fbbf24; }
+.signal button { margin-top:8px; padding:6px 12px; border:none; border-radius:6px; cursor:pointer; background:#2563eb; color:white; }
+select option.free-symbol { color: #22c55e; font-weight: bold; }
+#vipTimer { margin-left:10px; font-weight:bold; color:#22c55e; }
 </style>
 </head>
 
 <body>
-
 <header>
   <div>
     <h3>📊 AI Signal Dashboard</h3>
     <select id="symbol">
       <option value="XAU/USD">XAU/USD</option>
-      <option value="EUR/USD">EUR/USD (Free)</option>
-      <option value="GBP/USD">GBP/USD (Free)</option>
+      <option value="EUR/USD" class="free-symbol">EUR/USD (Free)</option>
+      <option value="GBP/USD" class="free-symbol">GBP/USD (Free)</option>
       <option value="USD/JPY">USD/JPY</option>
       <option value="BTC/USD">BTC/USD</option>
     </select>
@@ -50,11 +56,11 @@ button.secondary{background:#334155}
     <button id="upgradeBtn" class="secondary" style="display:none;">Request VIP</button>
 
     <div id="tidBox">
-      <p style="color:#fbbf24;margin:0">
-        Send 5k UGX → 0748244415 then enter TID
+      <p style="color:#fbbf24; margin:0;">
+        For VIP, send 5k UGX to 0748244415 (Semakula Sharif) and enter your TID below:
       </p>
       <input id="tidInput" placeholder="TID 123456789012">
-      <button id="activateVipBtn" style="background:#22c55e">Activate VIP</button>
+      <button id="activateVipBtn" style="background:#22c55e; color:white; cursor:pointer;">Activate VIP</button>
     </div>
 
     <div id="vipTimer"></div>
@@ -64,151 +70,210 @@ button.secondary{background:#334155}
 <div id="chart"></div>
 <div id="signals">Loading…</div>
 
+<div id="explain">
+  <p>AI Signal Dashboard powered by EMA, RSI, MACD indicators. Some symbols are free for everyone.</p>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-/* ================= CONFIG ================= */
-const TWELVE_KEY="894c1cdec16d47b98980a4423f254352";
-const INTERVAL="5min";
-const freeSymbols=["EUR/USD","GBP/USD"];
+// =============== TWELVEDATA CONFIG ===============
+const TWELVE_KEY = "894c1cdec16d47b98980a4423f254352";
+const INTERVAL = "5min";
 
-/* ================= FIREBASE ================= */
-const app=initializeApp({
-  apiKey:"AIzaSyB1G6DhAZv70YLk65ESgZl0Cm1BHzab4a0",
-  authDomain:"buddydownloads-72e3b.firebaseapp.com",
-  databaseURL:"https://buddydownloads-72e3b-default-rtdb.firebaseio.com"
-});
-const auth=getAuth(app);
-const db=getDatabase(app);
+// =============== FIREBASE =================
+const firebaseConfig = {
+  apiKey: "AIzaSyB1G6DhAZv70YLk65ESgZl0Cm1BHzab4a0",
+  authDomain: "buddydownloads-72e3b.firebaseapp.com",
+  databaseURL: "https://buddydownloads-72e3b-default-rtdb.firebaseio.com",
+  projectId: "buddydownloads-72e3b",
+  storageBucket: "buddydownloads-72e3b.appspot.com",
+  messagingSenderId: "782621240629",
+  appId: "1:782621240629:web:4678fac59caad0f3ac707c"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
 
-/* ================= DOM ================= */
-const email=document.getElementById("email");
-const password=document.getElementById("password");
-const loginBtn=document.getElementById("loginBtn");
-const registerBtn=document.getElementById("registerBtn");
-const upgradeBtn=document.getElementById("upgradeBtn");
-const tidBox=document.getElementById("tidBox");
-const tidInput=document.getElementById("tidInput");
-const activateVipBtn=document.getElementById("activateVipBtn");
-const vipTimerDiv=document.getElementById("vipTimer");
-const symbol=document.getElementById("symbol");
-const signals=document.getElementById("signals");
-const chartContainer=document.getElementById("chart");
+// =============== DOM =================
+const email = document.getElementById('email');
+const password = document.getElementById('password');
+const loginBtn = document.getElementById('loginBtn');
+const registerBtn = document.getElementById('registerBtn');
+const upgradeBtn = document.getElementById('upgradeBtn');
+const tidBox = document.getElementById('tidBox');
+const tidInput = document.getElementById('tidInput');
+const activateVipBtn = document.getElementById('activateVipBtn');
+const symbol = document.getElementById('symbol');
+const signals = document.getElementById('signals');
+const chartContainer = document.getElementById('chart');
+const vipTimerDiv = document.getElementById('vipTimer');
 
-let isVIP=false;
-let vipCountdownInterval=null;
+let isVIP = false;
+let vipCountdownInterval = null;
+const freeSymbols = ["EUR/USD", "GBP/USD"];
 
-/* ================= INDICATORS ================= */
-const EMA=(v,p)=>{let k=2/(p+1),e=v[0];for(let i=1;i<v.length;i++)e=v[i]*k+e*(1-k);return e;}
-const RSI=(v,p=7)=>{let g=0,l=0;for(let i=v.length-p;i<v.length-1;i++){let d=v[i+1]-v[i];d>0?g+=d:l-=d}let rs=g/(l||1);return 100-100/(1+rs);}
-const ATR=(h,l,c,p=14)=>EMA(h.slice(-p).map((_,i)=>Math.max(h[i]-l[i],Math.abs(h[i]-c[i-1]||0),Math.abs(l[i]-c[i-1]||0))),p);
-const MACD=v=>{let a=EMA(v.slice(-26),12),b=EMA(v.slice(-26),26);return{macd:a-b,signal:EMA([a-b],9)}}
+// =============== INDICATORS =================
+function EMA(v,p){let k=2/(p+1),e=v[0];for(let i=1;i<v.length;i++)e=v[i]*k+e*(1-k);return e;}
+function RSI(v,p=7){let g=0,l=0;for(let i=v.length-p;i<v.length-1;i++){let d=v[i+1]-v[i];d>0?g+=d:l-=d}let rs=g/(l||1);return 100-100/(1+rs);}
+function ATR(h,l,c,p=14){let t=[];for(let i=1;i<c.length;i++)t.push(Math.max(h[i]-l[i],Math.abs(h[i]-c[i-1]),Math.abs(l[i]-c[i-1])));return EMA(t.slice(-p),p);}
+function MACD(v){let a=EMA(v.slice(-26),12),b=EMA(v.slice(-26),26);return{macd:a-b,signal:EMA([a-b],9)};}
+function generateSignal(d){let s=0;d.ema10>d.ema20?s+=30:s-=30;d.rsi>55?s+=20:d.rsi<45?s-=20:null;d.macd>d.macdSignal?s+=20:s-=20;if(s>=35)return{signal:"BUY",strength:s};if(s<=-35)return{signal:"SELL",strength:Math.abs(s)};return{signal:"HOLD",strength:Math.abs(s)};}
+function SLTP(e,a,s){let r=a*1.2,t=r*1.5;if(s==="BUY")return{sl:e-r,tp:e+t};if(s==="SELL")return{sl:e+r,tp:e-t};return{sl:e,tp:e};}
 
-/* ================= DATA ================= */
-async function fetchData(sym){
-  const r=await fetch(`https://api.twelvedata.com/time_series?symbol=${sym}&interval=${INTERVAL}&outputsize=200&apikey=${TWELVE_KEY}`);
-  const j=await r.json();
+// =============== FETCH MARKET DATA =================
+async function fetchData(symbol){
+  let url=`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${INTERVAL}&outputsize=200&apikey=${TWELVE_KEY}`;
+  let r = await fetch(url);
+  let j = await r.json();
   return j.values.reverse();
 }
 
-/* ================= CHART ================= */
-let chartLoaded=null;
-function loadChart(sym){
-  if(chartLoaded===sym) return;
-  chartContainer.innerHTML="";
+// =============== CHART =================
+let chartLoaded = null;
+function loadChart(symbolVal){
+  if(chartLoaded === symbolVal) return;
+  chartContainer.innerHTML = "";
   new TradingView.widget({
     container_id:"chart",
-    symbol:sym.replace("/",""),
+    symbol:symbolVal.replace("/",""),
     interval:"5",
     theme:"dark",
     width:"100%",
     height:400
   });
-  chartLoaded=sym;
+  chartLoaded = symbolVal;
 }
 
-/* ================= SIGNALS ================= */
-async function runSignals(){
-  const sym=symbol.value;
-  loadChart(sym);
+// =============== SIGNALS =================
+let cachedSignals = {};
+const cacheTime = 5*60*1000;
 
-  const locked=!isVIP&&!freeSymbols.includes(sym);
-  if(locked){
-    signals.innerHTML=`<div class="signal vip-lock"><div class="vip-badge">LOCKED</div><h3>${sym}</h3></div>`;
+async function runSignals(){
+  const symbolVal = symbol.value;
+  loadChart(symbolVal);
+
+  const now = Date.now();
+  if(cachedSignals[symbolVal] && now - cachedSignals[symbolVal].time < cacheTime){
+    displaySignals(cachedSignals[symbolVal].data);
     return;
   }
 
-  const d=await fetchData(sym);
-  const cl=d.map(x=>+x.close),h=d.map(x=>+x.high),l=d.map(x=>+x.low);
-  const macd=MACD(cl);
-  const rsi=RSI(cl);
-  const sig=(EMA(cl.slice(-20),10)>EMA(cl.slice(-30),20)&&macd.macd>macd.signal&&rsi>55)?"BUY":
-            (EMA(cl.slice(-20),10)<EMA(cl.slice(-30),20)&&macd.macd<macd.signal&&rsi<45)?"SELL":"HOLD";
-
-  signals.innerHTML=`
-    <div class="signal">
-      <div class="vip-badge">${isVIP?"VIP":"FREE"}</div>
-      <h3>${sym}</h3>
-      <h2 class="${sig.toLowerCase()}">${sig}</h2>
-    </div>`;
+  try {
+    let data = await fetchData(symbolVal);
+    let cl = data.map(x=>+x.close), h=data.map(x=>+x.high), l=data.map(x=>+x.low);
+    let sig = generateSignal({ema10:EMA(cl.slice(-20),10), ema20:EMA(cl.slice(-30),20), rsi:RSI(cl), macd:MACD(cl).macd, macdSignal:MACD(cl).signal});
+    let entry = cl.at(-1);
+    let sltp = SLTP(entry, ATR(h,l,cl), sig.signal);
+    const signalData = {symbolVal, sig, entry, sltp};
+    cachedSignals[symbolVal] = {data: signalData, time: now};
+    displaySignals(signalData);
+  } catch(e){
+    signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>❌ Error fetching data from Twelvedata. Check API key or symbol.</p>";
+  }
 }
 
-/* ================= VIP ================= */
-function startVipCountdown(exp){
+function displaySignals({symbolVal, sig, entry, sltp}){
+  const isFree = freeSymbols.includes(symbolVal);
+  let vipBadgeHtml = "";
+  let blurClass = "";
+  if(isVIP) vipBadgeHtml = `<div class="vip-badge">VIP Active ${vipTimerDiv.innerText.replace("VIP expires in ","")}</div>`;
+  else if(isFree && !isVIP) vipBadgeHtml = `<div class="vip-badge" style="background:#22c55e">FREE</div>`;
+  else blurClass = "vip-lock";
+
+  signals.innerHTML = `
+    <div class="signal ${blurClass}">
+      ${vipBadgeHtml}
+      <h3>${symbolVal}</h3>
+      <h2 class="${sig.signal.toLowerCase()}">${sig.signal}</h2>
+      <p>Entry: ${entry.toFixed(2)}</p>
+      <p>SL: ${sltp.sl.toFixed(2)}</p>
+      <p>TP: ${sltp.tp.toFixed(2)}</p>
+      <p>Strength: ${sig.strength}%</p>
+      ${(isVIP||isFree)?`<button onclick="copySignal('${symbolVal} ${sig.signal} Entry:${entry.toFixed(2)} SL:${sltp.sl.toFixed(2)} TP:${sltp.tp.toFixed(2)}')">Copy Signal</button>`:""}
+    </div>
+    ${(isVIP||isFree)?"":"<p style='text-align:center'>🔒 Request VIP to unlock signals</p>"}
+  `;
+}
+
+function copySignal(text){navigator.clipboard.writeText(text).then(()=>alert("✅ Signal copied!")).catch(err=>alert("❌ Copy failed: "+err));}
+
+// =============== VIP COUNTDOWN =================
+function startVipCountdown(expiryIso){
   clearInterval(vipCountdownInterval);
-  const t=new Date(exp).getTime();
-  vipCountdownInterval=setInterval(()=>{
-    const d=t-Date.now();
-    if(d<=0){
+  const expiryTime = new Date(expiryIso).getTime();
+
+  vipCountdownInterval = setInterval(()=>{
+    const now = Date.now();
+    const diff = expiryTime - now;
+
+    if(diff <= 0){
       clearInterval(vipCountdownInterval);
-      isVIP=false;
-      vipTimerDiv.innerText="⛔ VIP expired";
-      runSignals();
+      isVIP = false;
+      upgradeBtn.style.display = 'inline-block';
+      tidBox.style.display = 'none';
+      vipTimerDiv.innerText = "VIP expired ⏳";
+      runSignals(); // triggers blur automatically
       return;
     }
-    vipTimerDiv.innerText=`VIP expires in ${Math.floor(d/86400000)}d ${Math.floor(d/3600000)%24}h ${Math.floor(d/60000)%60}m`;
-  },1000);
+
+    const days = Math.floor(diff / (1000*60*60*24));
+    const hours = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
+    const minutes = Math.floor((diff % (1000*60*60)) / (1000*60));
+    const seconds = Math.floor((diff % (1000*60)) / 1000);
+
+    vipTimerDiv.innerText = `VIP expires in ${days}d ${hours}h ${minutes}m ${seconds}s ⏳`;
+    runSignals(); // refresh VIP badge in signals
+  }, 1000);
 }
 
-function vipExpired(uid){
-  set(ref(db,'users/'+uid+'/vip'),false);
-  set(ref(db,'users/'+uid+'/vipExpiry'),null);
-}
+// =============== AUTH =================
+loginBtn.onclick = ()=>signInWithEmailAndPassword(auth,email.value,password.value).catch(e=>alert(e.message));
+registerBtn.onclick = ()=>createUserWithEmailAndPassword(auth,email.value,password.value)
+.then(uc=>{
+  set(ref(db,'users/'+uc.user.uid),{email:uc.user.email,vip:false,created:new Date().toISOString()});
+  alert("Account created. Request VIP from the button.");
+})
+.catch(e=>alert(e.message));
 
-window.approveVip=(uid,h)=>{
-  const exp=new Date(Date.now()+h*3600000).toISOString();
-  set(ref(db,'users/'+uid),{vip:true,vipExpiry:exp},{merge:true});
-}
-
-/* ================= AUTH ================= */
-onAuthStateChanged(auth,u=>{
-  if(!u) return;
-  get(child(ref(db),'users/'+u.uid)).then(s=>{
-    const d=s.val()||{};
-    isVIP=d.vip===true&&d.vipExpiry&&new Date(d.vipExpiry)>new Date();
-    if(isVIP) startVipCountdown(d.vipExpiry);
+onAuthStateChanged(auth,user=>{
+  if(!user) return;
+  get(child(ref(db),'users/'+user.uid)).then(snap=>{
+    const data=snap.val()||{};
+    isVIP = data.vip===true;
     upgradeBtn.style.display=isVIP?'none':'inline-block';
+    tidBox.style.display="none";
+    if(isVIP && data.vipExpiry){
+      startVipCountdown(data.vipExpiry);
+    } else {
+      vipTimerDiv.innerText = "";
+    }
     runSignals();
   });
 });
 
-loginBtn.onclick=()=>signInWithEmailAndPassword(auth,email.value,password.value);
-registerBtn.onclick=()=>createUserWithEmailAndPassword(auth,email.value,password.value)
-.then(u=>set(ref(db,'users/'+u.user.uid),{email:u.user.email,vip:false}));
-
-upgradeBtn.onclick=()=>tidBox.style.display="flex";
-activateVipBtn.onclick=()=>{
-  set(ref(db,'vip_requests/'+auth.currentUser.uid),{
-    tid:tidInput.value,
-    status:"pending",
-    requestedAt:new Date().toISOString()
-  });
-  alert("VIP request sent");
+upgradeBtn.onclick=()=>{
+  const user=auth.currentUser;
+  if(!user) return alert("Please login first.");
+  tidBox.style.display="flex";
+  upgradeBtn.style.display="none";
 };
 
-symbol.onchange=runSignals;
+activateVipBtn.onclick=()=>{
+  const tidValue=tidInput.value.trim();
+  const tidPattern=/^TID\s\d{12}$/;
+  if(!tidPattern.test(tidValue)){alert("❌ Invalid TID format. Use: TID 123456789012");return;}
+  const user=auth.currentUser;if(!user)return alert("Please login first.");
+  set(ref(db,'vip_requests/'+user.uid),{email:user.email,requestedAt:new Date().toISOString(),tid:tidValue,status:"pending"})
+  .then(()=>{alert("✅ VIP request sent! Admin will verify payment.");activateVipBtn.disabled=true;activateVipBtn.innerText="TID Submitted";})
+  .catch(err=>alert(err.message));
+};
+
+symbol.addEventListener('change',runSignals);
+setInterval(runSignals,5*60*1000);
+
 </script>
 <script src="https://s3.tradingview.com/tv.js"></script>
 </body>
