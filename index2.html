@@ -52,6 +52,12 @@ select option.free-symbol { color: #22c55e; font-weight: bold; }
       <option value="USD/JPY">USD/JPY</option>
       <option value="BTC/USD">BTC/USD</option>
     </select>
+   
+   <button id="openTVBtn" class="secondary" style="margin-left:8px;">
+  📈 Full TradingView
+</button>
+
+   
   </div>
 
   <div id="authBox">
@@ -416,6 +422,17 @@ activateVipBtn.onclick=()=>{
 
 symbol.addEventListener('change',runSignals);
 setInterval(runSignals,5*60*1000);
+
+const openTVBtn = document.getElementById("openTVBtn");
+
+openTVBtn.onclick = () => {
+  const symbolVal = symbol.value.replace("/", "");
+  window.open(
+    `TRADINGVIEW.html?symbol=${symbolVal}`,
+    "_blank",
+    "width=1300,height=800"
+  );
+};
 
 </script>
 <script src="https://s3.tradingview.com/tv.js"></script>
