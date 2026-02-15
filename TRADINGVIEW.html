@@ -215,46 +215,44 @@ function drawLine(y, cls){
 
 /* =============================== REPLAY ENGINE =============================== */
 async function plotSignal(s){
-  const overlay = document.getElementById("overlay");
-
-  if(overlay.querySelector(`[data-id='${s.time}']`)) return;
   if(!activeChart) return;
 
   const signalTime = new Date(s.time).getTime();
+  const price = s.price;
 
-  // Get the bar closest to the signal time
-  let bars = await activeChart.getBars();
-  let closestBar;
-  if(bars && bars.length){
-    closestBar = bars.reduce((prev, curr) => 
-      Math.abs(curr.time - signalTime) < Math.abs(prev.time - signalTime) ? curr : prev
-    );
-  }
+  // Draw a small arrow shape for the signal
+  activeChart.createShape({
+    time: signalTime,
+    price: price,
+    shape: s.type==="BUY" ? "arrow_up" : "arrow_down",
+    color: s.type==="BUY" ? "#16a34a" : "#dc2626",
+    size: "small",
+    text: s.type,
+    disableSelection: true,
+    disableSave: true
+  });
 
-  // Snap signal to candle close price if bar exists, otherwise fallback to s.price
-  const priceForY = closestBar ? (s.type==="BUY" ? closestBar.close : closestBar.close) : s.price;
+  // Draw TP line
+  activeChart.createMultipointShape([
+    { time: signalTime, price: s.tp },
+    { time: signalTime + 1, price: s.tp }
+  ], {
+    shape: "line",
+    color: "#22c55e",
+    disableSelection: true,
+    disableSave: true
+  });
 
-  const x = activeChart.timeToCoordinate(signalTime);
-  const y = activeChart.priceToCoordinate(priceForY);
-
-  if(x === undefined || y === undefined) return;
-
-  // Create signal element
-  const el = document.createElement("div");
-  el.className = `signal ${s.type==="BUY"?"buy":"sell"} ${s.result==="WIN"?"win":"loss"} current-signal`;
-  el.style.left = x+"px";
-  el.style.top = y+"px";
-  el.innerText = s.type;
-  el.setAttribute("data-id", s.time);
-  overlay.appendChild(el);
-
-  // Draw TP/SL lines
-  const tpY = activeChart.priceToCoordinate(s.tp);
-  const slY = activeChart.priceToCoordinate(s.sl);
-  if(tpY !== undefined) drawLine(tpY,"tp");
-  if(slY !== undefined) drawLine(slY,"sl");
-
-  setTimeout(()=>el.classList.remove("current-signal"),1000);
+  // Draw SL line
+  activeChart.createMultipointShape([
+    { time: signalTime, price: s.sl },
+    { time: signalTime + 1, price: s.sl }
+  ], {
+    shape: "line",
+    color: "#ef4444",
+    disableSelection: true,
+    disableSave: true
+  });
 }
 
 
