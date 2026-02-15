@@ -209,34 +209,58 @@ function drawLine(y, cls){
   overlay.appendChild(l);
 }
 
-/* =============================== REPLAY ENGINE =============================== */
+/* =============================== PLOT SIGNALS ON CHART =============================== */
 async function plotSignal(s){
-  const overlay = document.getElementById("overlay");
+  if(!activeChart) return;
 
-  if(overlay.querySelector(`[data-id='${s.time}']`)) return;
+  // Convert ms → seconds for TradingView
+  const tvTime = Math.floor(s.time / 1000);
 
-  const x = await getXForTime(new Date(s.time).getTime());
-  const y = await getYForPrice(s.price);
+  const tooltip = `Type: ${s.type}\nEntry: ${s.price}\nTP: ${s.tp}\nSL: ${s.sl}\nResult: ${s.result || "N/A"}`;
 
-  const el = document.createElement("div");
-  el.className = `signal ${s.type==="BUY"?"buy":"sell"} ${s.result==="WIN"?"win":"loss"} current-signal`;
-  el.style.left = x+"px";
-  el.style.top = y+"px";
-  el.innerText = s.type;
-  el.setAttribute("data-id", s.time);
-  overlay.appendChild(el);
+  // Entry arrow
+  activeChart.createShape({
+    time: tvTime,
+    price: s.price,
+    shape: s.type === "BUY" ? "arrow_up" : "arrow_down",
+    color: s.type === "BUY" ? "#16a34a" : "#dc2626",
+    text: s.type,
+    textColor: "#fff",
+    size: 1,
+    disableSelection: true,
+    tooltip
+  });
 
-  drawLine(await getYForPrice(s.tp),"tp");
-  drawLine(await getYForPrice(s.sl),"sl");
+  // TP line (horizontal across 10 bars)
+  const tpPoints = Array.from({length: 10}, (_, i) => ({ time: tvTime + i*300, price: s.tp }));
+  activeChart.createMultipointShape(tpPoints, {
+    shape: "line",
+    color: "#22c55e",
+    linewidth: 1,
+    disableSelection: true
+  });
 
-  setTimeout(()=>el.classList.remove("current-signal"),1000);
+  // SL line (horizontal across 10 bars)
+  const slPoints = Array.from({length: 10}, (_, i) => ({ time: tvTime + i*300, price: s.sl }));
+  activeChart.createMultipointShape(slPoints, {
+    shape: "line",
+    color: "#ef4444",
+    linewidth: 1,
+    disableSelection: true
+  });
 }
 
+/* =============================== REPLAY ENGINE =============================== */
 async function startReplay(liveUpdate=false){
-  replayRunning = true;
-  if(!liveUpdate) document.getElementById("overlay").innerHTML = "";
+  if(!activeChart) return;
 
   const filtered = applyFilter();
+
+  // Only plot new signals if liveUpdate
+  if(!liveUpdate){
+    activeChart.removeAllShapes(); // clear old signals
+  }
+
   for(const s of filtered){
     await plotSignal(s);
   }
