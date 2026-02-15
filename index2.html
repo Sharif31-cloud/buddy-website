@@ -142,116 +142,138 @@ async function fetchData(symbol){
   return j.values.reverse();
 }
 
+
 // ================= CHART =================
 let chartWidget = null; // store widget instance for plotting
 let chartSymbolsHistory = {}; // keep history per symbol
 
-function loadChart(symbolVal){
-  if(chartLoaded === symbolVal) return;
-  chartContainer.innerHTML = "";
-
- chartWidget = new TradingView.widget({
-  container_id:"chart",
-  symbol:symbolVal.replace("/",""),
-  interval:"5",
-  theme:"dark",
-  autosize:true,  // keep this
-  studies: []
-});
-
-
-  chartLoaded = symbolVal;
-
-  // initialize history if doesn't exist
-  if(!chartSymbolsHistory[symbolVal]) chartSymbolsHistory[symbolVal] = [];
+// Convert your symbols to TradingView format
+function getTVSymbol(symbolVal) {
+  switch(symbolVal) {
+    case "XAU/USD": return "OANDA:XAUUSD";
+    case "EUR/USD": return "FX:EURUSD";
+    case "GBP/USD": return "FX:GBPUSD";
+    case "USD/JPY": return "FX:USDJPY";
+    case "BTC/USD": return "BINANCE:BTCUSDT";
+    default: return symbolVal.replace("/","");
+  }
 }
 
-// ================= PLOT SIGNALS ON CHART WITH TIMESTAMPS =================
-function plotSignalOnChart(sigData){
-  if(!chartWidget || !chartWidget.chart) return;
-  const { sig, entry, sltp, symbolVal, candleTime } = sigData; // candleTime in ms
-  const chart = chartWidget.chart();
+function loadChart(symbolVal, callback){
+  if(chartLoaded === symbolVal && chartWidget) {
+    if(callback) callback();
+    return;
+  }
 
-  if(sig.signal === "HOLD") return; // skip HOLD
+  chartContainer.innerHTML = "";
+  const tvSymbol = getTVSymbol(symbolVal);
+
+  chartWidget = new TradingView.widget({
+    container_id: "chart",
+    symbol: tvSymbol,
+    interval: "5",
+    theme: "dark",
+    autosize: true,
+    studies: [],
+    // when chart is ready, call callback
+    onChartReady: ()=>{
+      chartLoaded = symbolVal;
+      // initialize history if doesn't exist
+      if(!chartSymbolsHistory[symbolVal]) chartSymbolsHistory[symbolVal] = [];
+      if(callback) callback();
+    }
+  });
+}
+
+// ================= PLOT SIGNALS ON CHART =================
+function plotSignalOnChart(sigData){
+  if(!chartWidget) return;
+  const chart = chartWidget.activeChart(); // ← correct method
+  if(!chart) return;
+
+  const { sig, entry, sltp, symbolVal, candleTime } = sigData;
+
+  if(sig.signal === "HOLD") return;
 
   // store current signal in history
+  if(!chartSymbolsHistory[symbolVal]) chartSymbolsHistory[symbolVal] = [];
   chartSymbolsHistory[symbolVal].push({sig, entry, sltp, candleTime});
 
   // clear previous shapes to redraw full history
   chart.removeAllShapes();
 
   chartSymbolsHistory[symbolVal].forEach(s => {
-    const sIsBuy = s.sig.signal === "BUY";
-    const sArrowShape = sIsBuy ? 'arrow_up' : 'arrow_down';
-    const sArrowColor = sIsBuy ? '#22c55e' : '#ef4444';
+    const isBuy = s.sig.signal === "BUY";
 
-    // Entry marker with timestamp
+    // Entry marker
     chart.createShape({
-      time: s.candleTime / 1000, // TradingView expects seconds
+      time: s.candleTime / 1000, // seconds
       price: s.entry,
-      shape: sArrowShape,
-      text: `${s.sig.signal}\nEntry:${s.entry.toFixed(2)}\n${new Date(s.candleTime).toLocaleString()}`,
-      color: sArrowColor,
+      shape: isBuy ? "arrow_up" : "arrow_down",
+      text: `${s.sig.signal}\nEntry:${s.entry.toFixed(2)}`,
+      color: isBuy ? "#22c55e" : "#ef4444",
       size: 2,
     });
 
-    // SL line
+    // Stop Loss line
     chart.createShape({
       time: s.candleTime / 1000,
       price: s.sltp.sl,
-      shape: 'line_horizontal',
-      text: 'SL',
-      color: '#f87171',
+      shape: "line_horizontal",
+      text: "SL",
+      color: "#f87171",
       linewidth: 1
     });
 
-    // TP line
+    // Take Profit line
     chart.createShape({
       time: s.candleTime / 1000,
       price: s.sltp.tp,
-      shape: 'line_horizontal',
-      text: 'TP',
-      color: '#22c55e',
+      shape: "line_horizontal",
+      text: "TP",
+      color: "#22c55e",
       linewidth: 1
     });
   });
 }
 
 
+
 // ================= SIGNALS =================
 async function runSignals(){
   const symbolVal = symbol.value;
-  loadChart(symbolVal);
 
-  const now = Date.now();
-  if(cachedSignals[symbolVal] && now - cachedSignals[symbolVal].time < cacheTime){
-    displaySignals(cachedSignals[symbolVal].data);
-    plotSignalOnChart({...cachedSignals[symbolVal].data, symbolVal});
-    return;
-  }
+  loadChart(symbolVal, async ()=>{
+    try {
+      const now = Date.now();
+      if(cachedSignals[symbolVal] && now - cachedSignals[symbolVal].time < cacheTime){
+        displaySignals(cachedSignals[symbolVal].data);
+        plotSignalOnChart(cachedSignals[symbolVal].data);
+        return;
+      }
 
-  try {
-    let data = await fetchData(symbolVal);
-    let cl = data.map(x=>+x.close), h=data.map(x=>+x.high), l=data.map(x=>+x.low);
-    let sig = generateSignal({
-      ema10:EMA(cl.slice(-20),10), 
-      ema20:EMA(cl.slice(-30),20), 
-      rsi:RSI(cl), 
-      macd:MACD(cl).macd, 
-      macdSignal:MACD(cl).signal
-    });
-    let entry = cl.at(-1);
-    let sltp = SLTP(entry, ATR(h,l,cl), sig.signal);
-    let lastCandleTime = new Date(data.at(-1).datetime).getTime(); 
+      let data = await fetchData(symbolVal);
+      let cl = data.map(x=>+x.close), h=data.map(x=>+x.high), l=data.map(x=>+x.low);
+      let sig = generateSignal({
+        ema10:EMA(cl.slice(-20),10), 
+        ema20:EMA(cl.slice(-30),20), 
+        rsi:RSI(cl), 
+        macd:MACD(cl).macd, 
+        macdSignal:MACD(cl).signal
+      });
+      let entry = cl.at(-1);
+      let sltp = SLTP(entry, ATR(h,l,cl), sig.signal);
+      let lastCandleTime = new Date(data.at(-1).datetime).getTime(); 
 
-    const signalData = {symbolVal, sig, entry, sltp, candleTime: lastCandleTime};
-    cachedSignals[symbolVal] = {data: signalData, time: now};
+      const signalData = {symbolVal, sig, entry, sltp, candleTime: lastCandleTime};
+      cachedSignals[symbolVal] = {data: signalData, time: now};
 
-    displaySignals(signalData);
-    plotSignalOnChart(signalData); // plot on chart
-  } catch(e){
-    signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>❌ Error fetching data from Twelvedata. Check API key or symbol.</p>";
-  }
+      displaySignals(signalData);
+      plotSignalOnChart(signalData);
+    } catch(e){
+      signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>❌ Error fetching data from Twelvedata. Check API key or symbol.</p>";
+    }
+  });
 }
 
 
