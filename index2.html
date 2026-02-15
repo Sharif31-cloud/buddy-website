@@ -150,13 +150,20 @@ function loadChart(symbolVal){
   if(chartLoaded === symbolVal) return;
   chartContainer.innerHTML = "";
 
- chartWidget = new TradingView.widget({
-  container_id:"chart",
-  symbol:symbolVal.replace("/",""),
-  interval:"5",
-  theme:"dark",
-  autosize:true,  // keep this
-  studies: []
+chartWidget = new TradingView.widget({
+  container_id: "chart",
+  symbol: symbolVal.replace("/", ""),
+  interval: "5",
+  theme: "dark",
+  autosize: true,
+  studies: [],
+  autosize: true,
+  locale: "en",
+  // Use this callback:
+  overrides: {},
+  onChartReady: () => {
+    plotSignalOnChart(cachedSignals[symbolVal]?.data);
+  }
 });
 
 
@@ -187,35 +194,36 @@ function plotSignalOnChart(sigData){
 
     // Entry marker with timestamp
     chart.createShape({
-      time: s.candleTime / 1000, // TradingView expects seconds
-      price: s.entry,
-      shape: sArrowShape,
-      text: `${s.sig.signal}\nEntry:${s.entry.toFixed(2)}\n${new Date(s.candleTime).toLocaleString()}`,
-      color: sArrowColor,
-      size: 2,
-    });
+  time: s.candleTime / 1000, // seconds
+  price: s.entry,
+  shape: sArrowShape,       // keep as 'arrow_up' / 'arrow_down'
+  text: `${s.sig.signal}\nEntry:${s.entry.toFixed(2)}\n${new Date(s.candleTime).toLocaleString()}`,
+  color: sArrowColor,
+  size: 2
+});
+
 
     // SL line
     chart.createShape({
-      time: s.candleTime / 1000,
-      price: s.sltp.sl,
-      shape: 'line_horizontal',
-      text: 'SL',
-      color: '#f87171',
-      linewidth: 1
-    });
+  time: s.candleTime / 1000,
+  price: s.sltp.sl,
+  shape: 'line',    // ← changed from 'line_horizontal'
+  text: 'SL',
+  color: '#f87171',
+  linewidth: 1
+});
+
 
     // TP line
-    chart.createShape({
-      time: s.candleTime / 1000,
-      price: s.sltp.tp,
-      shape: 'line_horizontal',
-      text: 'TP',
-      color: '#22c55e',
-      linewidth: 1
-    });
-  });
-}
+   chart.createShape({
+  time: s.candleTime / 1000,
+  price: s.sltp.tp,
+  shape: 'line',    // ← changed
+  text: 'TP',
+  color: '#22c55e',
+  linewidth: 1
+});
+
 
 
 // ================= SIGNALS =================
