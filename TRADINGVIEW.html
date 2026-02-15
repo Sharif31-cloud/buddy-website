@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TradingView – AI Signal Replay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  margin:0;
+  background:#020617;
+  color:#e5e7eb;
+  font-family:Arial, sans-serif;
+  overflow:hidden;
+}
+
+#topBar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px;
+  background:#020617;
+  border-bottom:1px solid #1e293b;
+}
+
+#stats{
+  margin-left:auto;
+  font-size:13px;
+  color:#94a3b8;
+}
+
+select, button{
+  padding:6px 10px;
+  border-radius:6px;
+  border:none;
+  font-size:13px;
+}
+
+button{
+  background:#ef4444;
+  color:white;
+  cursor:pointer;
+}
+
+#tvWrapper{
+  position:relative;
+  height:calc(100vh - 50px);
+}
+
+#tv{
+  height:100%;
+}
+
+#overlay{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+
+.signal{
+  position:absolute;
+  padding:4px 6px;
+  font-size:11px;
+  border-radius:4px;
+  font-weight:bold;
+  transform:translate(-50%, -50%);
+}
+
+.buy{ background:#16a34a; }
+.sell{ background:#dc2626; }
+
+.win{ box-shadow:0 0 0 2px #22c55e; }
+.loss{ box-shadow:0 0 0 2px #ef4444; }
+
+.line{
+  position:absolute;
+  height:2px;
+  left:0;
+  right:0;
+}
+
+.tp{ background:#22c55e; }
+.sl{ background:#ef4444; }
+</style>
+</head>
+
+<body>
+
+<div id="topBar">
+  <strong>📈 AI Signal Replay</strong>
+
+  <select id="dateFilter">
+    <option value="all">All</option>
+    <option value="today">Today</option>
+    <option value="week">This Week</option>
+  </select>
+
+  <button onclick="startReplay()">▶ Replay</button>
+  <button onclick="window.close()">❌ Close</button>
+
+  <span id="stats"></span>
+</div>
+
+<div id="tvWrapper">
+  <div id="tv"></div>
+  <div id="overlay"></div>
+</div>
+
+<script src="https://s3.tradingview.com/tv.js"></script>
+
+<!-- 🔥 FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+/* 🔴 REAL FIREBASE CONFIG */
+const firebaseConfig = {
+  apiKey: "AIzaSyB1G6DhAZv70YLk65ESgZl0Cm1BHzab4a0",
+  authDomain: "buddydownloads-72e3b.firebaseapp.com",
+  databaseURL: "https://buddydownloads-72e3b-default-rtdb.firebaseio.com",
+  projectId: "buddydownloads-72e3b",
+  storageBucket: "buddydownloads-72e3b.appspot.com",
+  messagingSenderId: "782621240629",
+  appId: "1:782621240629:web:4678fac59caad0f3ac707c"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+/* ===============================
+   CHART INIT
+================================ */
+const params = new URLSearchParams(window.location.search);
+const symbol = params.get("symbol") || "XAUUSD";
+
+new TradingView.widget({
+  container_id:"tv",
+  symbol,
+  interval:"5",
+  theme:"dark",
+  autosize:true
+});
+
+/* ===============================
+   SIGNAL DATA
+================================ */
+let signals = [];
+
+async function loadSignals(){
+  const snap = await get(ref(db, "signals"));
+  if(!snap.exists()) return;
+
+  signals = Object.values(snap.val()).filter(s => s.symbol === symbol);
+  updateStats();
+}
+
+loadSignals();
+
+/* ===============================
+   FILTERS
+================================ */
+function applyFilter(){
+  const f = document.getElementById("dateFilter").value;
+  const now = Date.now();
+
+  return signals.filter(s=>{
+    const t = new Date(s.time).getTime();
+    if(f==="today") return now - t < 86400000;
+    if(f==="week") return now - t < 604800000;
+    return true;
+  });
+}
+
+/* ===============================
+   POSITION MAPPING
+================================ */
+function mapX(time){
+  const range = 6 * 60 * 60 * 1000; // 6h view
+  const now = Date.now();
+  return ((time - (now-range)) / range) * overlay.clientWidth;
+}
+
+function mapY(price){
+  const min = Math.min(...signals.map(s=>s.sl));
+  const max = Math.max(...signals.map(s=>s.tp));
+  return ((max - price) / (max - min)) * overlay.clientHeight;
+}
+
+/* ===============================
+   REPLAY ENGINE
+================================ */
+function startReplay(){
+  const overlay = document.getElementById("overlay");
+  overlay.innerHTML = "";
+
+  const filtered = applyFilter().sort((a,b)=>new Date(a.time)-new Date(b.time));
+
+  filtered.forEach((s,i)=>{
+    setTimeout(()=>{
+      const x = mapX(new Date(s.time).getTime());
+      const y = mapY(s.price);
+
+      const el = document.createElement("div");
+      el.className = `signal ${s.type==="BUY"?"buy":"sell"} ${s.result==="WIN"?"win":"loss"}`;
+      el.style.left = x+"px";
+      el.style.top = y+"px";
+      el.innerText = s.type;
+
+      overlay.appendChild(el);
+
+      drawLine(mapY(s.tp),"tp");
+      drawLine(mapY(s.sl),"sl");
+
+    }, i*1200);
+  });
+}
+
+function drawLine(y, cls){
+  const l = document.createElement("div");
+  l.className = `line ${cls}`;
+  l.style.top = y+"px";
+  overlay.appendChild(l);
+}
+
+/* ===============================
+   STATS
+================================ */
+function updateStats(){
+  const wins = signals.filter(s=>s.result==="WIN").length;
+  const rate = signals.length ? Math.round(wins/signals.length*100):0;
+  stats.innerText = `Signals: ${signals.length} | Win: ${rate}%`;
+}
+</script>
+
+</body>
+</html>
