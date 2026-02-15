@@ -84,24 +84,6 @@ select option.free-symbol { color: #22c55e; font-weight: bold; }
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-// For TradingView chart (no slash)
-const tvSymbols = {
-  "XAU/USD": "OANDA:XAUUSD",
-  "EUR/USD": "OANDA:EURUSD",
-  "GBP/USD": "OANDA:GBPUSD",
-  "USD/JPY": "OANDA:USDJPY",
-  "BTC/USD": "COINBASE:BTCUSD"
-};
-
-// For TwelveData API (with slash)
-const tdSymbols = {
-  "XAU/USD": "XAUUSD",
-  "EUR/USD": "EURUSD",
-  "GBP/USD": "GBPUSD",
-  "USD/JPY": "USDJPY",
-  "BTC/USD": "BTCUSD"
-};
-
 
 // =============== TWELVEDATA CONFIG ===============
 const TWELVE_KEY = "894c1cdec16d47b98980a4423f254352";
@@ -154,20 +136,10 @@ function SLTP(e,a,s){let r=a*1.2,t=r*1.5;if(s==="BUY")return{sl:e-r,tp:e+t};if(s
 
 // =============== FETCH MARKET DATA =================
 async function fetchData(symbol){
-  let url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${INTERVAL}&outputsize=200&apikey=${TWELVE_KEY}`;
-  try {
-    let r = await fetch(url);
-    let j = await r.json();
-
-    if(!j.values || j.values.length === 0){
-      throw new Error(j.message || "No data returned from TwelveData");
-    }
-
-    return j.values.reverse();
-  } catch(err) {
-    console.error("FetchData error:", err);
-    throw err; // propagate so runSignals can catch it
-  }
+  let url=`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${INTERVAL}&outputsize=200&apikey=${TWELVE_KEY}`;
+  let r = await fetch(url);
+  let j = await r.json();
+  return j.values.reverse();
 }
 
 // ================= CHART =================
@@ -178,12 +150,12 @@ function loadChart(symbolVal){
   if(chartLoaded === symbolVal) return;
   chartContainer.innerHTML = "";
 
-chartWidget = new TradingView.widget({
-  container_id: "chart",
-  symbol: tvSymbols[symbolVal] || "OANDA:EURUSD",
-  interval: "5",
-  theme: "dark",
-  autosize: true,
+ chartWidget = new TradingView.widget({
+  container_id:"chart",
+  symbol:symbolVal.replace("/",""),
+  interval:"5",
+  theme:"dark",
+  autosize:true,  // keep this
   studies: []
 });
 
@@ -196,63 +168,59 @@ chartWidget = new TradingView.widget({
 
 // ================= PLOT SIGNALS ON CHART WITH TIMESTAMPS =================
 function plotSignalOnChart(sigData){
-  if(!chartWidget) return;
-  const { sig, entry, sltp, symbolVal, candleTime } = sigData;
+  if(!chartWidget || !chartWidget.chart) return;
+  const { sig, entry, sltp, symbolVal, candleTime } = sigData; // candleTime in ms
+  const chart = chartWidget.chart();
 
-  chartWidget.onChartReady(() => {
-    const chart = chartWidget.chart();
+  if(sig.signal === "HOLD") return; // skip HOLD
 
-    if(sig.signal === "HOLD") return;
+  // store current signal in history
+  chartSymbolsHistory[symbolVal].push({sig, entry, sltp, candleTime});
 
-    if(!chartSymbolsHistory[symbolVal]) chartSymbolsHistory[symbolVal] = [];
-    chartSymbolsHistory[symbolVal].push({sig, entry, sltp, candleTime});
+  // clear previous shapes to redraw full history
+  chart.removeAllShapes();
 
-    chart.removeAllShapes();
+  chartSymbolsHistory[symbolVal].forEach(s => {
+    const sIsBuy = s.sig.signal === "BUY";
+    const sArrowShape = sIsBuy ? 'arrow_up' : 'arrow_down';
+    const sArrowColor = sIsBuy ? '#22c55e' : '#ef4444';
 
-    chartSymbolsHistory[symbolVal].forEach(s => {
-      const isBuy = s.sig.signal === "BUY";
+    // Entry marker with timestamp
+    chart.createShape({
+      time: s.candleTime / 1000, // TradingView expects seconds
+      price: s.entry,
+      shape: sArrowShape,
+      text: `${s.sig.signal}\nEntry:${s.entry.toFixed(2)}\n${new Date(s.candleTime).toLocaleString()}`,
+      color: sArrowColor,
+      size: 2,
+    });
 
-      // Arrow for entry
-      chart.createShape({
-        time: s.candleTime / 1000,
-        price: s.entry,
-        shape: isBuy ? 'arrow_up' : 'arrow_down',
-        text: `${s.sig.signal}\nEntry:${s.entry.toFixed(2)}`,
-        color: isBuy ? '#22c55e' : '#ef4444',
-        size: 2
-      });
+    // SL line
+    chart.createShape({
+      time: s.candleTime / 1000,
+      price: s.sltp.sl,
+      shape: 'line_horizontal',
+      text: 'SL',
+      color: '#f87171',
+      linewidth: 1
+    });
 
-      // SL line
-      chart.createShape({
-        time: s.candleTime / 1000,
-        price: s.sltp.sl,
-        shape: 'horizontal_line',
-        text: 'SL',
-        color: '#f87171',
-        linewidth: 1
-      });
-
-      // TP line
-      chart.createShape({
-        time: s.candleTime / 1000,
-        price: s.sltp.tp,
-        shape: 'horizontal_line',
-        text: 'TP',
-        color: '#22c55e',
-        linewidth: 1
-      });
+    // TP line
+    chart.createShape({
+      time: s.candleTime / 1000,
+      price: s.sltp.tp,
+      shape: 'line_horizontal',
+      text: 'TP',
+      color: '#22c55e',
+      linewidth: 1
     });
   });
 }
 
 
-
-// ================= SIGNALS =================
 // ================= SIGNALS =================
 async function runSignals(){
   const symbolVal = symbol.value;
-
-  // Load chart using TradingView mapping
   loadChart(symbolVal);
 
   const now = Date.now();
@@ -263,23 +231,15 @@ async function runSignals(){
   }
 
   try {
-    // 🔹 Fetch from TwelveData using symbol WITH slash (working format)
-    let data = await fetchData(symbolVal);  
-
-    // Extract OHLC
-    let cl = data.map(x=>+x.close), 
-        h  = data.map(x=>+x.high), 
-        l  = data.map(x=>+x.low);
-
-    // Generate signal
+    let data = await fetchData(symbolVal);
+    let cl = data.map(x=>+x.close), h=data.map(x=>+x.high), l=data.map(x=>+x.low);
     let sig = generateSignal({
-      ema10: EMA(cl.slice(-20), 10), 
-      ema20: EMA(cl.slice(-30), 20), 
-      rsi: RSI(cl), 
-      macd: MACD(cl).macd, 
-      macdSignal: MACD(cl).signal
+      ema10:EMA(cl.slice(-20),10), 
+      ema20:EMA(cl.slice(-30),20), 
+      rsi:RSI(cl), 
+      macd:MACD(cl).macd, 
+      macdSignal:MACD(cl).signal
     });
-
     let entry = cl.at(-1);
     let sltp = SLTP(entry, ATR(h,l,cl), sig.signal);
     let lastCandleTime = new Date(data.at(-1).datetime).getTime(); 
@@ -287,13 +247,10 @@ async function runSignals(){
     const signalData = {symbolVal, sig, entry, sltp, candleTime: lastCandleTime};
     cachedSignals[symbolVal] = {data: signalData, time: now};
 
-    // Display and plot
     displaySignals(signalData);
-    plotSignalOnChart(signalData);
-
+    plotSignalOnChart(signalData); // plot on chart
   } catch(e){
-    console.error("Error fetching TwelveData:", e);
-    signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>❌ Error fetching data from TwelveData. Check API key or symbol.</p>";
+    signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>❌ Error fetching data from Twelvedata. Check API key or symbol.</p>";
   }
 }
 
