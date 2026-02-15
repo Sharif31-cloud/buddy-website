@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TradingView – AI Signal Replay</title>
+<title>TradingView – AI Signal Replay (Live)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -64,6 +64,7 @@ button{
   border-radius:4px;
   font-weight:bold;
   transform:translate(-50%, -50%);
+  transition: all 0.5s ease;
 }
 
 .buy{ background:#16a34a; }
@@ -71,6 +72,17 @@ button{
 
 .win{ box-shadow:0 0 0 2px #22c55e; }
 .loss{ box-shadow:0 0 0 2px #ef4444; }
+
+.current-signal{
+  border:2px dashed #facc15;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse{
+  0%{ transform:translate(-50%, -50%) scale(1);}
+  50%{ transform:translate(-50%, -50%) scale(1.3);}
+  100%{ transform:translate(-50%, -50%) scale(1);}
+}
 
 .line{
   position:absolute;
@@ -87,7 +99,7 @@ button{
 <body>
 
 <div id="topBar">
-  <strong>📈 AI Signal Replay</strong>
+  <strong>📈 AI Signal Replay (Live)</strong>
 
   <select id="dateFilter">
     <option value="all">All</option>
@@ -108,11 +120,9 @@ button{
 
 <script src="https://s3.tradingview.com/tv.js"></script>
 
-<!-- 🔥 FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 /* 🔴 REAL FIREBASE CONFIG */
 const firebaseConfig = {
@@ -126,45 +136,42 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 const db = getDatabase(app);
 
-/* ===============================
-   CHART INIT
-================================ */
+/* =============================== CHART INIT =============================== */
 const params = new URLSearchParams(window.location.search);
 const symbol = params.get("symbol") || "XAUUSD";
+let chartWidget, activeChart;
 
 new TradingView.widget({
   container_id:"tv",
   symbol,
   interval:"5",
   theme:"dark",
-  autosize:true
+  autosize:true,
+  studies:[],
+  allow_symbol_change:true,
+  onChartReady: function() {
+    chartWidget = this;
+    activeChart = chartWidget.activeChart();
+  }
 });
 
-/* ===============================
-   SIGNAL DATA
-================================ */
+/* =============================== SIGNAL DATA =============================== */
 let signals = [];
+let replayRunning = false;
 
-async function loadSignals(){
-  const snap = await get(ref(db, "signals"));
-  if(!snap.exists()) return;
-
-  signals = Object.values(snap.val()).filter(s => s.symbol === symbol);
-  updateStats();
+function updateStats(){
+  const filteredSignals = applyFilter();
+  const wins = filteredSignals.filter(s=>s.result==="WIN").length;
+  const rate = filteredSignals.length ? Math.round(wins/filteredSignals.length*100):0;
+  stats.innerText = `Signals: ${filteredSignals.length} | Win: ${rate}%`;
 }
 
-loadSignals();
-
-/* ===============================
-   FILTERS
-================================ */
+/* =============================== FILTERS =============================== */
 function applyFilter(){
   const f = document.getElementById("dateFilter").value;
   const now = Date.now();
-
   return signals.filter(s=>{
     const t = new Date(s.time).getTime();
     if(f==="today") return now - t < 86400000;
@@ -173,50 +180,54 @@ function applyFilter(){
   });
 }
 
-/* ===============================
-   POSITION MAPPING
-================================ */
-function mapX(time){
-  const range = 6 * 60 * 60 * 1000; // 6h view
-  const now = Date.now();
-  return ((time - (now-range)) / range) * overlay.clientWidth;
-}
-
-function mapY(price){
-  const min = Math.min(...signals.map(s=>s.sl));
-  const max = Math.max(...signals.map(s=>s.tp));
-  return ((max - price) / (max - min)) * overlay.clientHeight;
-}
-
-/* ===============================
-   REPLAY ENGINE
-================================ */
-function startReplay(){
-  const overlay = document.getElementById("overlay");
-  overlay.innerHTML = "";
-
-  const filtered = applyFilter().sort((a,b)=>new Date(a.time)-new Date(b.time));
-
-  filtered.forEach((s,i)=>{
-    setTimeout(()=>{
-      const x = mapX(new Date(s.time).getTime());
-      const y = mapY(s.price);
-
-      const el = document.createElement("div");
-      el.className = `signal ${s.type==="BUY"?"buy":"sell"} ${s.result==="WIN"?"win":"loss"}`;
-      el.style.left = x+"px";
-      el.style.top = y+"px";
-      el.innerText = s.type;
-
-      overlay.appendChild(el);
-
-      drawLine(mapY(s.tp),"tp");
-      drawLine(mapY(s.sl),"sl");
-
-    }, i*1200);
+/* =============================== POSITION MAPPING =============================== */
+async function getXForTime(time){
+  if(!activeChart) return 50;
+  const bars = await activeChart.getBars(); 
+  if(!bars || bars.length===0) return 50;
+  let closest = bars.reduce((prev, curr)=>{
+    return Math.abs(curr.time - time) < Math.abs(prev.time - time) ? curr : prev;
   });
+  const coords = activeChart.timeToCoordinate(closest.time);
+  return coords || 50;
 }
 
+async function getYForPrice(price){
+  if(!activeChart) return 50;
+  return activeChart.priceToCoordinate(price) || 50;
+}
+
+/* =============================== REPLAY ENGINE =============================== */
+async function startReplay(liveUpdate=false){
+  replayRunning = true;
+  const overlay = document.getElementById("overlay");
+  if(!liveUpdate) overlay.innerHTML = "";
+
+  const filtered = applyFilter();
+
+  for(let i=0; i<filtered.length; i++){
+    const s = filtered[i];
+    if(overlay.querySelector(`[data-id='${s.time}']`) && liveUpdate) continue;
+
+    const x = await getXForTime(new Date(s.time).getTime());
+    const y = await getYForPrice(s.price);
+
+    const el = document.createElement("div");
+    el.className = `signal ${s.type==="BUY"?"buy":"sell"} ${s.result==="WIN"?"win":"loss"} current-signal`;
+    el.style.left = x+"px";
+    el.style.top = y+"px";
+    el.innerText = s.type;
+    el.setAttribute("data-id", s.time);
+    overlay.appendChild(el);
+
+    drawLine(await getYForPrice(s.tp),"tp");
+    drawLine(await getYForPrice(s.sl),"sl");
+
+    setTimeout(()=>el.classList.remove("current-signal"),1000);
+  }
+}
+
+/* =============================== DRAW LINES =============================== */
 function drawLine(y, cls){
   const l = document.createElement("div");
   l.className = `line ${cls}`;
@@ -224,14 +235,21 @@ function drawLine(y, cls){
   overlay.appendChild(l);
 }
 
-/* ===============================
-   STATS
-================================ */
-function updateStats(){
-  const wins = signals.filter(s=>s.result==="WIN").length;
-  const rate = signals.length ? Math.round(wins/signals.length*100):0;
-  stats.innerText = `Signals: ${signals.length} | Win: ${rate}%`;
-}
+/* =============================== REALTIME FIREBASE LISTENER =============================== */
+const signalsRef = ref(db,"signals");
+onValue(signalsRef,(snapshot)=>{
+  if(!snapshot.exists()) return;
+
+  // 🔥 Load all BUY/SELL signals for this symbol
+  signals = Object.values(snapshot.val())
+    .filter(s=>s.symbol === symbol && (s.type==="BUY" || s.type==="SELL"))
+    .sort((a,b)=>new Date(a.time)-new Date(b.time));
+
+  updateStats();
+
+  // 🔴 Auto-replay for new signals only
+  if(replayRunning) startReplay(true);
+});
 </script>
 
 </body>
