@@ -217,25 +217,16 @@ function drawLine(y, cls){
 async function plotSignal(s){
   const overlay = document.getElementById("overlay");
 
+  // Prevent duplicate signals
   if(overlay.querySelector(`[data-id='${s.time}']`)) return;
 
-  // Convert signal time to milliseconds
+  if(!activeChart) return;
+
   const signalTime = new Date(s.time).getTime();
-
-  // Wait until bars are ready
-  let bars = await activeChart.getBars();
-  if(!bars || bars.length===0) return;
-
-  // Find the closest bar
-  let closest = bars.reduce((prev, curr)=>{
-    return Math.abs(curr.time - signalTime) < Math.abs(prev.time - signalTime) ? curr : prev;
-  });
-
-  // Get X/Y coordinates using the closest bar
-  const x = activeChart.timeToCoordinate(closest.time);
+  const x = activeChart.timeToCoordinate(signalTime);
   const y = activeChart.priceToCoordinate(s.price);
 
-  if(x === undefined || y === undefined) return; // Safety check
+  if(x === undefined || y === undefined) return;
 
   // Create signal element
   const el = document.createElement("div");
@@ -247,14 +238,14 @@ async function plotSignal(s){
   overlay.appendChild(el);
 
   // Draw TP/SL lines
-  const tpY = await getYForPrice(s.tp);
-  const slY = await getYForPrice(s.sl);
-  if(tpY) drawLine(tpY,"tp");
-  if(slY) drawLine(slY,"sl");
+  const tpY = activeChart.priceToCoordinate(s.tp);
+  const slY = activeChart.priceToCoordinate(s.sl);
+  if(tpY !== undefined) drawLine(tpY,"tp");
+  if(slY !== undefined) drawLine(slY,"sl");
 
-  // Remove pulse after 1s
   setTimeout(()=>el.classList.remove("current-signal"),1000);
 }
+
 
 
 async function startReplay(liveUpdate=false){
