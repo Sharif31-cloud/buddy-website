@@ -29,26 +29,11 @@ body{
   color:#94a3b8;
 }
 
-select, button{
+select{
   padding:6px 10px;
   border-radius:6px;
   border:none;
   font-size:13px;
-}
-
-button{
-  background:#ef4444;
-  color:white;
-  cursor:pointer;
-}
-
-#tvWrapper{
-  position:relative;
-  height:calc(100vh - 50px);
-}
-
-#tv{
-  height:100%;
 }
 </style>
 </head>
@@ -68,7 +53,7 @@ button{
 </div>
 
 <div id="tvWrapper">
-  <div id="tv"></div>
+  <div id="tv" style="height:100vh;"></div>
 </div>
 
 <script src="https://s3.tradingview.com/tv.js"></script>
@@ -94,10 +79,7 @@ const db = getDatabase(app);
 /* =============================== CHART INIT =============================== */
 const params = new URLSearchParams(window.location.search);
 const rawSymbol = params.get("symbol") || "XAUUSD";
-
-// Normalize symbol for Firebase comparison
 const symbol = rawSymbol.replace(/\//g,'').toUpperCase();
-
 let chartWidget, activeChart;
 
 new TradingView.widget({
@@ -117,7 +99,6 @@ new TradingView.widget({
 /* =============================== SIGNAL DATA =============================== */
 let signals = [];
 
-/* =============================== FILTERS =============================== */
 function applyFilter(){
   const f = document.getElementById("dateFilter").value;
   const now = Date.now();
@@ -129,7 +110,6 @@ function applyFilter(){
   });
 }
 
-/* =============================== STATS =============================== */
 function updateStats(){
   const filteredSignals = applyFilter();
   const wins = filteredSignals.filter(s=>s.result==="WIN").length;
@@ -141,7 +121,9 @@ function updateStats(){
 function plotSignalOnChart(s){
   if(!activeChart) return;
 
-  // Entry marker
+  const tooltip = `Type: ${s.type}\nEntry: ${s.price}\nTP: ${s.tp}\nSL: ${s.sl}\nResult: ${s.result || "N/A"}`;
+
+  // Entry marker with tooltip
   activeChart.createShape({
     time: s.time,
     price: s.price,
@@ -150,7 +132,8 @@ function plotSignalOnChart(s){
     text: s.type,
     textColor: "#fff",
     size: 1,
-    disableSelection: true
+    disableSelection: true,
+    tooltip: tooltip
   });
 
   // TP line
@@ -179,7 +162,6 @@ onValue(signalsRef, (snapshot)=>{
     .sort((a,b)=>a.time - b.time);
 
   updateStats();
-
   signals.forEach(plotSignalOnChart);
 });
 </script>
