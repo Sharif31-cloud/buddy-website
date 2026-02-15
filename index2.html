@@ -5,11 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Signal Dashboard</title>
 
-<!-- Favicon -->
 <link rel="icon" type="image/png" href="logo_icon.png">
 <link rel="shortcut icon" href="favicon.ico">
-
-<meta name="description" content="AI Signal Dashboard for Forex, Crypto, and Commodities with EMA, RSI, and MACD indicators. Free symbols available. VIP access for premium signals.">
+<meta name="description" content="AI Signal Dashboard with EMA, RSI, MACD indicators. Free symbols available. VIP for premium signals.">
 
 <style>
 body { margin:0; font-family:Arial,sans-serif; background:#0f172a; color:#e5e7eb; }
@@ -26,13 +24,7 @@ button.secondary { background:#334155; }
 .vip-lock { filter:blur(7px); pointer-events:none; }
 #authBox { display:flex; gap:6px; flex-wrap:wrap; align-items:flex-end; }
 #tidBox { display:none; flex-direction:column; gap:6px; margin-top:10px; background:#1e293b; padding:12px; border-radius:10px; max-width:420px; }
-#chart {
-  width: 100%;
-  max-width: 900px;
-  height: 450px;
-  margin: 20px auto;
-}
-
+#chart { width: 100%; max-width: 900px; height: 450px; margin: 20px auto; }
 #explain { background:#020617; margin:30px auto; padding:20px; max-width:900px; border-radius:12px; line-height:1.6; }
 .lock { color:#fbbf24; }
 .signal button { margin-top:8px; padding:6px 12px; border:none; border-radius:6px; cursor:pointer; background:#2563eb; color:white; }
@@ -80,16 +72,15 @@ select option.free-symbol { color: #22c55e; font-weight: bold; }
   <p>AI Signal Dashboard powered by EMA, RSI, MACD indicators. Some symbols are free for everyone.</p>
 </div>
 
+<!-- TradingView library -->
+<script src="https://s3.tradingview.com/tv.js"></script>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// =============== TWELVEDATA CONFIG ===============
-const TWELVE_KEY = "894c1cdec16d47b98980a4423f254352";
-const INTERVAL = "5min";
-
-// =============== FIREBASE =================
+// ================= FIREBASE =================
 const firebaseConfig = {
   apiKey: "AIzaSyB1G6DhAZv70YLk65ESgZl0Cm1BHzab4a0",
   authDomain: "buddydownloads-72e3b.firebaseapp.com",
@@ -103,7 +94,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-// =============== DOM =================
+// ================= DOM =================
 const email = document.getElementById('email');
 const password = document.getElementById('password');
 const loginBtn = document.getElementById('loginBtn');
@@ -121,12 +112,22 @@ let isVIP = false;
 let vipCountdownInterval = null;
 const freeSymbols = ["EUR/USD", "GBP/USD"];
 
-let chartLoaded = null;          // track current chart symbol
-let cachedSignals = {};          // store cached signals per symbol
-const cacheTime = 2 * 60 * 1000; // 2 minutes cache
+let chartWidget = null;
+let chartLoaded = null;
+let chartSymbolsHistory = {};
+let cachedSignals = {};
+const cacheTime = 2 * 60 * 1000; // 2 min cache
 
+// ================= SYMBOL MAP FOR TRADINGVIEW =================
+const symbolValMap = {
+  "XAU/USD": "OANDA:XAU/USD",
+  "EUR/USD": "OANDA:EUR/USD",
+  "GBP/USD": "OANDA:GBP/USD",
+  "USD/JPY": "OANDA:USD/JPY",
+  "BTC/USD": "COINBASE:BTC/USD"
+};
 
-// =============== INDICATORS =================
+// ================= INDICATORS =================
 function EMA(v,p){let k=2/(p+1),e=v[0];for(let i=1;i<v.length;i++)e=v[i]*k+e*(1-k);return e;}
 function RSI(v,p=7){let g=0,l=0;for(let i=v.length-p;i<v.length-1;i++){let d=v[i+1]-v[i];d>0?g+=d:l-=d}let rs=g/(l||1);return 100-100/(1+rs);}
 function ATR(h,l,c,p=14){let t=[];for(let i=1;i<c.length;i++)t.push(Math.max(h[i]-l[i],Math.abs(h[i]-c[i-1]),Math.abs(l[i]-c[i-1])));return EMA(t.slice(-p),p);}
@@ -134,142 +135,66 @@ function MACD(v){let a=EMA(v.slice(-26),12),b=EMA(v.slice(-26),26);return{macd:a
 function generateSignal(d){let s=0;d.ema10>d.ema20?s+=30:s-=30;d.rsi>55?s+=20:d.rsi<45?s-=20:null;d.macd>d.macdSignal?s+=20:s-=20;if(s>=35)return{signal:"BUY",strength:s};if(s<=-35)return{signal:"SELL",strength:Math.abs(s)};return{signal:"HOLD",strength:Math.abs(s)};}
 function SLTP(e,a,s){let r=a*1.2,t=r*1.5;if(s==="BUY")return{sl:e-r,tp:e+t};if(s==="SELL")return{sl:e+r,tp:e-t};return{sl:e,tp:e};}
 
-// =============== FETCH MARKET DATA =================
-async function fetchData(symbol){
-  let url=`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${INTERVAL}&outputsize=200&apikey=${TWELVE_KEY}`;
-  let r = await fetch(url);
-  let j = await r.json();
-  return j.values.reverse();
+// ================= FETCH DATA =================
+const TWELVE_KEY = "894c1cdec16d47b98980a4423f254352";
+const INTERVAL = "5min";
+
+async function fetchData(symbolVal){
+  try{
+    const url = `https://api.twelvedata.com/time_series?symbol=${symbolVal}&interval=${INTERVAL}&outputsize=200&apikey=${TWELVE_KEY}`;
+    const r = await fetch(url);
+    const j = await r.json();
+    if(!j.values) throw new Error("No values returned");
+    return j.values.reverse();
+  }catch(e){console.error("Fetch data error:",e); return [];}
 }
 
 // ================= CHART =================
-let chartWidget = null; // store widget instance for plotting
-let chartSymbolsHistory = {}; // keep history per symbol
-
-function loadChart(symbolVal){
-  if(chartLoaded === symbolVal) return;
+function loadChart(symbolVal, callback){
+  if(chartLoaded===symbolVal){if(callback) callback(); return;}
   chartContainer.innerHTML = "";
-
- chartWidget = new TradingView.widget({
-  container_id:"chart",
-  symbol:symbolVal.replace("/",""),
-  interval:"5",
-  theme:"dark",
-  autosize:true,  // keep this
-  studies: []
-});
-
-
-  chartLoaded = symbolVal;
-
-  // initialize history if doesn't exist
-  if(!chartSymbolsHistory[symbolVal]) chartSymbolsHistory[symbolVal] = [];
-}
-
-// ================= PLOT SIGNALS ON CHART WITH TIMESTAMPS =================
-function plotSignalOnChart(sigData){
-  if(!chartWidget || !chartWidget.chart) return;
-  const { sig, entry, sltp, symbolVal, candleTime } = sigData; // candleTime in ms
-  const chart = chartWidget.chart();
-
-  if(sig.signal === "HOLD") return; // skip HOLD
-
-  // store current signal in history
-  chartSymbolsHistory[symbolVal].push({sig, entry, sltp, candleTime});
-
-  // clear previous shapes to redraw full history
-  chart.removeAllShapes();
-
-  chartSymbolsHistory[symbolVal].forEach(s => {
-    const sIsBuy = s.sig.signal === "BUY";
-    const sArrowShape = sIsBuy ? 'arrow_up' : 'arrow_down';
-    const sArrowColor = sIsBuy ? '#22c55e' : '#ef4444';
-
-    // Entry marker with timestamp
-    chart.createShape({
-      time: s.candleTime / 1000, // TradingView expects seconds
-      price: s.entry,
-      shape: sArrowShape,
-      text: `${s.sig.signal}\nEntry:${s.entry.toFixed(2)}\n${new Date(s.candleTime).toLocaleString()}`,
-      color: sArrowColor,
-      size: 2,
-    });
-
-    // SL line
-    chart.createShape({
-      time: s.candleTime / 1000,
-      price: s.sltp.sl,
-      shape: 'line_horizontal',
-      text: 'SL',
-      color: '#f87171',
-      linewidth: 1
-    });
-
-    // TP line
-    chart.createShape({
-      time: s.candleTime / 1000,
-      price: s.sltp.tp,
-      shape: 'line_horizontal',
-      text: 'TP',
-      color: '#22c55e',
-      linewidth: 1
-    });
+  chartWidget = new TradingView.widget({
+    container_id: "chart",
+    symbol: symbolValMap[symbolVal] || "OANDA:EUR/USD",
+    interval: "5",
+    theme: "dark",
+    autosize: true,
+    studies: [],
+    onChartReady: ()=>{ 
+      chartLoaded = symbolVal;
+      if(!chartSymbolsHistory[symbolVal]) chartSymbolsHistory[symbolVal]=[];
+      if(callback) callback();
+    }
   });
 }
 
+// ================= PLOT =================
+function plotSignalOnChart(sigData){
+  if(!chartWidget||!chartWidget.chart) return;
+  const { sig, entry, sltp, symbolVal, candleTime } = sigData;
+  const chart = chartWidget.chart();
+  if(sig.signal==="HOLD") return;
 
-// ================= SIGNALS =================
-async function runSignals(){
-  const symbolVal = symbol.value;
-  loadChart(symbolVal);
+  chartSymbolsHistory[symbolVal].push({sig, entry, sltp, candleTime});
+  chart.removeAllShapes();
 
-  const now = Date.now();
-  if(cachedSignals[symbolVal] && now - cachedSignals[symbolVal].time < cacheTime){
-    displaySignals(cachedSignals[symbolVal].data);
-    plotSignalOnChart({...cachedSignals[symbolVal].data, symbolVal});
-    return;
-  }
-
-  try {
-    let data = await fetchData(symbolVal);
-    let cl = data.map(x=>+x.close), h=data.map(x=>+x.high), l=data.map(x=>+x.low);
-    let sig = generateSignal({
-      ema10:EMA(cl.slice(-20),10), 
-      ema20:EMA(cl.slice(-30),20), 
-      rsi:RSI(cl), 
-      macd:MACD(cl).macd, 
-      macdSignal:MACD(cl).signal
-    });
-    let entry = cl.at(-1);
-    let sltp = SLTP(entry, ATR(h,l,cl), sig.signal);
-    let lastCandleTime = new Date(data.at(-1).datetime).getTime(); 
-
-    const signalData = {symbolVal, sig, entry, sltp, candleTime: lastCandleTime};
-    cachedSignals[symbolVal] = {data: signalData, time: now};
-
-    displaySignals(signalData);
-    plotSignalOnChart(signalData); // plot on chart
-  } catch(e){
-    signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>❌ Error fetching data from Twelvedata. Check API key or symbol.</p>";
-  }
+  chartSymbolsHistory[symbolVal].forEach(s=>{
+    const isBuy = s.sig.signal==="BUY";
+    chart.createShape({time:s.candleTime/1000,price:s.entry,shape:isBuy?'arrow_up':'arrow_down',text:`${s.sig.signal}\nEntry:${s.entry.toFixed(2)}\n${new Date(s.candleTime).toLocaleString()}`,color:isBuy?'#22c55e':'#ef4444',size:2});
+    chart.createShape({time:s.candleTime/1000,price:s.sltp.sl,shape:'line',text:'SL',color:'#f87171',linewidth:1});
+    chart.createShape({time:s.candleTime/1000,price:s.sltp.tp,shape:'line',text:'TP',color:'#22c55e',linewidth:1});
+  });
 }
 
-
-function displaySignals({symbolVal, sig, entry, sltp}){
+// ================= DISPLAY SIGNALS =================
+function displaySignals({symbolVal,sig,entry,sltp}){
   const isFree = freeSymbols.includes(symbolVal);
-  let vipBadgeHtml = "";
-  let blurClass = "";
+  let vipBadgeHtml="", blurClass="";
+  if(isVIP) vipBadgeHtml=`<div class="vip-badge">VIP Active</div>`;
+  else if(isFree) vipBadgeHtml=`<div class="vip-badge" style="background:#22c55e">FREE</div>`;
+  else blurClass="vip-lock";
 
-  if (isVIP) {
-    vipBadgeHtml = `<div class="vip-badge">VIP Active</div>`;
-  } else if (isFree) {
-    vipBadgeHtml = `<div class="vip-badge" style="background:#22c55e">FREE</div>`;
-  } else {
-    blurClass = "vip-lock";
-  }
-
-
-  signals.innerHTML = `
+  signals.innerHTML=`
     <div class="signal ${blurClass}">
       ${vipBadgeHtml}
       <h3>${symbolVal}</h3>
@@ -283,123 +208,66 @@ function displaySignals({symbolVal, sig, entry, sltp}){
     ${(isVIP||isFree)?"":"<p style='text-align:center'>🔒 Request VIP to unlock signals</p>"}
   `;
 }
+function copySignal(text){navigator.clipboard.writeText(text).then(()=>alert("✅ Signal copied!")).catch(err=>alert("❌ Copy failed:"+err));}
 
-function copySignal(text){navigator.clipboard.writeText(text).then(()=>alert("✅ Signal copied!")).catch(err=>alert("❌ Copy failed: "+err));}
-
-// =============== VIP COUNTDOWN =================
-function startVipCountdown(expiryIso){
-  clearInterval(vipCountdownInterval);
-  const expiryTime = new Date(expiryIso).getTime();
-
-  vipCountdownInterval = setInterval(()=>{
-    const diff = expiryTime - Date.now();
-
-if(diff <= 0){
-  clearInterval(vipCountdownInterval);
-  vipTimerDiv.innerText = "⛔ VIP expired";
-  isVIP = false;
-  vipExpired(auth.currentUser.uid); // ← ONLY HERE
-  runSignals();
-  alert("⏳ Your VIP subscription has expired.");
-  return;
-}
-
-
-
-    const d = Math.floor(diff / 86400000);
-    const h = Math.floor((diff % 86400000) / 3600000);
-    const m = Math.floor((diff % 3600000) / 60000);
-    const s = Math.floor((diff % 60000) / 1000);
-
-    vipTimerDiv.innerText = `VIP expires in ${d}d ${h}h ${m}m ${s}s`;
-  },1000);
-}
-
-function vipExpired(uid){
-  const userRef = ref(db,'users/'+uid);
-  get(userRef).then(snap=>{
-    const key = snap.val()?.vipKey;
-    if(key){
-      set(ref(db,'vip_keys/'+key+'/active'), false);
+// ================= RUN =================
+async function runSignals(){
+  const symbolVal=symbol.value;
+  loadChart(symbolVal, async ()=>{
+    const now = Date.now();
+    if(cachedSignals[symbolVal] && now-cachedSignals[symbolVal].time<cacheTime){
+      displaySignals(cachedSignals[symbolVal].data);
+      plotSignalOnChart(cachedSignals[symbolVal].data);
+      return;
     }
+    const data = await fetchData(symbolVal);
+    if(data.length===0){signals.innerHTML="❌ Failed fetching data"; return;}
+    const cl=data.map(x=>+x.close);
+    const h=data.map(x=>+x.high);
+    const l=data.map(x=>+x.low);
+    const sig=generateSignal({ema10:EMA(cl.slice(-20),10),ema20:EMA(cl.slice(-30),20),rsi:RSI(cl),macd:MACD(cl).macd,macdSignal:MACD(cl).signal});
+    const entry=cl.at(-1);
+    const sltp=SLTP(entry,ATR(h,l,cl),sig.signal);
+    const lastCandleTime=new Date(data.at(-1).datetime).getTime();
+    const signalData={symbolVal,sig,entry,sltp,candleTime:lastCandleTime};
+    cachedSignals[symbolVal]={data:signalData,time:now};
+    displaySignals(signalData);
+    plotSignalOnChart(signalData);
   });
-
-  set(ref(db,'users/'+uid+'/vip'), false);
-  set(ref(db,'users/'+uid+'/vipKey'), null);
-  set(ref(db,'users/'+uid+'/vipExpiry'), null);
 }
-
-
-// =============== AUTH =================
-loginBtn.onclick = ()=>signInWithEmailAndPassword(auth,email.value,password.value).catch(e=>alert(e.message));
-registerBtn.onclick = ()=>createUserWithEmailAndPassword(auth,email.value,password.value)
-.then(uc=>{
-  set(ref(db,'users/'+uc.user.uid),{email:uc.user.email,vip:false,created:new Date().toISOString()});
-  alert("Account created. Request VIP from the button.");
-})
-.catch(e=>alert(e.message));
-
-onAuthStateChanged(auth, user => {
-  if (!user) return;
-
-  const userRef = ref(db);
-
-  // 1️⃣ Check user VIP status
-  get(child(userRef, 'users/' + user.uid)).then(snap => {
-    const data = snap.val() || {};
-    isVIP = false;
-
-    if (data.vip === true && data.vipExpiry) {
-      const expiry = new Date(data.vipExpiry).getTime();
-
-      if (expiry > Date.now()) {
-        isVIP = true;
-        startVipCountdown(data.vipExpiry);
-      } else {
-        vipExpired(user.uid);
-      }
-    }
-
-    // Default button state based on VIP
-    upgradeBtn.style.display = isVIP ? 'none' : 'inline-block';
-
-    // 2️⃣ Check pending VIP request
-    return get(child(userRef, 'vip_requests/' + user.uid));
-  }).then(r => {
-    if (r.exists() && r.val().status === "pending") {
-      upgradeBtn.style.display = "none";
-    }
-
-    // 3️⃣ Run signals after all checks
-    runSignals();
-  }).catch(err => {
-    console.error("Auth/VIP check error:", err);
-  });
-});
-
-
-
-upgradeBtn.onclick=()=>{
-  const user=auth.currentUser;
-  if(!user) return alert("Please login first.");
-  tidBox.style.display="flex";
-  upgradeBtn.style.display="none";
-};
-
-activateVipBtn.onclick=()=>{
-  const tidValue=tidInput.value.trim();
-  const tidPattern=/^TID\s\d{12}$/;
-  if(!tidPattern.test(tidValue)){alert("❌ Invalid TID format. Use: TID 123456789012");return;}
-  const user=auth.currentUser;if(!user)return alert("Please login first.");
-  set(ref(db,'vip_requests/'+user.uid),{email:user.email,requestedAt:new Date().toISOString(),tid:tidValue,status:"pending"})
-  .then(()=>{alert("✅ VIP request sent! Admin will verify payment.");activateVipBtn.disabled=true;activateVipBtn.innerText="TID Submitted";})
-  .catch(err=>alert(err.message));
-};
-
 symbol.addEventListener('change',runSignals);
 setInterval(runSignals,5*60*1000);
 
+// ================= VIP/ AUTH =================
+function startVipCountdown(expiryIso){
+  clearInterval(vipCountdownInterval);
+  const expiryTime=new Date(expiryIso).getTime();
+  vipCountdownInterval=setInterval(()=>{
+    const diff=expiryTime-Date.now();
+    if(diff<=0){clearInterval(vipCountdownInterval);vipTimerDiv.innerText="⛔ VIP expired";isVIP=false;runSignals();return;}
+    const d=Math.floor(diff/86400000),h=Math.floor((diff%86400000)/3600000),m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000);
+    vipTimerDiv.innerText=`VIP expires in ${d}d ${h}h ${m}m ${s}s`;
+  },1000);
+}
+
+loginBtn.onclick=()=>signInWithEmailAndPassword(auth,email.value,password.value).catch(e=>alert(e.message));
+registerBtn.onclick=()=>createUserWithEmailAndPassword(auth,email.value,password.value)
+.then(uc=>{set(ref(db,'users/'+uc.user.uid),{email:uc.user.email,vip:false,created:new Date().toISOString()});alert("Account created. Request VIP.");}).catch(e=>alert(e.message));
+
+onAuthStateChanged(auth,user=>{
+  if(!user) return;
+  get(child(ref(db),'users/'+user.uid)).then(snap=>{
+    const data=snap.val()||{};
+    isVIP=false;
+    if(data.vip===true && data.vipExpiry){const expiry=new Date(data.vipExpiry).getTime(); if(expiry>Date.now()){isVIP=true;startVipCountdown(data.vipExpiry);}}
+    upgradeBtn.style.display=isVIP?"none":"inline-block";
+    runSignals();
+  });
+});
+
+upgradeBtn.onclick=()=>{tidBox.style.display="flex";upgradeBtn.style.display="none";};
+activateVipBtn.onclick=()=>{alert("VIP request sent to admin");};
+
 </script>
-<script src="https://s3.tradingview.com/tv.js"></script>
 </body>
 </html>
