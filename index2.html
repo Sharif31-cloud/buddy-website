@@ -240,57 +240,40 @@ function plotSignalOnChart(sigData){
 
 
 // ================= SIGNALS =================
-async function runSignals() {
+async function runSignals(){
   const symbolVal = symbol.value;
+  loadChart(symbolVal);
 
-  // 1️⃣ Load chart and wait until ready
-  loadChart(symbolVal, async () => {
-    try {
-      const now = Date.now();
+  const now = Date.now();
+  if(cachedSignals[symbolVal] && now - cachedSignals[symbolVal].time < cacheTime){
+    displaySignals(cachedSignals[symbolVal].data);
+    plotSignalOnChart({...cachedSignals[symbolVal].data, symbolVal});
+    return;
+  }
 
-      // 2️⃣ Check cached signals
-      if(cachedSignals[symbolVal] && now - cachedSignals[symbolVal].time < cacheTime){
-        const cached = cachedSignals[symbolVal].data;
-        displaySignals(cached);
-        plotSignalOnChart(cached);
-        return;
-      }
+  try {
+    let data = await fetchData(symbolVal);
+    let cl = data.map(x=>+x.close), h=data.map(x=>+x.high), l=data.map(x=>+x.low);
+    let sig = generateSignal({
+      ema10:EMA(cl.slice(-20),10), 
+      ema20:EMA(cl.slice(-30),20), 
+      rsi:RSI(cl), 
+      macd:MACD(cl).macd, 
+      macdSignal:MACD(cl).signal
+    });
+    let entry = cl.at(-1);
+    let sltp = SLTP(entry, ATR(h,l,cl), sig.signal);
+    let lastCandleTime = new Date(data.at(-1).datetime).getTime(); 
 
-      // 3️⃣ Fetch new market data
-      const data = await fetchData(symbolVal);
-      const cl = data.map(x => +x.close);
-      const h = data.map(x => +x.high);
-      const l = data.map(x => +x.low);
+    const signalData = {symbolVal, sig, entry, sltp, candleTime: lastCandleTime};
+    cachedSignals[symbolVal] = {data: signalData, time: now};
 
-      // 4️⃣ Generate signal
-      const sig = generateSignal({
-        ema10: EMA(cl.slice(-20), 10),
-        ema20: EMA(cl.slice(-30), 20),
-        rsi: RSI(cl),
-        macd: MACD(cl).macd,
-        macdSignal: MACD(cl).signal
-      });
-
-      const entry = cl.at(-1);
-      const sltp = SLTP(entry, ATR(h, l, cl), sig.signal);
-      const lastCandleTime = new Date(data.at(-1).datetime).getTime();
-
-      const signalData = {symbolVal, sig, entry, sltp, candleTime: lastCandleTime};
-
-      // 5️⃣ Cache the signal
-      cachedSignals[symbolVal] = {data: signalData, time: now};
-
-      // 6️⃣ Display and plot
-      displaySignals(signalData);
-      plotSignalOnChart(signalData);
-
-    } catch(e) {
-      signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>❌ Error fetching data from Twelvedata. Check API key or symbol.</p>";
-      console.error(e);
-    }
-  });
+    displaySignals(signalData);
+    plotSignalOnChart(signalData); // plot on chart
+  } catch(e){
+    signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>❌ Error fetching data from Twelvedata. Check API key or symbol.</p>";
+  }
 }
-
 
 
 function displaySignals({symbolVal, sig, entry, sltp}){
