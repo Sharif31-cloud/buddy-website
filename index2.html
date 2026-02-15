@@ -79,6 +79,7 @@ select option.free-symbol { color: #22c55e; font-weight: bold; }
 <div id="explain">
   <p>AI Signal Dashboard powered by EMA, RSI, MACD indicators. Some symbols are free for everyone.</p>
 </div>
+<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -150,6 +151,11 @@ async function fetchData(symbol){
   const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${INTERVAL}&outputsize=200&apikey=${TWELVE_KEY}`;
   const r = await fetch(url);
   const j = await r.json();
+
+  if (!j.values) {
+    throw new Error(j.message || "TwelveData error");
+  }
+
   return j.values.reverse();
 }
 
@@ -267,11 +273,20 @@ loginBtn.onclick=()=>signInWithEmailAndPassword(auth,email.value,password.value)
 registerBtn.onclick=()=>createUserWithEmailAndPassword(auth,email.value,password.value)
 .then(u=>set(ref(db,"users/"+u.user.uid),{email:u.user.email,vip:false}));
 
-onAuthStateChanged(auth,u=>{if(u)runSignals();});
+onAuthStateChanged(auth, u => {
+  if (u) {
+    runSignals();
+  } else {
+    // allow free symbols without login
+    isVIP = false;
+    runSignals();
+  }
+});
+
 symbolSelect.addEventListener("change",runSignals);
 setInterval(runSignals,5*60*1000);
 </script>
-<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+
 
 </body>
 </html>
