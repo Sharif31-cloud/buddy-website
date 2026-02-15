@@ -2,12 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TradingView – AI Signal Replay (Live)</title>
+<title>AI Signal Replay – Local Candles</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<!-- Favicon -->
-<link rel="icon" type="image/png" href="logo_icon.png">
-<link rel="shortcut icon" href="logo_icon.png">
 
 <style>
 body{
@@ -45,13 +41,9 @@ button{
   cursor:pointer;
 }
 
-#tvWrapper{
-  position:relative;
+#chart{
+  width:100%;
   height:calc(100vh - 50px);
-}
-
-#tv{
-  height:100%;
 }
 </style>
 </head>
@@ -59,78 +51,49 @@ button{
 <body>
 
 <div id="topBar">
-  <strong>📈 AI Signal Replay (Live)</strong>
-
+  <strong>📈 AI Signal Replay (Local Candles)</strong>
   <select id="dateFilter">
     <option value="all">All</option>
     <option value="today">Today</option>
     <option value="week">This Week</option>
   </select>
-
   <button onclick="startReplay()">▶ Replay</button>
-  <button onclick="window.close()">❌ Close</button>
-
   <span id="stats"></span>
 </div>
 
-<div id="tvWrapper">
-  <div id="tv"></div>
-</div>
+<div id="chart"></div>
 
-<script src="https://s3.tradingview.com/tv.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { createChart } from 'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.esm.production.js';
 
-/* 🔴 FIREBASE CONFIG */
+/* 🔴 Firebase config */
 const firebaseConfig = {
-  apiKey: "AIzaSyB1G6DhAZv70YLk65ESgZl0Cm1BHzab4a0",
-  authDomain: "buddydownloads-72e3b.firebaseapp.com",
-  databaseURL: "https://buddydownloads-72e3b-default-rtdb.firebaseio.com",
-  projectId: "buddydownloads-72e3b",
-  storageBucket: "buddydownloads-72e3b.appspot.com",
-  messagingSenderId: "782621240629",
-  appId: "1:782621240629:web:4678fac59caad0f3ac707c"
+  apiKey: "...",
+  authDomain: "...",
+  databaseURL: "...",
+  projectId: "...",
+  storageBucket: "...",
+  messagingSenderId: "...",
+  appId: "..."
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 /* =============================== CHART INIT =============================== */
-const params = new URLSearchParams(window.location.search);
-const rawSymbol = params.get("symbol") || "XAUUSD";
-const symbol = rawSymbol.replace(/\//g,'').toUpperCase();
-
-let chartWidget, activeChart;
-let signals = [];
-
-new TradingView.widget({
-  container_id:"tv",
-  symbol: rawSymbol,
-  interval:"5",
-  theme:"dark",
-  autosize:true,
-  studies:[],
-  allow_symbol_change:true,
-  timezone: "Etc/UTC",
-  onChartReady: function() {
-    chartWidget = this;
-    activeChart = chartWidget.activeChart();
-
-    // Move chart to show earliest signal time
-    if(signals.length){
-      const firstSignalTime = new Date(signals[0].time).getTime();
-      activeChart.setVisibleRange({
-        from: firstSignalTime / 1000 - 3600, // 1 hour before first signal
-        to: Date.now() / 1000 + 3600        // 1 hour after now
-      });
-    }
-
-    startReplay();
-  }
+const chartDiv = document.getElementById("chart");
+const chart = createChart(chartDiv, {
+  layout: { background: '#020617', textColor: '#e5e7eb' },
+  grid: { vertLines: { color: '#2b2b2b' }, horzLines: { color: '#2b2b2b' } },
+  timeScale: { timeVisible: true, secondsVisible: true }
 });
+const candleSeries = chart.addCandlestickSeries();
 
-/* =============================== FILTERS =============================== */
+let signals = [];
+let candles = [];
+
+/* =============================== FILTER =============================== */
 function applyFilter(){
   const f = document.getElementById("dateFilter").value;
   const now = Date.now();
@@ -147,51 +110,67 @@ function updateStats(){
   const filteredSignals = applyFilter();
   const wins = filteredSignals.filter(s=>s.result==="WIN").length;
   const rate = filteredSignals.length ? Math.round(wins/filteredSignals.length*100):0;
-  stats.innerText = `Signals: ${filteredSignals.length} | Win: ${rate}%`;
+  document.getElementById('stats').innerText = `Signals: ${filteredSignals.length} | Win: ${rate}%`;
+}
+
+/* =============================== GENERATE CANDLES =============================== */
+function generateCandles(){
+  // Each signal becomes a candle: low=price-1, high=price+1 for visibility
+  candles = signals.map(s=>{
+    const time = new Date(s.time).getTime()/1000; // lightweight charts uses seconds
+    const open = s.price;
+    const close = s.price;
+    const high = s.price + 1;
+    const low = s.price - 1;
+    return { time, open, high, low, close };
+  });
+  candleSeries.setData(candles);
 }
 
 /* =============================== PLOT SIGNALS =============================== */
-async function plotSignal(s){
-  if(!activeChart) return;
+function plotSignal(s){
+  const time = new Date(s.time).getTime()/1000;
+  const color = s.type==="BUY" ? '#16a34a' : '#dc2626';
 
-  const signalTime = new Date(s.time).getTime();
-  if(isNaN(signalTime)) return;
+  // Arrow marker
+  candleSeries.setMarkers([{
+    time: time,
+    position: s.type==="BUY" ? 'belowBar' : 'aboveBar',
+    color: color,
+    shape: s.type==='BUY' ? 'arrowUp' : 'arrowDown',
+    text: s.type
+  }]);
 
-  activeChart.createShape({
-    time: signalTime,
-    price: s.price,
-    shape: s.type==="BUY" ? "arrow_up" : "arrow_down",
-    color: s.type==="BUY" ? "#16a34a" : "#dc2626",
-    size: "small",
-    text: s.type,
-    disableSelection: true,
-    disableSave: true
-  });
+  // TP marker
+  candleSeries.setMarkers([{
+    time: time,
+    position: 'aboveBar',
+    color: '#22c55e',
+    shape: 'circle',
+    text: 'TP'
+  }]);
 
-  // TP line
-  activeChart.createMultipointShape([
-    { time: signalTime, price: s.tp },
-    { time: signalTime + 1, price: s.tp }
-  ], { shape: "line", color: "#22c55e", disableSelection:true, disableSave:true });
-
-  // SL line
-  activeChart.createMultipointShape([
-    { time: signalTime, price: s.sl },
-    { time: signalTime + 1, price: s.sl }
-  ], { shape: "line", color: "#ef4444", disableSelection:true, disableSave:true });
+  // SL marker
+  candleSeries.setMarkers([{
+    time: time,
+    position: 'belowBar',
+    color: '#ef4444',
+    shape: 'circle',
+    text: 'SL'
+  }]);
 }
 
 /* =============================== REPLAY =============================== */
-async function startReplay(){
+function startReplay(){
   const filtered = applyFilter();
-  if(!activeChart) return;
+  generateCandles();
   for(const s of filtered){
-    await plotSignal(s);
+    plotSignal(s);
   }
   updateStats();
 }
 
-/* =============================== FIREBASE LISTENER =============================== */
+/* =============================== FIREBASE =============================== */
 const signalsRef = ref(db,"signals");
 onValue(signalsRef,(snapshot)=>{
   if(!snapshot.exists()) return;
@@ -199,11 +178,10 @@ onValue(signalsRef,(snapshot)=>{
   signals = Object.values(snapshot.val())
     .filter(s=>{
       const sSymbol = (s.symbol || "").replace(/\//g,'').toUpperCase();
-      return sSymbol === symbol && (s.type==="BUY" || s.type==="SELL");
+      return sSymbol === "XAUUSD" && (s.type==="BUY" || s.type==="SELL");
     })
     .sort((a,b)=>new Date(a.time)-new Date(b.time));
 
-  updateStats();
   startReplay();
 });
 </script>
