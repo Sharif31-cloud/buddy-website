@@ -123,9 +123,11 @@ function plotSignalOnChart(s){
 
   const tooltip = `Type: ${s.type}\nEntry: ${s.price}\nTP: ${s.tp}\nSL: ${s.sl}\nResult: ${s.result || "N/A"}`;
 
-  // Entry marker with tooltip
+  const tvTime = Math.floor(s.time / 1000); // FIX: convert ms → sec
+
+  // Entry marker
   activeChart.createShape({
-    time: s.time,
+    time: tvTime,
     price: s.price,
     shape: s.type === "BUY" ? "arrow_up" : "arrow_down",
     color: s.type === "BUY" ? "#16a34a" : "#dc2626",
@@ -138,14 +140,14 @@ function plotSignalOnChart(s){
 
   // TP line
   activeChart.createMultipointShape([
-    { time: s.time, price: s.tp },
-    { time: s.time + 1, price: s.tp }
+    { time: tvTime, price: s.tp },
+    { time: tvTime + 1, price: s.tp }
   ], { shape: "line", color: "#22c55e", linewidth: 1, disableSelection: true });
 
   // SL line
   activeChart.createMultipointShape([
-    { time: s.time, price: s.sl },
-    { time: s.time + 1, price: s.sl }
+    { time: tvTime, price: s.sl },
+    { time: tvTime + 1, price: s.sl }
   ], { shape: "line", color: "#ef4444", linewidth: 1, disableSelection: true });
 }
 
