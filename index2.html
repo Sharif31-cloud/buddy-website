@@ -268,23 +268,31 @@ function displaySignals({symbolVal, sig, entry, sltp}){
     blurClass = "vip-lock";
   }
 
-
   signals.innerHTML = `
     <div class="signal ${blurClass}">
       ${vipBadgeHtml}
       <h3>${symbolVal}</h3>
       <h2 class="${sig.signal.toLowerCase()}">${sig.signal}</h2>
-      <p>Entry: ${entry.toFixed(2)}</p>
-      <p>SL: ${sltp.sl.toFixed(2)}</p>
-      <p>TP: ${sltp.tp.toFixed(2)}</p>
+      <p>Entry: ${entry.toFixed(2)} <span class="copy-link" onclick="copySignal('${entry.toFixed(2)}')">🔗</span></p>
+      <p>SL: ${sltp.sl.toFixed(2)} <span class="copy-link" onclick="copySignal('${sltp.sl.toFixed(2)}')">🔗</span></p>
+      <p>TP: ${sltp.tp.toFixed(2)} <span class="copy-link" onclick="copySignal('${sltp.tp.toFixed(2)}')">🔗</span></p>
       <p>Strength: ${sig.strength}%</p>
-      ${(isVIP||isFree)?`<button onclick="copySignal('${symbolVal} ${sig.signal} Entry:${entry.toFixed(2)} SL:${sltp.sl.toFixed(2)} TP:${sltp.tp.toFixed(2)}')">Copy Signal</button>`:""}
+      ${(isVIP||isFree) ? `<p><span class="copy-link" onclick="copySignal('${symbolVal} ${sig.signal}')">🔗 Copy Signal</span></p>` : ""}
     </div>
-    ${(isVIP||isFree)?"":"<p style='text-align:center'>🔒 Request VIP to unlock signals</p>"}
+    ${(isVIP||isFree) ? "" : "<p style='text-align:center'>🔒 Request VIP to unlock signals</p>"}
   `;
+
+  // Add some basic style for copy-link
+  const style = document.createElement('style');
+  style.innerHTML = `.copy-link{cursor:pointer; color:#2563eb; margin-left:5px; text-decoration:underline;}`;
+  document.head.appendChild(style);
 }
 
-function copySignal(text){navigator.clipboard.writeText(text).then(()=>alert("✅ Signal copied!")).catch(err=>alert("❌ Copy failed: "+err));}
+function copySignal(text){
+  navigator.clipboard.writeText(text)
+    .then(()=>alert(`✅ Copied: ${text}`))
+    .catch(err=>alert("❌ Copy failed: "+err));
+}
 
 // =============== VIP COUNTDOWN =================
 function startVipCountdown(expiryIso){
