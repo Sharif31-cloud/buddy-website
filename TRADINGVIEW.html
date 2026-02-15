@@ -124,7 +124,7 @@ button{
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-/* 🔴 REAL FIREBASE CONFIG */
+/* 🔴 FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyB1G6DhAZv70YLk65ESgZl0Cm1BHzab4a0",
   authDomain: "buddydownloads-72e3b.firebaseapp.com",
@@ -197,42 +197,46 @@ async function getYForPrice(price){
   return activeChart.priceToCoordinate(price) || 50;
 }
 
-/* =============================== REPLAY ENGINE =============================== */
-async function startReplay(liveUpdate=false){
-  replayRunning = true;
-  const overlay = document.getElementById("overlay");
-  if(!liveUpdate) overlay.innerHTML = "";
-
-  const filtered = applyFilter();
-
-  for(let i=0; i<filtered.length; i++){
-    const s = filtered[i];
-    if(overlay.querySelector(`[data-id='${s.time}']`) && liveUpdate) continue;
-
-    const x = await getXForTime(new Date(s.time).getTime());
-    const y = await getYForPrice(s.price);
-
-    const el = document.createElement("div");
-    el.className = `signal ${s.type==="BUY"?"buy":"sell"} ${s.result==="WIN"?"win":"loss"} current-signal`;
-    el.style.left = x+"px";
-    el.style.top = y+"px";
-    el.innerText = s.type;
-    el.setAttribute("data-id", s.time);
-    overlay.appendChild(el);
-
-    drawLine(await getYForPrice(s.tp),"tp");
-    drawLine(await getYForPrice(s.sl),"sl");
-
-    setTimeout(()=>el.classList.remove("current-signal"),1000);
-  }
-}
-
 /* =============================== DRAW LINES =============================== */
 function drawLine(y, cls){
   const l = document.createElement("div");
   l.className = `line ${cls}`;
   l.style.top = y+"px";
   overlay.appendChild(l);
+}
+
+/* =============================== REPLAY ENGINE =============================== */
+async function plotSignal(s){
+  const overlay = document.getElementById("overlay");
+
+  // Skip already plotted
+  if(overlay.querySelector(`[data-id='${s.time}']`)) return;
+
+  const x = await getXForTime(new Date(s.time).getTime());
+  const y = await getYForPrice(s.price);
+
+  const el = document.createElement("div");
+  el.className = `signal ${s.type==="BUY"?"buy":"sell"} ${s.result==="WIN"?"win":"loss"} current-signal`;
+  el.style.left = x+"px";
+  el.style.top = y+"px";
+  el.innerText = s.type;
+  el.setAttribute("data-id", s.time);
+  overlay.appendChild(el);
+
+  drawLine(await getYForPrice(s.tp),"tp");
+  drawLine(await getYForPrice(s.sl),"sl");
+
+  setTimeout(()=>el.classList.remove("current-signal"),1000);
+}
+
+async function startReplay(liveUpdate=false){
+  replayRunning = true;
+  if(!liveUpdate) document.getElementById("overlay").innerHTML = "";
+
+  const filtered = applyFilter();
+  for(const s of filtered){
+    await plotSignal(s);
+  }
 }
 
 /* =============================== REALTIME FIREBASE LISTENER =============================== */
@@ -247,8 +251,8 @@ onValue(signalsRef,(snapshot)=>{
 
   updateStats();
 
-  // 🔴 Auto-replay for new signals only
-  if(replayRunning) startReplay(true);
+  // 🔴 Auto-replay for new signals as they arrive
+  startReplay(true);
 });
 </script>
 
