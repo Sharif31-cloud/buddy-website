@@ -154,10 +154,20 @@ function SLTP(e,a,s){let r=a*1.2,t=r*1.5;if(s==="BUY")return{sl:e-r,tp:e+t};if(s
 
 // =============== FETCH MARKET DATA =================
 async function fetchData(symbol){
-  let url=`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${INTERVAL}&outputsize=200&apikey=${TWELVE_KEY}`;
-  let r = await fetch(url);
-  let j = await r.json();
-  return j.values.reverse();
+  let url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${INTERVAL}&outputsize=200&apikey=${TWELVE_KEY}`;
+  try {
+    let r = await fetch(url);
+    let j = await r.json();
+
+    if(!j.values || j.values.length === 0){
+      throw new Error(j.message || "No data returned from TwelveData");
+    }
+
+    return j.values.reverse();
+  } catch(err) {
+    console.error("FetchData error:", err);
+    throw err; // propagate so runSignals can catch it
+  }
 }
 
 // ================= CHART =================
