@@ -143,15 +143,30 @@ function applyFilter(){
 async function plotSignal(s){
   if(!activeChart) return;
 
+  // Convert ISO time from Firebase to milliseconds
   const signalTime = new Date(s.time).getTime();
-  const price = s.price;
+  if(isNaN(signalTime)) return;
 
-  // Draw arrow on candle
+  // Get bars around the signal time
+  const bars = await activeChart.getBars();
+  if(!bars || bars.length === 0) return;
+
+  // Find the closest bar
+  const closestBar = bars.reduce((prev, curr) => 
+    Math.abs(curr.time - signalTime) < Math.abs(prev.time - signalTime) ? curr : prev
+  );
+
+  if(!closestBar) return;
+
+  // Snap BUY to low, SELL to high
+  const priceForSignal = s.type === "BUY" ? closestBar.low : closestBar.high;
+
+  // Draw arrow on chart
   activeChart.createShape({
-    time: signalTime,
-    price: price,
-    shape: s.type==="BUY" ? "arrow_up" : "arrow_down",
-    color: s.type==="BUY" ? "#16a34a" : "#dc2626",
+    time: closestBar.time,
+    price: priceForSignal,
+    shape: s.type === "BUY" ? "arrow_up" : "arrow_down",
+    color: s.type === "BUY" ? "#16a34a" : "#dc2626",
     size: "small",
     text: s.type,
     disableSelection: true,
@@ -160,8 +175,8 @@ async function plotSignal(s){
 
   // Draw TP line
   activeChart.createMultipointShape([
-    { time: signalTime, price: s.tp },
-    { time: signalTime + 1, price: s.tp }
+    { time: closestBar.time, price: s.tp },
+    { time: closestBar.time + 1, price: s.tp }
   ], {
     shape: "line",
     color: "#22c55e",
@@ -171,8 +186,8 @@ async function plotSignal(s){
 
   // Draw SL line
   activeChart.createMultipointShape([
-    { time: signalTime, price: s.sl },
-    { time: signalTime + 1, price: s.sl }
+    { time: closestBar.time, price: s.sl },
+    { time: closestBar.time + 1, price: s.sl }
   ], {
     shape: "line",
     color: "#ef4444",
@@ -180,6 +195,7 @@ async function plotSignal(s){
     disableSave: true
   });
 }
+
 
 /* =============================== REPLAY ENGINE =============================== */
 async function startReplay(){
