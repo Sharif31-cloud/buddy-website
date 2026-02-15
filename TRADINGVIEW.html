@@ -210,18 +210,38 @@ function drawLine(y, cls){
 }
 
 /* =============================== PLOT SIGNALS ON CHART =============================== */
-async function plotSignal(s){
-  if(!activeChart) return;
+/* =============================== PLOT SIGNALS ON CHART =============================== */
+async function plotSignal(s) {
+  if (!activeChart) return;
 
-  const bars = await activeChart.getBars();
-  if(!bars || bars.length === 0) return;
+  // Wait until bars are available
+  let bars = await activeChart.getBars();
+  let attempts = 0;
+  while ((!bars || bars.length === 0) && attempts < 10) {
+    await new Promise(r => setTimeout(r, 500)); // wait 0.5s
+    bars = await activeChart.getBars();
+    attempts++;
+  }
+  if (!bars || bars.length === 0) {
+    console.warn("No bars available for plotting, using overlay fallback");
+    // fallback to HTML overlay if chart bars not loaded
+    const overlay = document.getElementById("overlay");
+    const x = Math.random() * overlay.offsetWidth;
+    const y = Math.random() * overlay.offsetHeight;
+    const el = document.createElement("div");
+    el.className = `signal ${s.type === "BUY" ? "buy" : "sell"} ${s.result === "WIN" ? "win" : "loss"} current-signal`;
+    el.style.left = x + "px";
+    el.style.top = y + "px";
+    el.innerText = s.type;
+    overlay.appendChild(el);
+    return;
+  }
 
-  // Find closest bar
-  const closestBar = bars.reduce((prev, curr) => {
-    return Math.abs(curr.time - s.time) < Math.abs(prev.time - s.time) ? curr : prev;
-  });
-
-  const tvTime = Math.floor(closestBar.time / 1000); // ✅ convert ms → s
+  // Find closest bar to signal
+  const closestBar = bars.reduce((prev, curr) =>
+    Math.abs(curr.time - s.time) < Math.abs(prev.time - s.time) ? curr : prev
+  );
+  const tvTime = Math.floor(closestBar.time / 1000); // ms → s
 
   // Entry arrow
   activeChart.createShape({
@@ -235,29 +255,31 @@ async function plotSignal(s){
     disableSelection: true
   });
 
-  // TP/SL lines
+  // TP/SL lines for next 10 bars
   const startIndex = bars.findIndex(b => b.time === closestBar.time);
-  const tpPoints = bars.slice(startIndex, startIndex + 10).map(b => ({ time: Math.floor(b.time / 1000), price: s.tp }));
-  activeChart.createMultipointShape(tpPoints, { shape: "line", color:"#22c55e", linewidth:1, disableSelection:true });
+  const nextBars = bars.slice(startIndex, startIndex + 10);
 
-  const slPoints = bars.slice(startIndex, startIndex + 10).map(b => ({ time: Math.floor(b.time / 1000), price: s.sl }));
-  activeChart.createMultipointShape(slPoints, { shape: "line", color:"#ef4444", linewidth:1, disableSelection:true });
+  const tpPoints = nextBars.map(b => ({ time: Math.floor(b.time / 1000), price: s.tp }));
+  activeChart.createMultipointShape(tpPoints, { shape: "line", color: "#22c55e", linewidth: 1, disableSelection: true });
+
+  const slPoints = nextBars.map(b => ({ time: Math.floor(b.time / 1000), price: s.sl }));
+  activeChart.createMultipointShape(slPoints, { shape: "line", color: "#ef4444", linewidth: 1, disableSelection: true });
 }
 
-
-
 /* =============================== REPLAY ENGINE =============================== */
-async function startReplay(liveUpdate=false){
-  if(!activeChart) return;
+async function startReplay(liveUpdate = false) {
+  if (!activeChart) return;
 
   const filtered = applyFilter();
 
-  // Only plot new signals if liveUpdate
-  if(!liveUpdate){
-    activeChart.removeAllShapes(); // clear old signals
+  // Clear old shapes if not live update
+  if (!liveUpdate) {
+    activeChart.removeAllShapes();
+    document.getElementById("overlay").innerHTML = ""; // clear fallback overlay
   }
 
-  for(const s of filtered){
+  // Plot signals one by one
+  for (const s of filtered) {
     await plotSignal(s);
   }
 }
