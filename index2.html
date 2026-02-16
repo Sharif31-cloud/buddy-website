@@ -258,19 +258,22 @@ async function runSignals(){
     displaySignals(signalData);
     plotSignalOnChart(signalData); // plot on main chart
 
-    // 🔴 STORE ONLY BUY/SELL SIGNALS IN FIREBASE
-    if(sig.signal === "BUY" || sig.signal === "SELL"){
-      const newRef = ref(db, 'signals/' + Date.now());
-      set(newRef, {
+    // 🔴 STORE ONLY BUY/SELL SIGNALS IN FIREBASE WITH sentTime
+if(sig.signal === "BUY" || sig.signal === "SELL"){
+    const now = Date.now(); // time when sending this signal
+    const newRef = ref(db, 'signals/' + now); // use timestamp as unique key
+    set(newRef, {
         symbol: symbolVal,
         type: sig.signal,
         price: entry,
         sl: sltp.sl,
         tp: sltp.tp,
-        result: null, // initially null
-        time: lastCandleTime
-      });
-    }
+        result: null,     // initially null
+        time: lastCandleTime,  // candle time
+        sentTime: now          // when this signal was sent
+    });
+}
+
 
   } catch(e){
     signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>❌ Error fetching data from Twelvedata. Check API key or symbol.</p>";
