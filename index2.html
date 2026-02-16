@@ -340,14 +340,25 @@ function startVipCountdown(expiryIso) {
     const diff = expiryTime - Date.now();
 
     if (diff <= 0) {
-      clearInterval(vipCountdownInterval);
-      vipTimerDiv.innerText = "⛔ VIP expired";
-      isVIP = false;
-      if(auth.currentUser) vipExpired(auth.currentUser.uid);
-      runSignals(); // update signals display
-      alert("⏳ Your VIP subscription has expired.");
-      return;
-    }
+  clearInterval(vipCountdownInterval);
+
+  isVIP = false;
+
+  if (auth.currentUser) {
+    vipExpired(auth.currentUser.uid);
+  }
+
+  vipTimerDiv.innerText = "⛔ VIP expired";
+  alert("⏳ Your VIP subscription has expired.");
+
+  // 🔄 FORCE FULL PAGE REFRESH
+  setTimeout(() => {
+    location.reload();
+  }, 1000); // short delay so Firebase writes complete
+
+  return;
+}
+
 
     const d = Math.floor(diff / 86400000);
     const h = Math.floor((diff % 86400000) / 3600000);
