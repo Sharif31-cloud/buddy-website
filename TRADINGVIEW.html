@@ -146,8 +146,6 @@ const db = getDatabase(app);
 /* =============================== CHART INIT =============================== */
 const params = new URLSearchParams(window.location.search);
 const rawSymbol = params.get("symbol") || "XAUUSD";
-
-// Normalize TradingView symbol to match Firebase
 const symbol = rawSymbol.replace(/\//g,'').toUpperCase();
 
 let chartWidget, activeChart;
@@ -163,10 +161,8 @@ new TradingView.widget({
   onChartReady: async function() {
     chartWidget = this;
     activeChart = chartWidget.activeChart();
-
     chartReady = true;
-startReplay(true);
-
+    startReplay(true);
   }
 });
 
@@ -174,58 +170,37 @@ startReplay(true);
 let signals = [];
 let replayRunning = false;
 
-// 🔹 Infer wins based on signal sequence
+/* =============================== WIN/LOSS CALCULATION =============================== */
 function inferWins(signals) {
-  if (!signals || signals.length === 0) return;
+    if (!signals || signals.length === 0) return [];
+    signals.sort((a,b) => new Date(a.time)-new Date(b.time));
 
-  // Sort signals by time
-  signals.sort((a,b) => new Date(a.time) - new Date(b.time));
+    for (let i = 0; i < signals.length; i++) {
+        const s = signals[i];
+        const next = signals[i+1];
 
-  for (let i = 0; i < signals.length; i++) {
-    const s = signals[i];
-    const next = signals[i+1];
+        s.inferredResult = "UNKNOWN";
 
-    // Initialize inferred result
-    s.inferredResult = "UNKNOWN";
-
-    if (!next) {
-      s.inferredResult = "UNKNOWN"; // last signal, we cannot infer
-      continue;
+        if (next && next.symbol === s.symbol) {
+            if (s.tp) {
+                if (s.type === "BUY" && next.price >= s.tp) s.inferredResult = "WIN";
+                else if (s.type === "SELL" && next.price <= s.tp) s.inferredResult = "WIN";
+                else s.inferredResult = "LOSS";
+            } else {
+                if (s.type === "BUY" && next.price > s.price) s.inferredResult = "WIN";
+                else if (s.type === "SELL" && next.price < s.price) s.inferredResult = "WIN";
+                else s.inferredResult = "LOSS";
+            }
+        }
     }
-
-    // Use TP if available
-    if (s.tp) {
-      if (s.type === "BUY" && next.entry >= s.tp) s.inferredResult = "WIN";
-      else if (s.type === "SELL" && next.entry <= s.tp) s.inferredResult = "WIN";
-      else s.inferredResult = "LOSS";
-      continue;
-    }
-
-    // Alternating signals
-    if (s.type !== next.type) {
-      if (s.type === "BUY" && next.entry > s.entry) s.inferredResult = "WIN";
-      else if (s.type === "SELL" && next.entry < s.entry) s.inferredResult = "WIN";
-      else s.inferredResult = "LOSS";
-    }
-    // Same type consecutive
-    else {
-      if (s.type === "BUY" && next.entry > s.entry) s.inferredResult = "WIN";
-      else if (s.type === "SELL" && next.entry < s.entry) s.inferredResult = "WIN";
-      else s.inferredResult = "LOSS";
-    }
-  }
-
-  return signals;
+    return signals;
 }
 
-
+/* =============================== STATS UPDATE =============================== */
 function updateStats(){
-  // First, infer wins for all signals
   inferWins(signals);
-
-  const filteredSignals = applyFilter(); // still for the chart view
+  const filteredSignals = applyFilter();
   const wins = signals.filter(s => s.inferredResult === "WIN").length;
-
   stats.innerText = `Signals: ${filteredSignals.length} | Wins: ${wins}`;
 }
 
@@ -244,20 +219,12 @@ function applyFilter(){
 /* =============================== POSITION MAPPING =============================== */
 function getSignalCoordinate(signal){
   if (!activeChart) return null;
-
   const time = new Date(signal.time).getTime();
-  const price =
-    signal.entry ||
-    signal.price ||
-    signal.close;
-
+  const price = signal.entry || signal.price || signal.close;
   if (!time || !price) return null;
-
   const x = activeChart.timeToCoordinate(time);
   const y = activeChart.priceToCoordinate(price);
-
   if (x == null || y == null) return null;
-
   return { x, y };
 }
 
@@ -266,11 +233,9 @@ async function getYForPrice(price){
   return activeChart.priceToCoordinate(price);
 }
 
-
 /* =============================== DRAW LINES =============================== */
 function drawLine(y, cls){
   if (y == null) return;
-
   const overlay = document.getElementById("overlay");
   const l = document.createElement("div");
   l.className = `line ${cls}`;
@@ -278,75 +243,39 @@ function drawLine(y, cls){
   overlay.appendChild(l);
 }
 
-/* =============================== REPLAY ENGINE =============================== */
+/* =============================== PLOT SIGNALS =============================== */
 async function plotSignal(s){
   const overlay = document.getElementById("overlay");
-
-  // Unique ID per signal
   const signalId = `${s.time}_${s.type}_${s.entry || ""}`;
   if (overlay.querySelector(`[data-id='${signalId}']`)) return;
 
-  // Compute coordinates
   let coord = getSignalCoordinate(s);
-  let reason = null;
-
-  // Check why it might fail
-  if (!coord || coord.x == null || coord.y == null){
-    if (!activeChart) reason = "No active chart yet";
-    else if (!s.time) reason = "Missing time field";
-    else if (!(s.entry || s.price || s.close)) reason = "Missing price/entry field";
-    else reason = "Time/price outside visible chart range";
-
-    // Show debug message on overlay
-    const el = document.createElement("div");
-    el.className = "signal";
-    el.style.left = "50%";       // center
-    el.style.top = "20px";       // top
-    el.style.zIndex = 9999;      // always on top
-    el.style.background = "#facc15";
-    el.style.color = "#000";
-    el.style.fontSize = "10px";
-    el.style.padding = "2px 4px";
-    el.style.borderRadius = "3px";
-    el.innerText = `⚠ ${s.symbol || "N/A"} ${s.type} skipped: ${reason}`;
-    overlay.appendChild(el);
-
-    console.warn(`Signal skipped:`, s, reason);
-    return;
-  }
+  if (!coord) return;  // skip if chart not ready
 
   const { x, y } = coord;
-
-  // Create normal signal element
   const el = document.createElement("div");
-  el.className = `signal ${s.type==="BUY"?"buy":"sell"} ${s.result==="WIN"?"win":"loss"} current-signal`;
+  el.className = `signal ${s.type==="BUY"?"buy":"sell"} ${s.inferredResult==="WIN"?"win":s.inferredResult==="LOSS"?"loss":""} current-signal`;
   el.style.left = x + "px";
   el.style.top = y + "px";
   el.innerText = s.type;
 
   overlay.appendChild(el);
 
-  // Draw TP/SL lines if available
   if (s.tp) drawLine(await getYForPrice(s.tp), "tp");
   if (s.sl) drawLine(await getYForPrice(s.sl), "sl");
 
   setTimeout(() => el.classList.remove("current-signal"), 1000);
 }
 
-
-
-
 /* =============================== SAFE REPLAY & ZOOM =============================== */
 async function startReplay(liveUpdate=false){
     if (!chartReady) return;
 
     replayRunning = true;
-
     const overlay = document.getElementById("overlay");
-    if(!liveUpdate) overlay.innerHTML = "";  // clear previous
+    if(!liveUpdate) overlay.innerHTML = "";
 
     const filtered = applyFilter();
-
     if(filtered.length === 0){
         const el = document.createElement("div");
         el.className = "signal";
@@ -363,7 +292,6 @@ async function startReplay(liveUpdate=false){
         return;
     }
 
-    // ✅ Zoom chart to fit signals
     try {
         const fromTime = new Date(filtered[0].time).getTime() - 60*1000;
         const toTime = new Date(filtered[filtered.length-1].time).getTime() + 60*1000;
@@ -377,8 +305,7 @@ async function startReplay(liveUpdate=false){
     }
 }
 
-
-/* =============================== REALTIME FIREBASE LISTENER =============================== */
+/* =============================== FIREBASE LISTENER =============================== */
 const signalsRef = ref(db,"signals");
 onValue(signalsRef, (snapshot) => {
     if(!snapshot.exists()) return;
@@ -394,14 +321,17 @@ onValue(signalsRef, (snapshot) => {
         })
         .sort((a,b) => new Date(a.time)-new Date(b.time));
 
+    // ✅ infer wins/losses
+    inferWins(signals);
+
+    // ✅ update stats
     updateStats();
 
-    // ✅ Only trigger plotting if chart is ready
+    // ✅ plot signals
     if(chartReady){
         startReplay(true);
     }
 });
-
 </script>
 
 </body>
