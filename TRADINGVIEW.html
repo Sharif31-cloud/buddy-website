@@ -118,20 +118,36 @@ const statsEl = document.getElementById("stats");
 
 /* =============================== RESULT LOGIC (TP/SL ONLY) =============================== */
 function calculateResults(list){
-  for(const s of list){
-    s.result = "UNKNOWN";
+  // reset all
+  list.forEach(s => s.result = "UNKNOWN");
 
-    const price = s.price ?? s.entry;
-    if(!price || !s.tp || !s.sl) continue;
+  for(let i = 0; i < list.length - 1; i++){
+    const curr = list[i];
+    const next = list[i + 1];
 
-    if(s.type === "BUY"){
-      if(price >= s.tp) s.result = "WIN";
-      else if(price <= s.sl) s.result = "LOSS";
+    if(!curr.entry || !curr.tp || !curr.sl || !next.entry) continue;
+
+    const start = curr.entry;
+    const end = next.entry;
+
+    // price traveled range
+    const high = Math.max(start, end);
+    const low  = Math.min(start, end);
+
+    if(curr.type === "BUY"){
+      if(high >= curr.tp){
+        curr.result = "WIN";
+      } else if(low <= curr.sl){
+        curr.result = "LOSS";
+      }
     }
 
-    if(s.type === "SELL"){
-      if(price <= s.tp) s.result = "WIN";
-      else if(price >= s.sl) s.result = "LOSS";
+    if(curr.type === "SELL"){
+      if(low <= curr.tp){
+        curr.result = "WIN";
+      } else if(high >= curr.sl){
+        curr.result = "LOSS";
+      }
     }
   }
 }
