@@ -238,29 +238,51 @@ async function plotSignal(s){
   const signalId = `${s.time}_${s.type}_${s.entry || ""}`;
   if (overlay.querySelector(`[data-id='${signalId}']`)) return;
 
-  // Get safe coordinates
- const coord = getSignalCoordinate(s);
+  // Get coordinates
+  const coord = getSignalCoordinate(s);
 
+  let reason = null;
 
-  if (!coord || coord.x == null || coord.y == null) return;
+  if (!coord) {
+    if (!activeChart) reason = "No active chart";
+    else if (!s.time) reason = "Missing time";
+    else if (!(s.entry || s.price || s.close)) reason = "Missing price/entry";
+    else reason = "Outside visible chart range";
+  }
+
+  const el = document.createElement("div");
+  el.setAttribute("data-id", signalId);
+
+  if (!coord || coord.x == null || coord.y == null) {
+    // ⚠ Show debug signal
+    el.className = "signal";
+    el.style.left = "50%";  // center
+    el.style.top = "20px";   // top
+    el.style.background = "#facc15";
+    el.style.color = "#000";
+    el.style.fontSize = "10px";
+    el.innerText = `⚠ ${s.type} skipped: ${reason}`;
+    overlay.appendChild(el);
+    console.warn(`Signal skipped`, s, reason);
+    return;
+  }
 
   const { x, y } = coord;
 
-  const el = document.createElement("div");
   el.className = `signal ${s.type==="BUY"?"buy":"sell"} ${s.result==="WIN"?"win":"loss"} current-signal`;
   el.style.left = x + "px";
   el.style.top = y + "px";
   el.innerText = s.type;
-  el.setAttribute("data-id", signalId);
 
   overlay.appendChild(el);
 
-  // OPTIONAL: TP / SL (only if values exist)
+  // Optional: TP / SL lines
   if (s.tp) drawLine(await getYForPrice(s.tp), "tp");
   if (s.sl) drawLine(await getYForPrice(s.sl), "sl");
 
   setTimeout(() => el.classList.remove("current-signal"), 1000);
 }
+
 
 
 async function startReplay(liveUpdate=false){
