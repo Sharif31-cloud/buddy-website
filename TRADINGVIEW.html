@@ -254,6 +254,7 @@ async function plotSignal(s){
     el.className = "signal";
     el.style.left = "50%";       // center
     el.style.top = "20px";       // top
+    el.style.zIndex = 9999;      // always on top
     el.style.background = "#facc15";
     el.style.color = "#000";
     el.style.fontSize = "10px";
@@ -295,12 +296,20 @@ async function startReplay(liveUpdate=false){
 
     const filtered = applyFilter();
 
+    // ⚠ Zoom chart to fit all signals
+    if(filtered.length > 0 && activeChart){
+        const fromTime = new Date(filtered[0].time).getTime() - 60*1000; // 1 min before first
+        const toTime = new Date(filtered[filtered.length-1].time).getTime() + 60*1000; // 1 min after last
+        activeChart.setVisibleRange({ from: fromTime, to: toTime });
+    }
+
     if(filtered.length === 0){
         const overlay = document.getElementById("overlay");
         const el = document.createElement("div");
         el.className = "signal";
         el.style.left = "50%";
         el.style.top = "20px";
+        el.style.zIndex = 9999;      // always on top
         el.style.background = "#facc15";
         el.style.color = "#000";
         el.style.fontSize = "10px";
@@ -315,6 +324,7 @@ async function startReplay(liveUpdate=false){
         await plotSignal(s);
     }
 }
+
 
 /* =============================== REALTIME FIREBASE LISTENER =============================== */
 const signalsRef = ref(db,"signals");
