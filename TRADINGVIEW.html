@@ -126,7 +126,6 @@ button{
 <script src="https://s3.tradingview.com/tv.js"></script>
 
 <script type="module">
-const stats = document.getElementById("stats");
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
@@ -232,31 +231,20 @@ function drawLine(y, cls){
 }
 
 /* =============================== REPLAY ENGINE =============================== */
-function getSignalCoordinate(signal){
-  if (!activeChart) return null;
+async function plotSignal(s){
+  const overlay = document.getElementById("overlay");
 
-  let time = new Date(signal.time).getTime();
+  // Unique ID per signal
+  const signalId = `${s.time}_${s.type}_${s.entry || ""}`;
+  if (overlay.querySelector(`[data-id='${signalId}']`)) return;
 
-  // 🔥 FIX: convert seconds → milliseconds if needed
-  if (signal.time < 1e12) {
-    time = signal.time * 1000;
-  }
+  // Get safe coordinates
+ const coord = getSignalCoordinate(s);
 
-  const price =
-    Number(signal.entry) ||
-    Number(signal.price) ||
-    Number(signal.close);
 
-  if (!time || !price) return null;
+  if (!coord || coord.x == null || coord.y == null) return;
 
-  const x = activeChart.timeToCoordinate(time);
-  const y = activeChart.priceToCoordinate(price);
-
-  if (x == null || y == null) return null;
-
-  return { x, y };
-}
-
+  const { x, y } = coord;
 
   const el = document.createElement("div");
   el.className = `signal ${s.type==="BUY"?"buy":"sell"} ${s.result==="WIN"?"win":"loss"} current-signal`;
