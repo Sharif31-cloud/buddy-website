@@ -191,29 +191,29 @@ function applyFilter(){
 
 /* =============================== POSITION MAPPING =============================== */
 async function getCandleCoordinate(signalTime, signalType){
-  if(!activeChart) return { x:50, y:50 };
+  if(!activeChart) return null;
 
   const bars = await activeChart.getBars();
-  if(!bars || bars.length === 0) return { x:50, y:50 };
+  if(!bars || !bars.length) return null;
 
-  // Find nearest candle by time
   const candle = bars.reduce((prev, curr) =>
     Math.abs(curr.time - signalTime) < Math.abs(prev.time - signalTime)
       ? curr : prev
   );
 
-  // 🔥 STRICT SNAP RULE
-  let snappedPrice;
-  if(signalType === "BUY"){
-    snappedPrice = candle.low;   // BUY at bottom of candle
-  } else {
-    snappedPrice = candle.high;  // SELL at top of candle
+  const price = signalType === "BUY"
+    ? candle.low
+    : candle.high;
+
+  const x = activeChart.timeToCoordinate(candle.time);
+  let y = activeChart.priceToCoordinate(price);
+
+  // ❗ fallback if price not visible
+  if (x == null || y == null) {
+    y = activeChart.priceToCoordinate(candle.close);
   }
 
-  return {
-    x: activeChart.timeToCoordinate(candle.time) || 50,
-    y: activeChart.priceToCoordinate(snappedPrice) || 50
-  };
+  return { x, y };
 }
 
 /* =============================== DRAW LINES =============================== */
@@ -228,13 +228,19 @@ function drawLine(y, cls){
 async function plotSignal(s){
   const overlay = document.getElementById("overlay");
 
+  // Unique ID per signal
   const signalId = `${s.time}_${s.type}_${s.entry || ""}`;
   if (overlay.querySelector(`[data-id='${signalId}']`)) return;
 
-  const { x, y } = await getCandleCoordinate(
+  // Get safe coordinates
+  const coord = await getCandleCoordinate(
     new Date(s.time).getTime(),
     s.type
   );
+
+  if (!coord || coord.x == null || coord.y == null) return;
+
+  const { x, y } = coord;
 
   const el = document.createElement("div");
   el.className = `signal ${s.type==="BUY"?"buy":"sell"} ${s.result==="WIN"?"win":"loss"} current-signal`;
@@ -245,8 +251,9 @@ async function plotSignal(s){
 
   overlay.appendChild(el);
 
-  drawLine(await getYForPrice(s.tp), "tp");
-  drawLine(await getYForPrice(s.sl), "sl");
+  // OPTIONAL: TP / SL (only if values exist)
+  if (s.tp) drawLine(await getYForPrice(s.tp), "tp");
+  if (s.sl) drawLine(await getYForPrice(s.sl), "sl");
 
   setTimeout(() => el.classList.remove("current-signal"), 1000);
 }
@@ -268,16 +275,20 @@ onValue(signalsRef,(snapshot)=>{
   if(!snapshot.exists()) return;
 
   signals = Object.values(snapshot.val())
+    .map(s => ({
+      ...s,
+      type: String(s.type).toUpperCase()
+    }))
     .filter(s=>{
-      // Normalize Firebase symbol to match TradingView
       const sSymbol = (s.symbol || "").replace(/\//g,'').toUpperCase();
-      return sSymbol === symbol && (s.type==="BUY" || s.type==="SELL");
+      return sSymbol === symbol && (s.type === "BUY" || s.type === "SELL");
     })
     .sort((a,b)=>new Date(a.time)-new Date(b.time));
 
   updateStats();
   startReplay(true);
 });
+
 </script>
 
 </body>
