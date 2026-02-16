@@ -200,7 +200,7 @@ function render(){
       Entry: ${(s.price ?? s.entry)?.toFixed(2) ?? "-"}  |
       SL: ${s.sl?.toFixed(2) ?? "-"} |
       TP: ${s.tp?.toFixed(2) ?? "-"}<br>
-      Sent: ${new Date(s.time).toLocaleString()}<br>
+      Sent: ${formatLocalTime(s.time)}<br>
       Result: <strong class="result-${s.result.toLowerCase()}">${s.result}</strong>
     `;
 
@@ -210,6 +210,21 @@ function render(){
   statsEl.innerText =
     `Signals: ${list.length} | Wins: ${wins} | Losses: ${losses} | Pending: ${pending}`;
 }
+
+function formatLocalTime(ms) {
+  // ms is UTC timestamp from Firebase
+  const date = new Date(ms); // Date will automatically adjust to user's local timezone
+  return date.toLocaleString(undefined, { 
+    hour12: false,           // optional, use 24-hour format
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+}
+
 
 /* =============================== FIREBASE =============================== */
 const signalsRef = ref(db,"signals");
@@ -228,7 +243,7 @@ onValue(signalsRef, snap=>{
   render();
 });
 
-/* =============================== BUTTONS =============================== */
+
 /* =============================== BUTTONS =============================== */
 
 // Refresh / Replay: just re-render current signals
