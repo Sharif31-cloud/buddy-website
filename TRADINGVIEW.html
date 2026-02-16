@@ -208,46 +208,48 @@ function render(){
     `Signals: ${list.length} | Wins: ${wins} | Losses: ${losses} | Pending: ${pending}`;
 }
 
-/* =============================== FIREBASE LISTENER WITH STOP/REFRESH =============================== */
+/* =============================== FIREBASE =============================== */
 const signalsRef = ref(db,"signals");
 
-// Track the listener so we can attach/detach properly
-let unsubscribe = null;
+onValue(signalsRef, snap=>{
+  if(!listening || !snap.exists()) return;
 
-// Function to start listening
-function startListening() {
-  listening = true;
+  signals = Object.values(snap.val())
+    .map(s=>({...s, type:String(s.type).toUpperCase()}))
+    .filter(s=>{
+      const sym = (s.symbol||"").replace(/\//g,'').toUpperCase();
+      return sym === symbol && (s.type==="BUY" || s.type==="SELL");
+    })
+    .sort((a,b)=>a.time-b.time);
 
-  unsubscribe = onValue(signalsRef, snap => {
-    if (!listening || !snap.exists()) return;
+  render();
+});
 
-    signals = Object.values(snap.val())
-      .map(s => ({ ...s, type: String(s.type).toUpperCase() }))
-      .filter(s => {
-        const sym = (s.symbol || "").replace(/\//g,'').toUpperCase();
-        return sym === symbol && (s.type === "BUY" || s.type === "SELL");
-      })
-      .sort((a,b) => a.time - b.time);
+/* =============================== BUTTONS =============================== */
+/* =============================== BUTTONS =============================== */
 
-    render();
-  });
-}
+// Refresh / Replay: just re-render current signals
+replayBtn.onclick = () => render();
 
-// Start listening immediately when page loads
-startListening();
-
-// Stop listening
+// Stop / Exit: clears dashboard and navigates away
 stopBtn.onclick = () => {
   listening = false;
-  if (unsubscribe) unsubscribe(); // remove listener properly
-  console.log("Stopped listening for signals");
+  off(signalsRef); // detach Firebase listener
+  console.log("Dashboard stopped.");
+
+  // Try to close the tab (only works if opened via JS)
+  window.close();
+
+  // Fallback for manually opened tabs: redirect to blank page
+  setTimeout(() => {
+    if (!window.closed) {
+      document.body.innerHTML = "";
+      document.title = "Dashboard Closed";
+      window.location.href = "about:blank";
+    }
+  }, 100);
 };
 
-// Refresh / replay
-replayBtn.onclick = () => {
-  if (!listening) startListening(); // restart listener if stopped
-  else render(); // just re-render current signals
-};
 </script>
 
 </body>
