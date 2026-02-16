@@ -763,49 +763,64 @@ updateShareProgressDisplay(getUserId());
   // ========================
   // Copy Link Function
   // ========================
-  function copyWebsiteLink() {
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      alert("✅ Website link copied to clipboard!");
-      recordShare('copy'); // Increment share count
-    });
-  }
-
   // ========================
-  // Share Buttons Setup
-  // ========================
-  function setupShareButtons() {
-    const shareButtons = document.querySelectorAll('.share-btn');
-    const userId = getUserId();
-    updateShareProgressDisplay(userId); // Initialize progress display
+// Copy Link Function (updated)
+// ========================
+function copyWebsiteLink() {
+  const shareText = "Check out Buddy Products – a trading bot, signal-generating dashboard, and more:";
+  const fullText = `${shareText} ${window.location.href}`;
 
-    shareButtons.forEach(btn => {
-      const platform = btn.textContent.trim().toLowerCase();
+  navigator.clipboard.writeText(fullText).then(() => {
+    alert("✅ Website link copied to clipboard!");
+    recordShare('copy'); // Increment share count
+  });
+}
 
-      // Append current URL to social links
-      if (btn.tagName === 'A') {
-        if (btn.href.includes('wa.me')) {
-          btn.href = `https://wa.me/?text=${encodeURIComponent("Check out Buddy Products! " + window.location.href)}`;
-        } else if (btn.href.includes('facebook.com')) {
-          btn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`;
-        } else if (btn.href.includes('twitter.com')) {
-          btn.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent("Check out Buddy Products!")}&url=${encodeURIComponent(window.location.href)}`;
-        } else if (btn.href.includes('t.me')) {
-          btn.href = `https://t.me/share/url?text=${encodeURIComponent("Check out Buddy Products! " + window.location.href)}&url=${encodeURIComponent(window.location.href)}`;
-        }
+// ========================
+// Share Buttons Setup (updated)
+// ========================
+function setupShareButtons() {
+  const shareButtons = document.querySelectorAll('.share-btn');
+  const userId = getUserId();
+  updateShareProgressDisplay(userId); // Initialize progress display
 
-        // Record share when social link is clicked
-        btn.addEventListener('click', () => {
-          recordShare(platform);
-        });
+  const shareText = "Check out Buddy Products – a trading bot, signal-generating dashboard, and more:";
 
-      } else if (btn.tagName === 'BUTTON' && btn.onclick === null) {
-        // Copy link button
-        btn.addEventListener('click', () => {
-          copyWebsiteLink(); // Already calls recordShare('copy')
-        });
+  shareButtons.forEach(btn => {
+    const platform = btn.textContent.trim().toLowerCase();
+
+    if (btn.tagName === 'A') {
+      // WhatsApp
+      if (btn.href.includes('wa.me')) {
+        btn.href = `https://wa.me/?text=${encodeURIComponent(shareText + " " + window.location.href)}`;
       }
-    });
-  }
+      // Facebook
+      else if (btn.href.includes('facebook.com')) {
+        btn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${encodeURIComponent(shareText)}`;
+      }
+      // Twitter/X
+      else if (btn.href.includes('twitter.com')) {
+        btn.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(window.location.href)}`;
+      }
+      // Telegram
+      else if (btn.href.includes('t.me')) {
+        btn.href = `https://t.me/share/url?text=${encodeURIComponent(shareText + " " + window.location.href)}&url=${encodeURIComponent(window.location.href)}`;
+      }
+
+      // Record share when social link is clicked
+      btn.addEventListener('click', () => {
+        recordShare(platform);
+      });
+
+    } else if (btn.tagName === 'BUTTON' && btn.onclick === null) {
+      // Copy link button
+      btn.addEventListener('click', () => {
+        copyWebsiteLink(); // Already calls recordShare('copy')
+      });
+    }
+  });
+}
+
 
   // ========================
   // Visit Counters
