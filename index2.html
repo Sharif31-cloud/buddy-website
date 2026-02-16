@@ -258,20 +258,37 @@ async function runSignals(){
     displaySignals(signalData);
     plotSignalOnChart(signalData); // plot on main chart
 
-    // 🔴 STORE ONLY BUY/SELL SIGNALS IN FIREBASE WITH sentTime
-if(sig.signal === "BUY" || sig.signal === "SELL"){
+import { ref, get, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+/* 🔴 STORE ONLY BUY/SELL SIGNALS IN FIREBASE WITH sentTime */
+if (sig.signal === "BUY" || sig.signal === "SELL") {
     const now = Date.now(); // time when sending this signal
-    const newRef = ref(db, 'signals/' + now); // use timestamp as unique key
-    set(newRef, {
-        symbol: symbolVal,
-        type: sig.signal,
-        price: entry,
-        sl: sltp.sl,
-        tp: sltp.tp,
-        result: null,     // initially null
-        time: lastCandleTime,  // candle time
-        sentTime: now          // when this signal was sent
-    });
+    const candleTime = lastCandleTime; // candle time of this signal
+    const priceToStore = entry; // price of the signal
+
+    // Construct a "unique key" path per symbol + type + candleTime
+    const signalPath = `signals/${symbolVal}_${sig.signal}_${candleTime}`;
+
+    const signalRef = ref(db, signalPath);
+
+    // Check if a signal already exists at this path
+    get(signalRef).then(snapshot => {
+        if (!snapshot.exists()) {
+            // Only set if not already in DB
+            set(signalRef, {
+                symbol: symbolVal,
+                type: sig.signal,
+                price: priceToStore,
+                sl: sltp.sl,
+                tp: sltp.tp,
+                result: null,        // initially unknown
+                time: candleTime,    // candle time
+                sentTime: now        // when this signal was sent
+            });
+        } else {
+            console.log("Signal already exists, skipping duplicate:", signalPath);
+        }
+    }).catch(err => console.error("Firebase read error:", err));
 }
 
 
