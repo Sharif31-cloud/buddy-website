@@ -223,28 +223,29 @@ function drawLine(y, cls){
 async function plotSignal(s){
   const overlay = document.getElementById("overlay");
 
-  if(overlay.querySelector(`[data-id='${s.time}']`)) return;
+  const signalId = `${s.time}_${s.type}_${s.entry || ""}`;
+  if (overlay.querySelector(`[data-id='${signalId}']`)) return;
 
   const { x, y } = await getCandleCoordinate(
-  new Date(s.time).getTime(),
-  s.type
-);
-
-
+    new Date(s.time).getTime(),
+    s.type
+  );
 
   const el = document.createElement("div");
   el.className = `signal ${s.type==="BUY"?"buy":"sell"} ${s.result==="WIN"?"win":"loss"} current-signal`;
-  el.style.left = x+"px";
-  el.style.top = y+"px";
+  el.style.left = x + "px";
+  el.style.top = y + "px";
   el.innerText = s.type;
-  el.setAttribute("data-id", s.time);
+  el.setAttribute("data-id", signalId);
+
   overlay.appendChild(el);
 
-  drawLine(await getYForPrice(s.tp),"tp");
-  drawLine(await getYForPrice(s.sl),"sl");
+  drawLine(await getYForPrice(s.tp), "tp");
+  drawLine(await getYForPrice(s.sl), "sl");
 
-  setTimeout(()=>el.classList.remove("current-signal"),1000);
+  setTimeout(() => el.classList.remove("current-signal"), 1000);
 }
+
 
 async function startReplay(liveUpdate=false){
   replayRunning = true;
