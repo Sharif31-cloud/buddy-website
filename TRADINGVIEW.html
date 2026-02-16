@@ -288,35 +288,56 @@ async function plotSignal(s){
 
 
 async function startReplay(liveUpdate=false){
-  if (!chartReady) return; // ⛔ prevent early drawing
+    if (!chartReady) return;
 
-  replayRunning = true;
-  if(!liveUpdate) document.getElementById("overlay").innerHTML = "";
+    replayRunning = true;
+    if(!liveUpdate) document.getElementById("overlay").innerHTML = "";
 
-  const filtered = applyFilter();
-  for(const s of filtered){
-    await plotSignal(s);
-  }
+    const filtered = applyFilter();
+
+    if(filtered.length === 0){
+        const overlay = document.getElementById("overlay");
+        const el = document.createElement("div");
+        el.className = "signal";
+        el.style.left = "50%";
+        el.style.top = "20px";
+        el.style.background = "#facc15";
+        el.style.color = "#000";
+        el.style.fontSize = "10px";
+        el.style.padding = "2px 4px";
+        el.style.borderRadius = "3px";
+        el.innerText = "⚠ No signals to display for this symbol/date";
+        overlay.appendChild(el);
+        return;
+    }
+
+    for(const s of filtered){
+        await plotSignal(s);
+    }
 }
 
 /* =============================== REALTIME FIREBASE LISTENER =============================== */
 const signalsRef = ref(db,"signals");
-onValue(signalsRef,(snapshot)=>{
-  if(!snapshot.exists()) return;
+onValue(signalsRef, (snapshot) => {
+    if(!snapshot.exists()) return;
 
-  signals = Object.values(snapshot.val())
-    .map(s => ({
-      ...s,
-      type: String(s.type).toUpperCase()
-    }))
-    .filter(s=>{
-      const sSymbol = (s.symbol || "").replace(/\//g,'').toUpperCase();
-      return sSymbol === symbol && (s.type === "BUY" || s.type === "SELL");
-    })
-    .sort((a,b)=>new Date(a.time)-new Date(b.time));
+    signals = Object.values(snapshot.val())
+        .map(s => ({
+            ...s,
+            type: String(s.type).toUpperCase()
+        }))
+        .filter(s => {
+            const sSymbol = (s.symbol || "").replace(/\//g,'').toUpperCase();
+            return sSymbol === symbol && (s.type === "BUY" || s.type === "SELL");
+        })
+        .sort((a,b) => new Date(a.time)-new Date(b.time));
 
-  updateStats();
-// chartReady handler will trigger replay
+    updateStats();
+
+    // ✅ Only trigger plotting if chart is ready
+    if(chartReady){
+        startReplay(true);
+    }
 });
 
 </script>
