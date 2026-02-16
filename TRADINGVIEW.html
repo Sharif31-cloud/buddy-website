@@ -7,8 +7,6 @@
 
 <!-- Favicon -->
 <link rel="icon" type="image/png" href="logo_icon.png">
-<link rel="shortcut icon" href="logo_icon.png">
-<link rel="apple-touch-icon" href="logo_icon.png">
 
 <style>
 body{
@@ -23,7 +21,6 @@ body{
   align-items:center;
   gap:10px;
   padding:10px 14px;
-  background:#020617;
   border-bottom:1px solid #1e293b;
 }
 
@@ -55,16 +52,17 @@ button{
 .signalCard{
   border-radius:6px;
   padding:10px;
-  margin-bottom:8px;
+  margin-bottom:10px;
   background:#1e293b;
+  font-size:13px;
 }
 
-.buy{ background:#16a34a; }
-.sell{ background:#dc2626; }
+.buy{ border-left:4px solid #16a34a; }
+.sell{ border-left:4px solid #dc2626; }
 
-.win{ border-left:4px solid #22c55e; }
-.loss{ border-left:4px solid #ef4444; }
-.unknown{ border-left:4px solid #facc15; }
+.win{ box-shadow: inset 0 0 0 1px #22c55e; }
+.loss{ box-shadow: inset 0 0 0 1px #ef4444; }
+.unknown{ box-shadow: inset 0 0 0 1px #facc15; }
 </style>
 </head>
 
@@ -79,7 +77,7 @@ button{
     <option value="week">This Week</option>
   </select>
 
-  <button id="replayBtn">▶ Replay</button>
+  <button id="replayBtn">▶ Refresh</button>
   <button id="stopBtn">⏹ Stop</button>
 
   <span id="stats"></span>
@@ -89,7 +87,7 @@ button{
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, onValue, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 /* 🔴 FIREBASE CONFIG */
 const firebaseConfig = {
@@ -105,107 +103,109 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+/* =============================== STATE =============================== */
 let signals = [];
-let replayRunning = false;
-const symbol = new URLSearchParams(window.location.search).get("symbol")?.replace(/\//g,'').toUpperCase() || "XAUUSD";
+let listening = true;
 
-const signalsContainer = document.getElementById("signalsContainer");
+const symbol =
+  new URLSearchParams(window.location.search)
+    .get("symbol")
+    ?.replace(/\//g,'')
+    .toUpperCase() || "XAUUSD";
+
+const container = document.getElementById("signalsContainer");
 const statsEl = document.getElementById("stats");
-const replayBtn = document.getElementById("replayBtn");
-const stopBtn = document.getElementById("stopBtn");
 
-/* =============================== WIN/LOSS CALCULATION =============================== */
-function inferWins(signals) {
-    if (!signals || signals.length === 0) return [];
+/* =============================== RESULT LOGIC (TP/SL ONLY) =============================== */
+function calculateResults(list){
+  for(const s of list){
+    s.result = "UNKNOWN";
 
-    signals.sort((a,b) => new Date(a.time) - new Date(b.time));
+    const price = s.price ?? s.entry;
+    if(!price || !s.tp || !s.sl) continue;
 
-    for (let i = 0; i < signals.length; i++) {
-        const s = signals[i];
-        const next = signals[i+1];
-
-        s.inferredResult = "UNKNOWN";
-
-        if (next && next.symbol === s.symbol) {
-            const sPrice = s.entry || s.price || s.close;
-            const nextPrice = next.entry || next.price || next.close;
-            if (!sPrice || !nextPrice) continue;
-
-            if (s.tp) {
-                if (s.type === "BUY" && nextPrice >= s.tp) s.inferredResult = "WIN";
-                else if (s.type === "SELL" && nextPrice <= s.tp) s.inferredResult = "WIN";
-                else s.inferredResult = "LOSS";
-            } else {
-                if (s.type === "BUY" && nextPrice > sPrice) s.inferredResult = "WIN";
-                else if (s.type === "SELL" && nextPrice < sPrice) s.inferredResult = "WIN";
-                else s.inferredResult = "LOSS";
-            }
-        }
+    if(s.type === "BUY"){
+      if(price >= s.tp) s.result = "WIN";
+      else if(price <= s.sl) s.result = "LOSS";
     }
 
-    return signals;
+    if(s.type === "SELL"){
+      if(price <= s.tp) s.result = "WIN";
+      else if(price >= s.sl) s.result = "LOSS";
+    }
+  }
 }
 
-/* =============================== FILTER SIGNALS =============================== */
+/* =============================== FILTER =============================== */
 function applyFilter(){
-  const f = document.getElementById("dateFilter").value;
+  const f = dateFilter.value;
   const now = Date.now();
+
   return signals.filter(s=>{
-    const t = new Date(s.time).getTime();
+    const t = Number(s.time);
     if(f==="today") return now - t < 86400000;
     if(f==="week") return now - t < 604800000;
     return true;
   });
 }
 
-/* =============================== DISPLAY SIGNALS =============================== */
-function displaySignals(){
-    signalsContainer.innerHTML = "";
-    const filtered = applyFilter();
-    filtered.forEach(s=>{
-        const card = document.createElement("div");
-        card.className = `signalCard ${s.type.toLowerCase()} ${s.inferredResult?.toLowerCase()||"unknown"}`;
-        card.innerHTML = `
-            <strong>${s.symbol} - ${s.type}</strong><br>
-            Entry: ${s.entry?.toFixed(2) || s.price?.toFixed(2) || "-"} | SL: ${s.sl?.toFixed(2)||"-"} | TP: ${s.tp?.toFixed(2)||"-"}<br>
-            Sent: ${new Date(s.time).toLocaleString()}<br>
-            Result: ${s.inferredResult || "UNKNOWN"}
-        `;
-        signalsContainer.appendChild(card);
-    });
+/* =============================== UI RENDER =============================== */
+function render(){
+  container.innerHTML = "";
 
-    const wins = filtered.filter(s=>s.inferredResult==="WIN").length;
-    statsEl.innerText = `Signals: ${filtered.length} | Wins: ${wins}`;
+  const list = applyFilter();
+  calculateResults(list);
+
+  let wins=0, losses=0, pending=0;
+
+  for(const s of list){
+    if(s.result==="WIN") wins++;
+    else if(s.result==="LOSS") losses++;
+    else pending++;
+
+    const card = document.createElement("div");
+    card.className = `signalCard ${s.type.toLowerCase()} ${s.result.toLowerCase()}`;
+
+    card.innerHTML = `
+      <strong>${s.symbol} - ${s.type}</strong><br>
+      Entry: ${s.entry?.toFixed(2) ?? "-"} |
+      SL: ${s.sl?.toFixed(2) ?? "-"} |
+      TP: ${s.tp?.toFixed(2) ?? "-"}<br>
+      Sent: ${new Date(s.time).toLocaleString()}<br>
+      Result: <strong>${s.result}</strong>
+    `;
+
+    container.appendChild(card);
+  }
+
+  statsEl.innerText =
+    `Signals: ${list.length} | Wins: ${wins} | Losses: ${losses} | Pending: ${pending}`;
 }
 
-/* =============================== FIREBASE LISTENER =============================== */
+/* =============================== FIREBASE =============================== */
 const signalsRef = ref(db,"signals");
-onValue(signalsRef, (snapshot) => {
-    if(!snapshot.exists()) return;
-    signals = Object.values(snapshot.val())
-        .map(s=>({
-            ...s,
-            type: String(s.type).toUpperCase()
-        }))
-        .filter(s=>{
-            const sSymbol = (s.symbol||"").replace(/\//g,'').toUpperCase();
-            return sSymbol === symbol && (s.type==="BUY" || s.type==="SELL");
-        })
-        .sort((a,b)=>new Date(a.time)-new Date(b.time));
 
-    inferWins(signals);
-    if(replayRunning) displaySignals();
+onValue(signalsRef, snap=>{
+  if(!listening || !snap.exists()) return;
+
+  signals = Object.values(snap.val())
+    .map(s=>({...s, type:String(s.type).toUpperCase()}))
+    .filter(s=>{
+      const sym = (s.symbol||"").replace(/\//g,'').toUpperCase();
+      return sym === symbol && (s.type==="BUY" || s.type==="SELL");
+    })
+    .sort((a,b)=>a.time-b.time);
+
+  render();
 });
 
 /* =============================== BUTTONS =============================== */
-replayBtn.addEventListener("click", ()=>{
-    replayRunning = true;
-    displaySignals();
-});
+replayBtn.onclick = ()=> render();
 
-stopBtn.addEventListener("click", ()=>{
-    replayRunning = false;
-});
+stopBtn.onclick = ()=>{
+  listening = false;
+  off(signalsRef);
+};
 </script>
 
 </body>
