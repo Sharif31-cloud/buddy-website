@@ -144,30 +144,23 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 /* =============================== CHART INIT =============================== */
-const params = new URLSearchParams(window.location.search);
-const rawSymbol = params.get("symbol") || "XAUUSD";
-
-// Normalize TradingView symbol to match Firebase
-const symbol = rawSymbol.replace(/\//g,'').toUpperCase();
-
-let chartWidget, activeChart;
-let chartReady = false;
-
 new TradingView.widget({
-  container_id:"tv",
-  symbol: rawSymbol,
-  interval:"5",
-  theme:"dark",
-  autosize:true,
-  allow_symbol_change:true,
-  onChartReady: async function() {
-    chartWidget = this;
-    activeChart = chartWidget.activeChart();
+    container_id:"tv",
+    symbol: rawSymbol,
+    interval:"5",
+    theme:"dark",
+    autosize:true,
+    allow_symbol_change:true,
+    onChartReady: async function() {
+        chartWidget = this;
+        activeChart = chartWidget.activeChart();
+        chartReady = true;
 
-    chartReady = true;
-startReplay(true);
-
-  }
+        // ✅ If signals already exist, plot them immediately
+        if(signals.length > 0){
+            startReplay(true);
+        }
+    }
 });
 
 /* =============================== SIGNAL DATA =============================== */
@@ -288,36 +281,40 @@ async function plotSignal(s){
 
 
 
+/* =============================== SAFE REPLAY & ZOOM =============================== */
 async function startReplay(liveUpdate=false){
     if (!chartReady) return;
 
     replayRunning = true;
-    if(!liveUpdate) document.getElementById("overlay").innerHTML = "";
+
+    const overlay = document.getElementById("overlay");
+    if(!liveUpdate) overlay.innerHTML = "";  // clear previous
 
     const filtered = applyFilter();
 
-    // ⚠ Zoom chart to fit all signals
-    if(filtered.length > 0 && activeChart){
-        const fromTime = new Date(filtered[0].time).getTime() - 60*1000; // 1 min before first
-        const toTime = new Date(filtered[filtered.length-1].time).getTime() + 60*1000; // 1 min after last
-        activeChart.setVisibleRange({ from: fromTime, to: toTime });
-    }
-
     if(filtered.length === 0){
-        const overlay = document.getElementById("overlay");
         const el = document.createElement("div");
         el.className = "signal";
         el.style.left = "50%";
         el.style.top = "20px";
-        el.style.zIndex = 9999;      // always on top
+        el.style.zIndex = 9999;
         el.style.background = "#facc15";
         el.style.color = "#000";
-        el.style.fontSize = "10px";
-        el.style.padding = "2px 4px";
-        el.style.borderRadius = "3px";
+        el.style.fontSize = "12px";
+        el.style.padding = "4px 6px";
+        el.style.borderRadius = "4px";
         el.innerText = "⚠ No signals to display for this symbol/date";
         overlay.appendChild(el);
         return;
+    }
+
+    // ✅ Zoom chart to fit signals
+    try {
+        const fromTime = new Date(filtered[0].time).getTime() - 60*1000;
+        const toTime = new Date(filtered[filtered.length-1].time).getTime() + 60*1000;
+        activeChart.setVisibleRange({ from: fromTime, to: toTime });
+    } catch(e){
+        console.warn("Cannot set visible range yet:", e);
     }
 
     for(const s of filtered){
@@ -331,6 +328,7 @@ const signalsRef = ref(db,"signals");
 onValue(signalsRef, (snapshot) => {
     if(!snapshot.exists()) return;
 
+    // Load and filter signals for current symbol
     signals = Object.values(snapshot.val())
         .map(s => ({
             ...s,
@@ -340,11 +338,11 @@ onValue(signalsRef, (snapshot) => {
             const sSymbol = (s.symbol || "").replace(/\//g,'').toUpperCase();
             return sSymbol === symbol && (s.type === "BUY" || s.type === "SELL");
         })
-        .sort((a,b) => new Date(a.time)-new Date(b.time));
+        .sort((a,b) => new Date(a.time) - new Date(b.time));
 
     updateStats();
 
-    // ✅ Only trigger plotting if chart is ready
+    // ✅ If chart is ready, start replay automatically
     if(chartReady){
         startReplay(true);
     }
