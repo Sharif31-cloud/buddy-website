@@ -208,29 +208,45 @@ function render(){
     `Signals: ${list.length} | Wins: ${wins} | Losses: ${losses} | Pending: ${pending}`;
 }
 
-/* =============================== FIREBASE =============================== */
+/* =============================== FIREBASE LISTENER WITH STOP/REFRESH =============================== */
 const signalsRef = ref(db,"signals");
 
-onValue(signalsRef, snap=>{
-  if(!listening || !snap.exists()) return;
+// Track the listener so we can attach/detach properly
+let unsubscribe = null;
 
-  signals = Object.values(snap.val())
-    .map(s=>({...s, type:String(s.type).toUpperCase()}))
-    .filter(s=>{
-      const sym = (s.symbol||"").replace(/\//g,'').toUpperCase();
-      return sym === symbol && (s.type==="BUY" || s.type==="SELL");
-    })
-    .sort((a,b)=>a.time-b.time);
+// Function to start listening
+function startListening() {
+  listening = true;
 
-  render();
-});
+  unsubscribe = onValue(signalsRef, snap => {
+    if (!listening || !snap.exists()) return;
 
-/* =============================== BUTTONS =============================== */
-replayBtn.onclick = ()=> render();
+    signals = Object.values(snap.val())
+      .map(s => ({ ...s, type: String(s.type).toUpperCase() }))
+      .filter(s => {
+        const sym = (s.symbol || "").replace(/\//g,'').toUpperCase();
+        return sym === symbol && (s.type === "BUY" || s.type === "SELL");
+      })
+      .sort((a,b) => a.time - b.time);
 
-stopBtn.onclick = ()=>{
+    render();
+  });
+}
+
+// Start listening immediately when page loads
+startListening();
+
+// Stop listening
+stopBtn.onclick = () => {
   listening = false;
-  off(signalsRef);
+  if (unsubscribe) unsubscribe(); // remove listener properly
+  console.log("Stopped listening for signals");
+};
+
+// Refresh / replay
+replayBtn.onclick = () => {
+  if (!listening) startListening(); // restart listener if stopped
+  else render(); // just re-render current signals
 };
 </script>
 
