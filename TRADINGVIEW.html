@@ -151,18 +151,31 @@ const rawSymbol = params.get("symbol") || "XAUUSD";
 const symbol = rawSymbol.replace(/\//g,'').toUpperCase();
 
 let chartWidget, activeChart;
+let chartReady = false;
 
 new TradingView.widget({
   container_id:"tv",
-  symbol: rawSymbol, // show original TradingView symbol with slash
+  symbol: rawSymbol,
   interval:"5",
   theme:"dark",
   autosize:true,
-  studies:[],
   allow_symbol_change:true,
-  onChartReady: function() {
+  onChartReady: async function() {
     chartWidget = this;
     activeChart = chartWidget.activeChart();
+
+    // ⏳ WAIT until candles are actually loaded
+    let tries = 0;
+    while (tries < 20) {
+      const bars = await activeChart.getBars();
+      if (bars && bars.length) {
+        chartReady = true;
+        startReplay(true); // 🔥 draw signals once chart is ready
+        break;
+      }
+      await new Promise(r => setTimeout(r, 300));
+      tries++;
+    }
   }
 });
 
@@ -215,12 +228,20 @@ async function getCandleCoordinate(signalTime, signalType){
 
   return { x, y };
 }
+async function getYForPrice(price){
+  if (!activeChart) return null;
+  return activeChart.priceToCoordinate(price);
+}
+
 
 /* =============================== DRAW LINES =============================== */
 function drawLine(y, cls){
+  if (y == null) return;
+
+  const overlay = document.getElementById("overlay");
   const l = document.createElement("div");
   l.className = `line ${cls}`;
-  l.style.top = y+"px";
+  l.style.top = y + "px";
   overlay.appendChild(l);
 }
 
@@ -260,6 +281,8 @@ async function plotSignal(s){
 
 
 async function startReplay(liveUpdate=false){
+  if (!chartReady) return; // ⛔ prevent early drawing
+
   replayRunning = true;
   if(!liveUpdate) document.getElementById("overlay").innerHTML = "";
 
@@ -286,7 +309,7 @@ onValue(signalsRef,(snapshot)=>{
     .sort((a,b)=>new Date(a.time)-new Date(b.time));
 
   updateStats();
-  startReplay(true);
+// chartReady handler will trigger replay
 });
 
 </script>
