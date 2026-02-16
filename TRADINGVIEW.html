@@ -209,30 +209,21 @@ function render(){
 }
 
 /* =============================== FIREBASE =============================== */
-onValue(signalsRef, snap => {
-  if (!listening || !snap.exists()) return;
+const signalsRef = ref(db,"signals");
 
-  // 1️⃣ Pull and filter signals
-  let rawSignals = Object.values(snap.val())
-    .map(s => ({ ...s, type: String(s.type).toUpperCase() }))
-    .filter(s => {
-      const sym = (s.symbol || "").replace(/\//g, '').toUpperCase();
-      return sym === symbol && (s.type === "BUY" || s.type === "SELL");
+onValue(signalsRef, snap=>{
+  if(!listening || !snap.exists()) return;
+
+  signals = Object.values(snap.val())
+    .map(s=>({...s, type:String(s.type).toUpperCase()}))
+    .filter(s=>{
+      const sym = (s.symbol||"").replace(/\//g,'').toUpperCase();
+      return sym === symbol && (s.type==="BUY" || s.type==="SELL");
     })
-    .sort((a, b) => a.time - b.time);
-
-  // 2️⃣ Deduplicate by symbol + time + type
-  const seen = new Set();
-  signals = rawSignals.filter(s => {
-    const key = `${s.symbol}_${s.time}_${s.type}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+    .sort((a,b)=>a.time-b.time);
 
   render();
 });
-
 
 /* =============================== BUTTONS =============================== */
 replayBtn.onclick = ()=> render();
