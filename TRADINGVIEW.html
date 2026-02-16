@@ -173,7 +173,8 @@ let replayRunning = false;
 /* =============================== WIN/LOSS CALCULATION =============================== */
 function inferWins(signals) {
     if (!signals || signals.length === 0) return [];
-    signals.sort((a,b) => new Date(a.time)-new Date(b.time));
+
+    signals.sort((a,b) => new Date(a.time) - new Date(b.time));
 
     for (let i = 0; i < signals.length; i++) {
         const s = signals[i];
@@ -182,17 +183,23 @@ function inferWins(signals) {
         s.inferredResult = "UNKNOWN";
 
         if (next && next.symbol === s.symbol) {
+            const sPrice = s.entry || s.price || s.close;
+            const nextPrice = next.entry || next.price || next.close;
+
+            if (!sPrice || !nextPrice) continue; // skip if missing
+
             if (s.tp) {
-                if (s.type === "BUY" && next.price >= s.tp) s.inferredResult = "WIN";
-                else if (s.type === "SELL" && next.price <= s.tp) s.inferredResult = "WIN";
+                if (s.type === "BUY" && nextPrice >= s.tp) s.inferredResult = "WIN";
+                else if (s.type === "SELL" && nextPrice <= s.tp) s.inferredResult = "WIN";
                 else s.inferredResult = "LOSS";
             } else {
-                if (s.type === "BUY" && next.price > s.price) s.inferredResult = "WIN";
-                else if (s.type === "SELL" && next.price < s.price) s.inferredResult = "WIN";
+                if (s.type === "BUY" && nextPrice > sPrice) s.inferredResult = "WIN";
+                else if (s.type === "SELL" && nextPrice < sPrice) s.inferredResult = "WIN";
                 else s.inferredResult = "LOSS";
             }
         }
     }
+
     return signals;
 }
 
