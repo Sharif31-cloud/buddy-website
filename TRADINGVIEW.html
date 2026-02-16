@@ -125,14 +125,13 @@ function calculateResults(list){
     const curr = list[i];
     const next = list[i + 1];
 
-    if(!curr.entry || !curr.tp || !curr.sl || !next.entry) continue;
+    const currPrice = curr.price ?? curr.entry;
+    const nextPrice = next.price ?? next.entry;
 
-    const start = curr.entry;
-    const end = next.entry;
+    if(!currPrice || !curr.tp || !curr.sl || !nextPrice) continue;
 
-    // price traveled range
-    const high = Math.max(start, end);
-    const low  = Math.min(start, end);
+    const high = Math.max(currPrice, nextPrice);
+    const low  = Math.min(currPrice, nextPrice);
 
     if(curr.type === "BUY"){
       if(high >= curr.tp){
@@ -184,7 +183,7 @@ function render(){
 
     card.innerHTML = `
       <strong>${s.symbol} - ${s.type}</strong><br>
-      Entry: ${s.entry?.toFixed(2) ?? "-"} |
+      Entry: ${(s.price ?? s.entry)?.toFixed(2) ?? "-"}  |
       SL: ${s.sl?.toFixed(2) ?? "-"} |
       TP: ${s.tp?.toFixed(2) ?? "-"}<br>
       Sent: ${new Date(s.time).toLocaleString()}<br>
