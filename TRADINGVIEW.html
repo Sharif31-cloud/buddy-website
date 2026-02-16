@@ -144,23 +144,30 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 /* =============================== CHART INIT =============================== */
-new TradingView.widget({
-    container_id:"tv",
-    symbol: rawSymbol,
-    interval:"5",
-    theme:"dark",
-    autosize:true,
-    allow_symbol_change:true,
-    onChartReady: async function() {
-        chartWidget = this;
-        activeChart = chartWidget.activeChart();
-        chartReady = true;
+const params = new URLSearchParams(window.location.search);
+const rawSymbol = params.get("symbol") || "XAUUSD";
 
-        // ✅ If signals already exist, plot them immediately
-        if(signals.length > 0){
-            startReplay(true);
-        }
-    }
+// Normalize TradingView symbol to match Firebase
+const symbol = rawSymbol.replace(/\//g,'').toUpperCase();
+
+let chartWidget, activeChart;
+let chartReady = false;
+
+new TradingView.widget({
+  container_id:"tv",
+  symbol: rawSymbol,
+  interval:"5",
+  theme:"dark",
+  autosize:true,
+  allow_symbol_change:true,
+  onChartReady: async function() {
+    chartWidget = this;
+    activeChart = chartWidget.activeChart();
+
+    chartReady = true;
+startReplay(true);
+
+  }
 });
 
 /* =============================== SIGNAL DATA =============================== */
@@ -328,7 +335,6 @@ const signalsRef = ref(db,"signals");
 onValue(signalsRef, (snapshot) => {
     if(!snapshot.exists()) return;
 
-    // Load and filter signals for current symbol
     signals = Object.values(snapshot.val())
         .map(s => ({
             ...s,
@@ -338,11 +344,11 @@ onValue(signalsRef, (snapshot) => {
             const sSymbol = (s.symbol || "").replace(/\//g,'').toUpperCase();
             return sSymbol === symbol && (s.type === "BUY" || s.type === "SELL");
         })
-        .sort((a,b) => new Date(a.time) - new Date(b.time));
+        .sort((a,b) => new Date(a.time)-new Date(b.time));
 
     updateStats();
 
-    // ✅ If chart is ready, start replay automatically
+    // ✅ Only trigger plotting if chart is ready
     if(chartReady){
         startReplay(true);
     }
