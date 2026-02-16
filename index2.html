@@ -509,9 +509,8 @@ const openTVBtn = document.getElementById("openTVBtn");
 openTVBtn.onclick = () => {
   const symbolVal = symbol.value.replace("/", "");
   window.open(
-    `TRADINGVIEW.html?symbol=${symbolVal}`,
-    "_blank",
-    "width=1300,height=800"
+    `TRADINGVIEW.html?symbol=${symbolVal}`, // URL to open
+    "_blank"                                // open in a new tab
   );
 };
 
