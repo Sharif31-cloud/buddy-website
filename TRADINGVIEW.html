@@ -9,6 +9,9 @@
 <link rel="icon" type="image/png" href="logo_icon.png">
 
 <style>
+.result-win { color: #22c55e; }      /* Green for WIN */
+.result-loss { color: #ef4444; }     /* Red for LOSS */
+.result-unknown { color: #facc15; }  /* Yellow for UNKNOWN */
 body{
   margin:0;
   background:#020617;
@@ -198,7 +201,7 @@ function render(){
       SL: ${s.sl?.toFixed(2) ?? "-"} |
       TP: ${s.tp?.toFixed(2) ?? "-"}<br>
       Sent: ${new Date(s.time).toLocaleString()}<br>
-      Result: <strong>${s.result}</strong>
+      Result: <strong class="result-${s.result.toLowerCase()}">${s.result}</strong>
     `;
 
     container.appendChild(card);
