@@ -174,11 +174,59 @@ startReplay(true);
 let signals = [];
 let replayRunning = false;
 
+// 🔹 Infer wins based on signal sequence
+function inferWins(signals) {
+  if (!signals || signals.length === 0) return;
+
+  // Sort signals by time
+  signals.sort((a,b) => new Date(a.time) - new Date(b.time));
+
+  for (let i = 0; i < signals.length; i++) {
+    const s = signals[i];
+    const next = signals[i+1];
+
+    // Initialize inferred result
+    s.inferredResult = "UNKNOWN";
+
+    if (!next) {
+      s.inferredResult = "UNKNOWN"; // last signal, we cannot infer
+      continue;
+    }
+
+    // Use TP if available
+    if (s.tp) {
+      if (s.type === "BUY" && next.entry >= s.tp) s.inferredResult = "WIN";
+      else if (s.type === "SELL" && next.entry <= s.tp) s.inferredResult = "WIN";
+      else s.inferredResult = "LOSS";
+      continue;
+    }
+
+    // Alternating signals
+    if (s.type !== next.type) {
+      if (s.type === "BUY" && next.entry > s.entry) s.inferredResult = "WIN";
+      else if (s.type === "SELL" && next.entry < s.entry) s.inferredResult = "WIN";
+      else s.inferredResult = "LOSS";
+    }
+    // Same type consecutive
+    else {
+      if (s.type === "BUY" && next.entry > s.entry) s.inferredResult = "WIN";
+      else if (s.type === "SELL" && next.entry < s.entry) s.inferredResult = "WIN";
+      else s.inferredResult = "LOSS";
+    }
+  }
+
+  return signals;
+}
+
+
 function updateStats(){
-  const filteredSignals = applyFilter();
-  const wins = filteredSignals.filter(s=>s.result==="WIN").length;
-  const rate = filteredSignals.length ? Math.round(wins/filteredSignals.length*100):0;
-  stats.innerText = `Signals: ${filteredSignals.length} | Win: ${rate}%`;
+  // First, infer wins for all signals
+  inferWins(signals);
+
+  const filteredSignals = applyFilter(); // still for the chart view
+  const wins = signals.filter(s => s.inferredResult === "WIN").length;
+
+  stats.innerText = `Signals: ${filteredSignals.length} | Wins: ${wins}`;
 }
 
 /* =============================== FILTERS =============================== */
