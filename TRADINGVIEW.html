@@ -118,38 +118,49 @@ const statsEl = document.getElementById("stats");
 
 /* =============================== RESULT LOGIC (TP/SL ONLY) =============================== */
 function calculateResults(list){
-  // reset all
+  // reset
   list.forEach(s => s.result = "UNKNOWN");
 
-  for(let i = 0; i < list.length - 1; i++){
+  for(let i = 0; i < list.length; i++){
     const curr = list[i];
-    const next = list[i + 1];
-
     const currPrice = curr.price ?? curr.entry;
-    const nextPrice = next.price ?? next.entry;
 
-    if(!currPrice || !curr.tp || !curr.sl || !nextPrice) continue;
+    if(!currPrice || !curr.tp || !curr.sl) continue;
 
-    const high = Math.max(currPrice, nextPrice);
-    const low  = Math.min(currPrice, nextPrice);
+    // look forward through ALL future prices
+    for(let j = i + 1; j < list.length; j++){
+      const future = list[j];
+      const futurePrice = future.price ?? future.entry;
+      if(!futurePrice) continue;
 
-    if(curr.type === "BUY"){
-      if(high >= curr.tp){
-        curr.result = "WIN";
-      } else if(low <= curr.sl){
-        curr.result = "LOSS";
+      const high = Math.max(currPrice, futurePrice);
+      const low  = Math.min(currPrice, futurePrice);
+
+      if(curr.type === "BUY"){
+        if(high >= curr.tp){
+          curr.result = "WIN";
+          break;
+        }
+        if(low <= curr.sl){
+          curr.result = "LOSS";
+          break;
+        }
       }
-    }
 
-    if(curr.type === "SELL"){
-      if(low <= curr.tp){
-        curr.result = "WIN";
-      } else if(high >= curr.sl){
-        curr.result = "LOSS";
+      if(curr.type === "SELL"){
+        if(low <= curr.tp){
+          curr.result = "WIN";
+          break;
+        }
+        if(high >= curr.sl){
+          curr.result = "LOSS";
+          break;
+        }
       }
     }
   }
 }
+
 
 /* =============================== FILTER =============================== */
 function applyFilter(){
