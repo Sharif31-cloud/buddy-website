@@ -93,7 +93,7 @@ import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/fireb
 
 // =============== TWELVEDATA CONFIG ===============
 const TWELVE_KEY = "894c1cdec16d47b98980a4423f254352";
-const INTERVALS = ["5min", "15min"]; // multi-timeframe
+const INTERVAL = "15min";
 
 // =============== FIREBASE =================
 const firebaseConfig = {
@@ -141,17 +141,12 @@ function generateSignal(d){let s=0;d.ema10>d.ema20?s+=30:s-=30;d.rsi>55?s+=20:d.
 function SLTP(e,a,s){let r=a*1.2,t=r*1.5;if(s==="BUY")return{sl:e-r,tp:e+t};if(s==="SELL")return{sl:e+r,tp:e-t};return{sl:e,tp:e};}
 
 // =============== FETCH MARKET DATA =================
-async function fetchDataForIntervals(symbol) {
-  const dataObj = {};
-  for (const interval of INTERVALS) {
-    const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${interval}&outputsize=200&apikey=${TWELVE_KEY}`;
-    const res = await fetch(url);
-    const json = await res.json();
-    dataObj[interval] = json.values.reverse(); // oldest → newest
-  }
-  return dataObj;
+async function fetchData(symbol){
+  let url=`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${INTERVAL}&outputsize=200&apikey=${TWELVE_KEY}`;
+  let r = await fetch(url);
+  let j = await r.json();
+  return j.values.reverse();
 }
-
 
 // ================= CHART =================
 let chartWidget = null; // store widget instance for plotting
@@ -177,33 +172,56 @@ function loadChart(symbolVal){
   if(!chartSymbolsHistory[symbolVal]) chartSymbolsHistory[symbolVal] = [];
 }
 
-function generateMultiTFSignal(dataObj) {
-  const sig5m = generateSignal({
-    ema10: EMA(dataObj["5min"].map(d => +d.close).slice(-20), 10),
-    ema20: EMA(dataObj["5min"].map(d => +d.close).slice(-30), 20),
-    rsi: RSI(dataObj["5min"].map(d => +d.close)),
-    macd: MACD(dataObj["5min"].map(d => +d.close)).macd,
-    macdSignal: MACD(dataObj["5min"].map(d => +d.close)).signal
-  });
+// ================= PLOT SIGNALS ON CHART WITH TIMESTAMPS =================
+function plotSignalOnChart(sigData){
+  if(!chartWidget || !chartWidget.chart) return;
+  const { sig, entry, sltp, symbolVal, candleTime } = sigData; // candleTime in ms
+  const chart = chartWidget.chart();
 
-  const sig15m = generateSignal({
-    ema10: EMA(dataObj["15min"].map(d => +d.close).slice(-20), 10),
-    ema20: EMA(dataObj["15min"].map(d => +d.close).slice(-30), 20),
-    rsi: RSI(dataObj["15min"].map(d => +d.close)),
-    macd: MACD(dataObj["15min"].map(d => +d.close)).macd,
-    macdSignal: MACD(dataObj["15min"].map(d => +d.close)).signal
-  });
+  if(sig.signal === "HOLD") return; // skip HOLD
 
-  // ✅ Only agree if both intervals signal the same direction
-  if (sig5m.signal === sig15m.signal && (sig5m.signal === "BUY" || sig5m.signal === "SELL")) {
-    return sig5m; // confirmed signal
-  } else {
-    return { signal: "HOLD", strength: 0 }; // ignore conflicting signals
-  }
+  // store current signal in history
+  chartSymbolsHistory[symbolVal].push({sig, entry, sltp, candleTime});
+
+  // clear previous shapes to redraw full history
+  chart.removeAllShapes();
+
+  chartSymbolsHistory[symbolVal].forEach(s => {
+    const sIsBuy = s.sig.signal === "BUY";
+    const sArrowShape = sIsBuy ? 'arrow_up' : 'arrow_down';
+    const sArrowColor = sIsBuy ? '#22c55e' : '#ef4444';
+
+    // Entry marker with timestamp
+    chart.createShape({
+      time: s.candleTime / 1000, // TradingView expects seconds
+      price: s.entry,
+      shape: sArrowShape,
+      text: `${s.sig.signal}\nEntry:${s.entry.toFixed(2)}\n${new Date(s.candleTime).toLocaleString()}`,
+      color: sArrowColor,
+      size: 2,
+    });
+
+    // SL line
+    chart.createShape({
+      time: s.candleTime / 1000,
+      price: s.sltp.sl,
+      shape: 'line_horizontal',
+      text: 'SL',
+      color: '#f87171',
+      linewidth: 1
+    });
+
+    // TP line
+    chart.createShape({
+      time: s.candleTime / 1000,
+      price: s.sltp.tp,
+      shape: 'line_horizontal',
+      text: 'TP',
+      color: '#22c55e',
+      linewidth: 1
+    });
+  });
 }
-
-
-
 
 
 async function sendSignalIfNotExists(signalData) {
@@ -266,33 +284,35 @@ async function runSignals(){
   }
 
   try {
-    // fetch multi-timeframe data
-    const dataObj = await fetchDataForIntervals(symbolVal);
+    let data = await fetchData(symbolVal);
+    let cl = data.map(x=>+x.close), h=data.map(x=>+x.high), l=data.map(x=>+x.low);
 
-    // generate multi-TF confirmed signal
-    const sig = generateMultiTFSignal(dataObj);
+    let sig = generateSignal({
+      ema10:EMA(cl.slice(-20),10), 
+      ema20:EMA(cl.slice(-30),20), 
+      rsi:RSI(cl), 
+      macd:MACD(cl).macd, 
+      macdSignal:MACD(cl).signal
+    });
 
-    // use 5min candle for entry/SL/TP
-    const cl5 = dataObj["5min"].map(d => +d.close);
-    const h5  = dataObj["5min"].map(d => +d.high);
-    const l5  = dataObj["5min"].map(d => +d.low);
+    let entry = cl.at(-1);
+    let sltp = SLTP(entry, ATR(h,l,cl), sig.signal);
+    let lastCandleTime = new Date(data.at(-1).datetime).getTime(); 
 
-    const entry = cl5.at(-1);
-    const sltp  = SLTP(entry, ATR(h5, l5, cl5), sig.signal);
-    const lastCandleTime = new Date(dataObj["5min"].at(-1).datetime).getTime(); 
-
-    const signalData = { symbolVal, sig, entry, sltp, candleTime: lastCandleTime };
-    cachedSignals[symbolVal] = { data: signalData, time: now };
+    const signalData = {symbolVal, sig, entry, sltp, candleTime: lastCandleTime};
+    cachedSignals[symbolVal] = {data: signalData, time: now};
 
     displaySignals(signalData);
-    plotSignalOnChart(signalData);
+    plotSignalOnChart(signalData); // plot on main chart
 
-    // send to Firebase if not duplicate
-    sendSignalIfNotExists(signalData);
+
+
+sendSignalIfNotExists(signalData);
+
+
 
   } catch(e){
     signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>❌ Error fetching data from Twelvedata. Check API key or symbol.</p>";
-    console.error(e);
   }
 }
 
