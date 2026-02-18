@@ -135,7 +135,6 @@ function ATR(h,l,c,p=14){let t=[];for(let i=1;i<c.length;i++)t.push(Math.max(h[i
 function MACD(v){let a=EMA(v.slice(-26),12),b=EMA(v.slice(-26),26);return{macd:a-b,signal:EMA([a-b],9)};}
 
 // =============== SIGNAL LOGIC =================
-// Step 1: Technical signal per candle
 function technical_signal({ema10, ema20, rsi, macd, macdSignal}) {
     let s = 0;
     ema10 > ema20 ? s += 30 : s -= 30;
@@ -145,51 +144,45 @@ function technical_signal({ema10, ema20, rsi, macd, macdSignal}) {
     if (s <= -35) return { signal: "SELL", strength: Math.abs(s) };
     return { signal: "HOLD", strength: Math.abs(s) };
 }
-
-// Step 2: Final signal logic (could include higher timeframe or S/R filters)
 function final_signal_logic(techSignal, higherSignal = null) {
-    // simple example: if higher timeframe conflicts, hold
     if (higherSignal && higherSignal.signal !== techSignal.signal) return { signal: "HOLD", strength: techSignal.strength };
     return techSignal;
 }
-
-// Step 3: Calculate SL/TP
 function calculate_sl_tp(entry, atr, signal) {
     let r = atr * 1.2, t = r * 1.5;
     if (signal === "BUY") return { sl: entry - r, tp: entry + t };
     if (signal === "SELL") return { sl: entry + r, tp: entry - t };
     return { sl: entry, tp: entry };
 }
-
-// Step 4: Lot size based on fixed risk (example: risk 1% per trade)
 function calculate_lot_size_from_risk(balance = 1000, riskPercent = 1, entry, sl) {
     const risk = balance * (riskPercent / 100);
     const pipDistance = Math.abs(entry - sl);
-    if (pipDistance === 0) return 0.01; // minimum lot
+    if (pipDistance === 0) return 0.01;
     return parseFloat((risk / pipDistance).toFixed(2));
 }
 
 // =============== FETCH MARKET DATA =================
 async function fetchData(symbol){
-    let url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${INTERVAL}&outputsize=200&apikey=${TWELVE_KEY}`;
-    let r = await fetch(url);
-    let j = await r.json();
-    return j.values.reverse();
+    try {
+        const res = await fetch(`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${INTERVAL}&outputsize=200&apikey=${TWELVE_KEY}`);
+        const data = await res.json();
+        if(!data.values) throw new Error(data.message || "No data returned from TwelveData");
+        return data.values.reverse();
+    } catch(e){
+        console.error("Fetch error:", e);
+        signals.innerHTML = `<p style="color:#fbbf24;text-align:center;">❌ Error fetching data: ${e.message}</p>`;
+        return [];
+    }
 }
 
 // =============== DISPLAY SIGNAL =================
 function displaySignals({symbolVal, sig, entry, sltp, lot}) {
     const isFree = freeSymbols.includes(symbolVal);
-    let vipBadgeHtml = "";
-    let blurClass = "";
+    let vipBadgeHtml = "", blurClass = "";
 
-    if (isVIP) {
-        vipBadgeHtml = `<div class="vip-badge">VIP Active</div>`;
-    } else if (isFree) {
-        vipBadgeHtml = `<div class="vip-badge" style="background:#22c55e">FREE</div>`;
-    } else {
-        blurClass = "vip-lock";
-    }
+    if(isVIP) vipBadgeHtml = `<div class="vip-badge">VIP Active</div>`;
+    else if(isFree) vipBadgeHtml = `<div class="vip-badge" style="background:#22c55e">FREE</div>`;
+    else blurClass = "vip-lock";
 
     signals.innerHTML = `
         <div class="signal ${blurClass}">
@@ -207,9 +200,30 @@ function displaySignals({symbolVal, sig, entry, sltp, lot}) {
     `;
 }
 
+// =============== TRADINGVIEW =================
+function loadTradingView(symbolVal){
+    if(!symbolVal || typeof TradingView === 'undefined') return;
+    document.getElementById('chart').innerHTML = "";
+    new TradingView.widget({
+        container_id: "chart",
+        width: "100%",
+        height: 450,
+        symbol: symbolVal.replace("/",""),
+        interval: "15",
+        timezone: "Etc/UTC",
+        theme: "dark",
+        style: "1",
+        locale: "en",
+        toolbar_bg: "#020617",
+        allow_symbol_change: true,
+        hideideas: true
+    });
+}
+
 // =============== RUN SIGNALS =================
 async function runSignals(){
     const symbolVal = symbol.value;
+    loadTradingView(symbolVal);
 
     const now = Date.now();
     if(cachedSignals[symbolVal] && now - cachedSignals[symbolVal].time < cacheTime){
@@ -217,50 +231,46 @@ async function runSignals(){
         return;
     }
 
-    try {
-        let data = await fetchData(symbolVal);
-        let cl = data.map(x=>+x.close), h=data.map(x=>+x.high), l=data.map(x=>+x.low);
+    const data = await fetchData(symbolVal);
+    if(!data.length) return;
 
-        const techSignal = technical_signal({
-            ema10: EMA(cl.slice(-20),10),
-            ema20: EMA(cl.slice(-30),20),
-            rsi: RSI(cl),
-            macd: MACD(cl).macd,
-            macdSignal: MACD(cl).signal
-        });
+    const cl = data.map(x=>+x.close), h=data.map(x=>+x.high), l=data.map(x=>+x.low);
 
-        const finalSignal = final_signal_logic(techSignal);
+    const techSignal = technical_signal({
+        ema10: EMA(cl.slice(-20),10),
+        ema20: EMA(cl.slice(-30),20),
+        rsi: RSI(cl),
+        macd: MACD(cl).macd,
+        macdSignal: MACD(cl).signal
+    });
 
-        const entry = cl.at(-1);
-        const sltp = calculate_sl_tp(entry, ATR(h,l,cl), finalSignal.signal);
-        const lot = calculate_lot_size_from_risk(1000,1,entry,sltp.sl);
+    const finalSignal = final_signal_logic(techSignal);
+    const entry = cl.at(-1);
+    const sltp = calculate_sl_tp(entry, ATR(h,l,cl), finalSignal.signal);
+    const lot = calculate_lot_size_from_risk(1000,1,entry,sltp.sl);
 
-        const signalData = { symbolVal, sig: finalSignal, entry, sltp, lot };
-        cachedSignals[symbolVal] = { data: signalData, time: now };
+    const signalData = { symbolVal, sig: finalSignal, entry, sltp, lot };
+    cachedSignals[symbolVal] = { data: signalData, time: now };
 
-        displaySignals(signalData);
+    displaySignals(signalData);
 
-        // Optional: save to Firebase
-        if(finalSignal.signal === "BUY" || finalSignal.signal === "SELL"){
-            const signalsRefDb = ref(db,'signals');
-            const snapshot = await get(signalsRefDb);
-            const existing = snapshot.val() || {};
-            const duplicate = Object.values(existing).some(s => s.symbol===symbolVal && s.type===finalSignal.signal);
-            if(!duplicate){
-                await set(ref(db,'signals/'+Date.now()), {
-                    symbol: symbolVal,
-                    type: finalSignal.signal,
-                    entry,
-                    sl: sltp.sl,
-                    tp: sltp.tp,
-                    lot,
-                    time: Date.now()
-                });
-            }
+    // Optional: save to Firebase
+    if(finalSignal.signal==="BUY"||finalSignal.signal==="SELL"){
+        const signalsRefDb = ref(db,'signals');
+        const snapshot = await get(signalsRefDb);
+        const existing = snapshot.val()||{};
+        const duplicate = Object.values(existing).some(s => s.symbol===symbolVal && s.type===finalSignal.signal);
+        if(!duplicate){
+            await set(ref(db,'signals/'+Date.now()), {
+                symbol: symbolVal,
+                type: finalSignal.signal,
+                entry,
+                sl: sltp.sl,
+                tp: sltp.tp,
+                lot,
+                time: Date.now()
+            });
         }
-
-    } catch(e){
-        signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>❌ Error fetching data from Twelvedata. Check API key or symbol.</p>";
     }
 }
 
@@ -270,21 +280,18 @@ registerBtn.onclick = ()=>createUserWithEmailAndPassword(auth,email.value,passwo
     .then(uc=>{ set(ref(db,'users/'+uc.user.uid),{email:uc.user.email,vip:false,created:new Date().toISOString()}); alert("Account created. Request VIP from the button."); })
     .catch(e=>alert(e.message));
 
-onAuthStateChanged(auth, user => {
-    clearInterval(vipCountdownInterval);
-    vipTimerDiv.innerText = "";
-    isVIP = false;
+onAuthStateChanged(auth,user=>{
+    clearInterval(vipCountdownInterval); vipTimerDiv.innerText=""; isVIP=false;
 
-    if (!user) { upgradeBtn.style.display = 'inline-block'; runSignals(); return; }
+    if(!user){ upgradeBtn.style.display='inline-block'; runSignals(); return; }
 
     const userRef = ref(db,'users/'+user.uid);
     get(userRef).then(snap=>{
         const data = snap.val()||{};
         if(data.vip && data.vipExpiry && new Date(data.vipExpiry).getTime()>Date.now()){
-            isVIP = true;
+            isVIP=true;
             startVipCountdown(data.vipExpiry);
-        } else if(data.vip) vipExpired(user.uid);
-
+        }
         upgradeBtn.style.display = isVIP?'none':'inline-block';
         return get(child(ref(db),'vip_requests/'+user.uid));
     }).then(r=>{
@@ -293,11 +300,15 @@ onAuthStateChanged(auth, user => {
     }).catch(err=>console.error(err));
 });
 
-upgradeBtn.onclick=()=>{ const user=auth.currentUser; if(!user)return alert("Please login first."); tidBox.style.display="flex"; upgradeBtn.style.display="none"; };
-activateVipBtn.onclick=()=>{ 
-    const tidValue=tidInput.value.trim();
-    if(!/^TID\s\d{12}$/.test(tidValue)){alert("❌ Invalid TID format");return;}
-    const user=auth.currentUser; if(!user)return alert("Please login first.");
+upgradeBtn.onclick = ()=>{
+    const user = auth.currentUser; 
+    if(!user) return alert("Please login first."); 
+    tidBox.style.display="flex"; upgradeBtn.style.display="none";
+};
+activateVipBtn.onclick = ()=>{
+    const tidValue = tidInput.value.trim();
+    if(!/^TID\s\d{12}$/.test(tidValue)){alert("❌ Invalid TID format"); return;}
+    const user = auth.currentUser; if(!user) return alert("Please login first.");
     set(ref(db,'vip_requests/'+user.uid),{email:user.email,requestedAt:new Date().toISOString(),tid:tidValue,status:"pending"})
     .then(()=>{alert("✅ VIP request sent!"); activateVipBtn.disabled=true; activateVipBtn.innerText="TID Submitted";})
     .catch(err=>alert(err.message));
@@ -305,7 +316,11 @@ activateVipBtn.onclick=()=>{
 
 symbol.addEventListener('change',runSignals);
 setInterval(runSignals,20*60*1000);
+
+// Optional: default load on page ready
+window.addEventListener('load', ()=>runSignals());
 </script>
+
 
 <script src="https://s3.tradingview.com/tv.js"></script>
 </body>
