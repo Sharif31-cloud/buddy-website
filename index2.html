@@ -192,11 +192,18 @@ async function fetchData(symbol){
 }
 
 async function fetchHTF(symbol){
-  const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1h&outputsize=120&apikey=${TWELVE_KEY}`;
+  const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=15m&outputsize=120&apikey=${TWELVE_KEY}`;
   const r = await fetch(url);
   const j = await r.json();
+
+  if(!j.values) {
+    console.warn("HTF fetch failed:", j);
+    return []; // fallback empty array
+  }
+
   return j.values.reverse();
 }
+
 
 function htfTrend(cl){
   const ema50 = EMA(cl.slice(-60), 50);
@@ -341,8 +348,11 @@ async function runSignals(){
 
     /* ================= HTF TREND ================= */
     const htfData  = await fetchHTF(symbolVal);
-    const htfClose = htfData.map(x => +x.close);
-    const trend    = htfTrend(htfClose); // "BULL" | "BEAR" | "RANGE"
+const htfClose = htfData.length ? htfData.map(x => +x.close) : cl.slice(-60); 
+// fallback to LTF closes if HTF fails
+
+const trend = htfClose.length ? htfTrend(htfClose) : "RANGE";
+
 
     /* ================= SIGNAL GENERATION ================= */
     let sig = generateSignal({
