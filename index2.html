@@ -137,8 +137,34 @@ function EMA(v,p){let k=2/(p+1),e=v[0];for(let i=1;i<v.length;i++)e=v[i]*k+e*(1-
 function RSI(v,p=7){let g=0,l=0;for(let i=v.length-p;i<v.length-1;i++){let d=v[i+1]-v[i];d>0?g+=d:l-=d}let rs=g/(l||1);return 100-100/(1+rs);}
 function ATR(h,l,c,p=14){let t=[];for(let i=1;i<c.length;i++)t.push(Math.max(h[i]-l[i],Math.abs(h[i]-c[i-1]),Math.abs(l[i]-c[i-1])));return EMA(t.slice(-p),p);}
 function MACD(v){let a=EMA(v.slice(-26),12),b=EMA(v.slice(-26),26);return{macd:a-b,signal:EMA([a-b],9)};}
-function generateSignal(d){let s=0;d.ema10>d.ema20?s+=30:s-=30;d.rsi>55?s+=20:d.rsi<45?s-=20:null;d.macd>d.macdSignal?s+=20:s-=20;if(s>=35)return{signal:"BUY",strength:s};if(s<=-35)return{signal:"SELL",strength:Math.abs(s)};return{signal:"HOLD",strength:Math.abs(s)};}
-function SLTP(e,a,s){let r=a*1.2,t=r*1.5;if(s==="BUY")return{sl:e-r,tp:e+t};if(s==="SELL")return{sl:e+r,tp:e-t};return{sl:e,tp:e};}
+function generateSignalAndroid(candles) {
+  const close = candles.map(c => c.close);
+  const high = candles.map(c => c.high);
+  const low = candles.map(c => c.low);
+
+  const atr = ATR(high, low, close, 14);
+  const ema10 = EMA(close.slice(-10), 10);
+  const ema20 = EMA(close.slice(-20), 20);
+
+  // Detect trend / structure (SMC-style)
+  let trend = null;
+  if (ema10 > ema20) trend = "BULL";
+  else if (ema10 < ema20) trend = "BEAR";
+  else trend = "NEUTRAL";
+
+  // Android signal logic
+  let signal = "HOLD";
+  if (trend === "BULL" && close[close.length-1] > ema10) signal = "BUY";
+  else if (trend === "BEAR" && close[close.length-1] < ema10) signal = "SELL";
+
+  return { signal, atr, trend, entry: close[close.length-1] };
+}
+function SLTPAndroid(entry, atr, signal) {
+  const rrRatio = 1.5;
+  if(signal === "BUY") return { sl: entry - atr, tp: entry + atr * rrRatio };
+  if(signal === "SELL") return { sl: entry + atr, tp: entry - atr * rrRatio };
+  return { sl: entry, tp: entry };
+}
 
 // =============== FETCH MARKET DATA =================
 async function fetchData(symbol){
@@ -284,37 +310,57 @@ async function runSignals(){
   }
 
   try {
-    let data = await fetchData(symbolVal);
-    let cl = data.map(x=>+x.close), h=data.map(x=>+x.high), l=data.map(x=>+x.low);
+    // Fetch market data
+    const data = await fetchData(symbolVal);
 
-    let sig = generateSignal({
-      ema10:EMA(cl.slice(-20),10), 
-      ema20:EMA(cl.slice(-30),20), 
-      rsi:RSI(cl), 
-      macd:MACD(cl).macd, 
-      macdSignal:MACD(cl).signal
-    });
+    // VIP / Free access check
+    if (!isVIP && !freeSymbols.includes(symbolVal)) {
+      signals.innerHTML = "<p style='text-align:center'>🔒 VIP required</p>";
+      return;
+    }
 
-    let entry = cl.at(-1);
-    let sltp = SLTP(entry, ATR(h,l,cl), sig.signal);
-    let lastCandleTime = new Date(data.at(-1).datetime).getTime(); 
+    // ================= SIGNAL LOGIC (ANDROID STYLE) =================
+    const androidSig = generateSignalAndroid(data);
 
-    const signalData = {symbolVal, sig, entry, sltp, candleTime: lastCandleTime};
-    cachedSignals[symbolVal] = {data: signalData, time: now};
+    // SL / TP using Android logic
+    const sltp = SLTPAndroid(androidSig.entry, androidSig.atr, androidSig.signal);
 
+    // Last candle timestamp
+    const lastCandleTime = new Date(data.at(-1).datetime).getTime();
+
+    // Build signal object
+    const signalData = {
+      symbolVal,
+      sig: {
+        signal: androidSig.signal,
+        strength: androidSig.trend === "NEUTRAL" ? 0 : 100
+      },
+      entry: androidSig.entry,
+      sltp,
+      candleTime: lastCandleTime
+    };
+
+    // Cache signals
+    cachedSignals[symbolVal] = { data: signalData, time: now };
+
+    // Display + plot
     displaySignals(signalData);
-    plotSignalOnChart(signalData); // plot on main chart
+    plotSignalOnChart(signalData);
 
-
-
-sendSignalIfNotExists(signalData);
-
-
+    // Send to Firebase if valid
+    if(signalData.sig.signal !== "HOLD"){
+      sendSignalIfNotExists(signalData);
+    }
 
   } catch(e){
-    signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>❌ Error fetching data from Twelvedata. Check API key or symbol.</p>";
+    console.error(e);
+    signals.innerHTML = `
+      <p style='color:#fbbf24;text-align:center;'>
+        ❌ Error fetching data from Twelvedata. Check API key or symbol.
+      </p>`;
   }
 }
+
 
 
 
