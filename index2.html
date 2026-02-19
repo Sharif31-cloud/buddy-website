@@ -171,6 +171,10 @@ async function fetchData(symbol){
   let url=`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${INTERVAL}&outputsize=200&apikey=${TWELVE_KEY}`;
   let r = await fetch(url);
   let j = await r.json();
+  console.log("TwelveData response:", j); // <-- add this
+  if(j.status === "error") throw new Error(j.message || "Unknown error from TwelveData");
+  return j.values.reverse();
+}
   return j.values.reverse();
 }
 
