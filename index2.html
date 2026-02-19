@@ -93,7 +93,7 @@ import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/fireb
 
 // =============== TWELVEDATA CONFIG ===============
 const TWELVE_KEY = "894c1cdec16d47b98980a4423f254352";
-const INTERVAL = "15min";
+const INTERVAL = "5min";
 
 // =============== FIREBASE =================
 const firebaseConfig = {
@@ -191,25 +191,47 @@ async function fetchData(symbol){
   return j.values.reverse();
 }
 
-async function fetchHTF(symbol){
-  const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=15m&outputsize=120&apikey=${TWELVE_KEY}`;
-  const r = await fetch(url);
-  const j = await r.json();
+// ================= FETCH HIGHER TIMEFRAME DATA =================
+async function fetchHTF(symbol) {
+  try {
+    const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=15m&outputsize=120&apikey=${TWELVE_KEY}`;
+    const response = await fetch(url);
 
-  if(!j.values) {
-    console.warn("HTF fetch failed:", j);
-    return []; // fallback empty array
+    if (!response.ok) {
+      console.warn(`HTF fetch failed (HTTP ${response.status}):`, await response.text());
+      return [];
+    }
+
+    const data = await response.json();
+
+    if (!data.values || !Array.isArray(data.values) || data.values.length === 0) {
+      console.warn("HTF fetch returned empty or invalid data:", data);
+      return [];
+    }
+
+    // Return in chronological order
+    return data.values.reverse();
+  } catch (err) {
+    console.error("Error fetching HTF data:", err);
+    return [];
   }
-
-  return j.values.reverse();
 }
 
+// ================= DETERMINE HTF TREND =================
+function htfTrend(closes) {
+  if (!closes || closes.length === 0) return "RANGE"; // no data fallback
 
-function htfTrend(cl){
-  const ema50 = EMA(cl.slice(-60), 50);
-  return cl.at(-1) > ema50 ? "BULL" : "BEAR";
+  const sliceLength = Math.min(closes.length, 60);
+  const emaPeriod = Math.min(sliceLength, 50);
+  const recentCloses = closes.slice(-sliceLength);
+
+  const ema50 = EMA(recentCloses, emaPeriod);
+
+  if (closes.at(-1) > ema50) return "BULL";
+  if (closes.at(-1) < ema50) return "BEAR";
+
+  return "RANGE"; // in case it's exactly equal
 }
-
 
 // ================= CHART =================
 let chartWidget = null; // store widget instance for plotting
@@ -323,7 +345,7 @@ async function runSignals() {
 
   const now = Date.now();
 
-  // Use cached signals if still valid
+  // ================= USE CACHED SIGNALS IF VALID =================
   if (cachedSignals[symbolVal] && now - cachedSignals[symbolVal].time < cacheTime) {
     displaySignals(cachedSignals[symbolVal].data);
     plotSignalOnChart({ ...cachedSignals[symbolVal].data, symbolVal });
@@ -335,42 +357,42 @@ async function runSignals() {
     const data = await fetchData(symbolVal);
     if (!data || !data.length) throw new Error("No LTF data returned");
 
-    const cl = data.map(x => +x.close);
-    const h  = data.map(x => +x.high);
-    const l  = data.map(x => +x.low);
-    const entry = cl.at(-1);
+    const closes = data.map(x => +x.close);
+    const highs  = data.map(x => +x.high);
+    const lows   = data.map(x => +x.low);
+    const entry  = closes.at(-1);
 
-    // ================= WEIGHTS (MARKET PROFILE) =================
+    // ================= MARKET PROFILE / WEIGHTS =================
     const weights = marketProfile(symbolVal);
 
     // ================= SUPPORT & RESISTANCE =================
-    const sr = getSR(cl);
+    const sr = getSR(closes);
     const nearResistance = entry > sr.resistance * 0.995;
     const nearSupport    = entry < sr.support * 1.005;
 
-    // ================= HTF TREND =================
-    let trend = "RANGE"; // default
+    // ================= HTF TREND (WITH LTF FALLBACK) =================
+    let trend = "RANGE";
     try {
       const htfData = await fetchHTF(symbolVal);
       if (htfData && htfData.length) {
-        const htfClose = htfData.map(x => +x.close);
-        trend = htfTrend(htfClose);
+        const htfCloses = htfData.map(x => +x.close);
+        trend = htfTrend(htfCloses);
       } else {
-        console.warn(`HTF fetch failed or empty for ${symbolVal}, using LTF fallback`);
-        trend = htfTrend(cl.slice(-60)); // fallback to LTF
+        console.warn(`HTF data empty for ${symbolVal}, using LTF fallback`);
+        trend = htfTrend(closes.slice(-60));
       }
     } catch (htfErr) {
-      console.warn(`Error fetching HTF for ${symbolVal}:`, htfErr);
-      trend = htfTrend(cl.slice(-60)); // fallback to LTF
+      console.warn(`Error fetching HTF for ${symbolVal}, using LTF fallback:`, htfErr);
+      trend = htfTrend(closes.slice(-60));
     }
 
     // ================= SIGNAL GENERATION =================
     let sig = generateSignal({
-      ema10: EMA(cl.slice(-20), 10),
-      ema20: EMA(cl.slice(-30), 20),
-      rsi: RSI(cl),
-      macd: MACD(cl).macd,
-      macdSignal: MACD(cl).signal,
+      ema10: EMA(closes.slice(-20), 10),
+      ema20: EMA(closes.slice(-30), 20),
+      rsi: RSI(closes),
+      macd: MACD(closes).macd,
+      macdSignal: MACD(closes).signal,
       nearSupport,
       nearResistance
     }, weights);
@@ -387,16 +409,16 @@ async function runSignals() {
     // ================= SL / TP =================
     let sltp = null;
     if (sig.signal !== "HOLD") {
-      sltp = SLTP(entry, ATR(h, l, cl), sig.signal);
+      sltp = SLTP(entry, ATR(highs, lows, closes), sig.signal);
     }
 
-    // VIP check
+    // ================= VIP ACCESS CHECK =================
     if (!isVIP && !freeSymbols.includes(symbolVal)) {
       signals.innerHTML = "🔒 VIP required";
       return;
     }
 
-    // ================= FINAL PACKAGE =================
+    // ================= FINAL SIGNAL PACKAGE =================
     const lastCandleTime = new Date(data.at(-1).datetime).getTime();
     const signalData = {
       symbolVal,
@@ -410,11 +432,14 @@ async function runSignals() {
       trend
     };
 
+    // Cache signals
     cachedSignals[symbolVal] = { data: signalData, time: now };
 
+    // Display and plot
     displaySignals(signalData);
     plotSignalOnChart(signalData);
 
+    // Send signal to Firebase if it's a valid BUY/SELL
     if (sig.signal !== "HOLD") {
       sendSignalIfNotExists(signalData);
     }
