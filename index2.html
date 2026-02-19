@@ -317,44 +317,54 @@ function backtest(data, signal){
 
 
 // ================= SIGNALS =================
-async function runSignals(){
+async function runSignals() {
   const symbolVal = symbol.value;
   loadChart(symbolVal);
 
   const now = Date.now();
-  if(cachedSignals[symbolVal] && now - cachedSignals[symbolVal].time < cacheTime){
+
+  // Use cached signals if still valid
+  if (cachedSignals[symbolVal] && now - cachedSignals[symbolVal].time < cacheTime) {
     displaySignals(cachedSignals[symbolVal].data);
-    plotSignalOnChart({...cachedSignals[symbolVal].data, symbolVal});
+    plotSignalOnChart({ ...cachedSignals[symbolVal].data, symbolVal });
     return;
   }
 
   try {
-    /* ================= FETCH LTF DATA ================= */
+    // ================= FETCH LTF DATA =================
     const data = await fetchData(symbolVal);
+    if (!data || !data.length) throw new Error("No LTF data returned");
 
     const cl = data.map(x => +x.close);
     const h  = data.map(x => +x.high);
     const l  = data.map(x => +x.low);
-
-    /* ================= WEIGHTS (MARKET PROFILE) ================= */
-    const weights = marketProfile(symbolVal);
-
-    /* ================= SUPPORT & RESISTANCE ================= */
-    const sr = getSR(cl);
     const entry = cl.at(-1);
 
+    // ================= WEIGHTS (MARKET PROFILE) =================
+    const weights = marketProfile(symbolVal);
+
+    // ================= SUPPORT & RESISTANCE =================
+    const sr = getSR(cl);
     const nearResistance = entry > sr.resistance * 0.995;
     const nearSupport    = entry < sr.support * 1.005;
 
-    /* ================= HTF TREND ================= */
-    const htfData  = await fetchHTF(symbolVal);
-const htfClose = htfData.length ? htfData.map(x => +x.close) : cl.slice(-60); 
-// fallback to LTF closes if HTF fails
+    // ================= HTF TREND =================
+    let trend = "RANGE"; // default
+    try {
+      const htfData = await fetchHTF(symbolVal);
+      if (htfData && htfData.length) {
+        const htfClose = htfData.map(x => +x.close);
+        trend = htfTrend(htfClose);
+      } else {
+        console.warn(`HTF fetch failed or empty for ${symbolVal}, using LTF fallback`);
+        trend = htfTrend(cl.slice(-60)); // fallback to LTF
+      }
+    } catch (htfErr) {
+      console.warn(`Error fetching HTF for ${symbolVal}:`, htfErr);
+      trend = htfTrend(cl.slice(-60)); // fallback to LTF
+    }
 
-const trend = htfClose.length ? htfTrend(htfClose) : "RANGE";
-
-
-    /* ================= SIGNAL GENERATION ================= */
+    // ================= SIGNAL GENERATION =================
     let sig = generateSignal({
       ema10: EMA(cl.slice(-20), 10),
       ema20: EMA(cl.slice(-30), 20),
@@ -365,32 +375,29 @@ const trend = htfClose.length ? htfTrend(htfClose) : "RANGE";
       nearResistance
     }, weights);
 
-    /* ================= HTF ALIGNMENT FILTER ================= */
-    if(sig.signal === "BUY"  && trend !== "BULL") sig.signal = "HOLD";
-    if(sig.signal === "SELL" && trend !== "BEAR") sig.signal = "HOLD";
+    // ================= HTF ALIGNMENT FILTER =================
+    if (sig.signal === "BUY" && trend !== "BULL") sig.signal = "HOLD";
+    if (sig.signal === "SELL" && trend !== "BEAR") sig.signal = "HOLD";
 
-    /* ================= LAST CANDLE CONFIRMATION ================= */
-    if(sig.signal !== "HOLD"){
-      if(!lastCandleConfirm(data, sig.signal)){
-        sig.signal = "HOLD";
-      }
+    // ================= LAST CANDLE CONFIRMATION =================
+    if (sig.signal !== "HOLD" && !lastCandleConfirm(data, sig.signal)) {
+      sig.signal = "HOLD";
     }
 
-    /* ================= SL / TP ================= */
+    // ================= SL / TP =================
     let sltp = null;
-    if(sig.signal !== "HOLD"){
+    if (sig.signal !== "HOLD") {
       sltp = SLTP(entry, ATR(h, l, cl), sig.signal);
     }
 
+    // VIP check
     if (!isVIP && !freeSymbols.includes(symbolVal)) {
-  signals.innerHTML = "🔒 VIP required";
-  return;
-}
+      signals.innerHTML = "🔒 VIP required";
+      return;
+    }
 
-
-    /* ================= FINAL PACKAGE ================= */
+    // ================= FINAL PACKAGE =================
     const lastCandleTime = new Date(data.at(-1).datetime).getTime();
-
     const signalData = {
       symbolVal,
       sig,
@@ -408,18 +415,19 @@ const trend = htfClose.length ? htfTrend(htfClose) : "RANGE";
     displaySignals(signalData);
     plotSignalOnChart(signalData);
 
-    if(sig.signal !== "HOLD"){
+    if (sig.signal !== "HOLD") {
       sendSignalIfNotExists(signalData);
     }
 
-  } catch(e){
-    console.error(e);
+  } catch (err) {
+    console.error("runSignals error:", err);
     signals.innerHTML = `
-      <p style="color:#fbbf24;text-align:center;">
-        ❌ Error fetching data from Twelvedata. Check API key or symbol.
+      <p style="color:#fbbf24; text-align:center;">
+        ❌ Error fetching data from Twelvedata. Check API key, symbol, or API limits.
       </p>`;
   }
 }
+
 
 
 // ================= DISPLAY SIGNALS =================
