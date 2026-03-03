@@ -1,37 +1,21 @@
 exports.handler = async (event) => {
-  try {
-    const BOT_TOKEN = process.env.BOT_TOKEN;
-    const CHANNEL_ID = process.env.CHANNEL_ID;
+  const { message } = JSON.parse(event.body);
 
-    if (!BOT_TOKEN || !CHANNEL_ID) {
-      throw new Error("Missing env vars");
-    }
+  await fetch("https://api.github.com/repos/Sharif31-cloud/buddy-website/dispatches", {
+    method: "POST",
+    headers: {
+      "Accept": "application/vnd.github+json",
+      "Authorization": `token ${process.env.GH_TOKEN}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      event_type: "send_telegram_message",
+      client_payload: { message }
+    })
+  });
 
-    const { message } = JSON.parse(event.body);
-
-    const response = await fetch(
-      `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: CHANNEL_ID,
-          text: message,
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ success: true, telegram: data }),
-    };
-
-  } catch (err) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ success: false, error: err.message }),
-    };
-  }
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ success: true })
+  };
 };
