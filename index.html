@@ -696,16 +696,23 @@ const ADMIN_WHATSAPP = "https://wa.me/256757316350";
     return id;
   }
 
-const BOT_TOKEN = "ENV_BOT_TOKEN";
-const CHANNEL_ID = "ENV_CHANNEL_ID";
-
 function sendKeyToTelegram(key, userId) {
-    const message = `🎉 New Share Key Generated!\nKey: ${key}\nUser ID: ${userId}`;
+    // ✅ Telegram bot token and channel/chat ID
+    const BOT_TOKEN = "8024020577:AAH4Nb23GQtrpPCnQnpv5ju75fbTnN1SKTI";
+    const CHANNEL_ID = "-1003712692274";
+
+    // 🎉 Prepare the message to send
+    const message = `🎉 New Share Key Generated!
+Key: ${key}
+User ID: ${userId}`;
+
+    // 🌐 Telegram API URL with encoded message
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHANNEL_ID}&text=${encodeURIComponent(message)}`;
-    
+
+    // 📤 Send HTTP GET request to Telegram
     fetch(url)
-      .then(res => console.log("Telegram notified", res.status))
-      .catch(err => console.error("Telegram error:", err));
+        .then(res => console.log("Telegram notified", res.status))
+        .catch(err => console.error("Telegram error:", err));
 }
   // ========================
 // Share Reward System with Progress Bar
@@ -1033,5 +1040,6 @@ setInterval(applyAutoTheme, 15 * 60 * 1000);
 
 </body>
 </html>
+
 
 
