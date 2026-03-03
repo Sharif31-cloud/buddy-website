@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buddy Products</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="shortcut icon" href="icon.ico">
+  <link rel="apple-touch-icon" href="icon.png">
+
+  <!-- Styles -->
+  <style>
+    /* Body & Typography */
+    body {
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      background: linear-gradient(135deg, #eef2f7, #f9f9f9);
+      padding: 30px;
+      margin: 0;
+    }
+
+    h1 {
+      color: #2c6bed;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    /* Visit Counters */
+    #visit-counter, #global-counter {
+      text-align: center;
+      margin-bottom: 15px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    /* Products Container */
+    .products {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 25px;
+    }
+
+    /* Product Card */
+    .product {
+      background: #ffffff;
+      padding: 25px;
+      width: 320px;
+      border-radius: 14px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      text-align: center;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .product:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.12);
+    }
+
+    .product h2 {
+      margin-top: 0;
+      color: #333;
+    }
+
+    .product p {
+      color: #666;
+      font-size: 15px;
+      margin-bottom: 10px;
+    }
+
+    .download-count {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 12px;
+    }
+
+    .security-note {
+      background: #f1f5ff;
+      border-left: 4px solid #2c6bed;
+      padding: 12px;
+      font-size: 13px;
+      color: #333;
+      text-align: left;
+      border-radius: 6px;
+      margin-bottom: 18px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-block;
+      margin: 6px 4px;
+      padding: 12px 22px;
+      background: #2c6bed;
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: background 0.2s ease;
+    }
+
+    .btn:hover {
+      background: #1f55c7;
+    }
+
+    .btn.secondary {
+      background: #6c757d;
+    }
+
+    .btn.secondary:hover {
+      background: #545b62;
+    }
+
+    /* Screenshots */
+    .screenshots {
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    .screenshots h3 {
+      color: #2c6bed;
+      margin-bottom: 10px;
+    }
+
+    .screenshot-images {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 10px;
+      padding-bottom: 10px;
+    }
+
+    .screenshot-images img {
+      height: 150px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .screenshot-images img:hover {
+      transform: scale(1.05);
+    }
+
+    /* Lightbox */
+    #lightbox {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.8);
+      justify-content: center;
+      align-items: center;
+    }
+
+    #lightbox img {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    /* FAQ Section */
+    .faq {
+      max-width: 700px;
+      margin: 50px auto 0 auto;
+    }
+
+    .faq h2 {
+      text-align: center;
+      color: #2c6bed;
+    }
+
+    .faq div {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+
+    /* Reviews */
+    .reviews {
+      max-width: 700px;
+      margin: 20px auto;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.07);
+    }
+
+    .reviews h3 {
+      text-align: center;
+      color: #2c6bed;
+      margin-bottom: 10px;
+    }
+
+    .reviews .average-rating {
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .reviews form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .reviews input, 
+    .reviews textarea, 
+    .reviews select {
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .reviews button {
+      padding: 10px;
+      background: #2c6bed;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .reviews button:hover {
+      background: #1f55c7;
+    }
+
+    .reviews-list {
+      margin-top: 15px;
+    }
+
+    .review-item {
+      background: #f1f5ff;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #333;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      margin-top: 50px;
+      color: #888;
+      font-size: 14px;
+    }
+
+    .share-bar {
+  text-align: center;
+  margin: 25px 0;
+}
+
+.share-label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 500;
+  color: #555;
+}
+
+.share-btn {
+  font-size: 13px;
+  padding: 10px 16px;
+}
+
+/* Dark mode overrides */
+body.dark-mode {
+  background: #121212;
+  color: #e0e0e0;
+}
+
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode p {
+  color: #e0e0e0;
+}
+
+body.dark-mode .product {
+  background: #1e1e1e;
+  box-shadow: 0 10px 25px rgba(255,255,255,0.05);
+}
+
+body.dark-mode .reviews .review-item,
+body.dark-mode .reviews,
+body.dark-mode .faq div,
+body.dark-mode .security-note {
+  background: #2a2a2a;
+  color: #e0e0e0;
+}
+
+body.dark-mode .btn {
+  background: #4a90e2;
+}
+
+body.dark-mode .btn.secondary {
+  background: #666;
+}
+
+body.dark-mode .btn:hover {
+  background: #3572c1;
+}
+
+body.dark-mode .btn.secondary:hover {
+  background: #4b4b4b;
+}
+
+body.dark-mode #share-progress-bar {
+  background: #81c784;
+}
+
+body.dark-mode .screenshot-images img {
+  box-shadow: 0 4px 8px rgba(255,255,255,0.1);
+}
+
+
+  </style>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+  <!-- Header -->
+  <h1>🚀 Buddy Products</h1>
+  <h1>Smart security • Powerful automation • Fun AI experiences</h1>
+
+  <!-- Visit Counters -->
+  <div id="visit-counter">Loading your visit count...</div>
+  <div id="global-counter">Loading total site visits...</div>
+ 
+  <!-- Share Bar -->
+<div class="share-bar">
+  <span class="share-label">🌍 Share this website:</span>
+
+  <!-- Copy Link -->
+  <button class="btn secondary share-btn" onclick="copyWebsiteLink()">
+    🔗 Copy Link
+  </button>
+
+  <!-- WhatsApp -->
+  <a class="btn secondary share-btn" href="https://wa.me/?text=" target="_blank">
+    💬 WhatsApp
+  </a>
+
+  <!-- Facebook -->
+  <a class="btn secondary share-btn" href="https://www.facebook.com/sharer/sharer.php?u=" target="_blank">
+    📘 Facebook
+  </a>
+
+  <!-- X / Twitter -->
+  <a class="btn secondary share-btn" href="https://twitter.com/intent/tweet?text=Check%20out%20Buddy%20Products!&url=" target="_blank">
+    🐦 X
+  </a>
+
+  <!-- Telegram -->
+  <a class="btn secondary share-btn" href="https://t.me/share/url?text=Check%20out%20Buddy%20Products!&url=" target="_blank">
+    ✈️ Telegram
+  </a>
+</div>
+
+<!-- ======================== -->
+<!-- Share Progress Bar -->
+<!-- ======================== -->
+<div id="share-container" style="margin: 15px 0; max-width: 400px;">
+  <div style="margin-bottom:5px;">Share Progress: <span id="share-count">0/5</span></div>
+  <div style="width:100%; background:#ddd; border-radius:8px; overflow:hidden; height:20px;">
+    <div id="share-progress-bar" style="width:0%; height:100%; background:#4CAF50; transition: width 0.3s;"></div>
+  </div>
+</div>
+<!-- ======================== -->
+<!-- Admin Contact (Hidden) -->
+<!-- ======================== -->
+<div id="admin-contact" style="display:none; text-align:center; margin:20px 0;">
+  <h3>🎁 Reward Redeemed!</h3>
+  <p>Send your reward key to the admin to activate your free day:</p>
+
+  <a id="telegram-admin" class="btn secondary" target="_blank">
+    ✈️ Contact on Telegram
+  </a>
+
+  <a id="whatsapp-admin" class="btn secondary" target="_blank">
+    💬 Contact on WhatsApp
+  </a>
+</div>
+
+  <!-- Products Section -->
+  <div class="products">
+
+    <!-- Buddy Anti-Theft App -->
+    <div class="product" data-app="buddyApk">
+      <div class="icon">🔐📱</div>
+      <h2>Buddy Anti-Theft App</h2>
+      <p>Secure your phone against theft with SIM change alerts, location tracking, and silent protection.</p>
+      <div class="download-count" id="apk-count">Downloads: 0</div>
+      <div class="security-note">
+        <strong>Security Notice</strong><br>
+        Buddy Anti-Theft is a security app that uses device protection features.
+        Because it is installed outside Google Play, Google Drive may show a warning.
+        This is expected. Only install if you trust the source.
+      </div>
+      <a href="BuddyAntiTheft.apk" class="btn" id="apk-download" target="_blank">Download APK</a>
+
+      <!-- Reviews -->
+      <div class="reviews">
+        <h3>User Reviews</h3>
+        <div class="average-rating">
+          Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
+          (<span class="avg-value">0</span>/5)
+        </div>
+        <form class="rating-form">
+          <label>Rate this app:</label>
+          <select class="rating-select">
+            <option value="1">1 ⭐️</option>
+            <option value="2">2 ⭐️</option>
+            <option value="3" selected>3 ⭐️</option>
+            <option value="4">4 ⭐️</option>
+            <option value="5">5 ⭐️</option>
+          </select>
+          <button type="submit">Submit Rating</button>
+        </form>
+        <form class="review-form">
+          <input type="text" placeholder="Your name" class="review-name" required>
+          <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+          <button type="submit">Submit Review</button>
+        </form>
+        <div class="reviews-list"></div>
+      </div>
+    </div>
+
+    <!-- AI Signal Dashboard -->
+<div class="product" data-app="aiSignalDashboard">
+  <div class="icon">📊🤖</div>
+  <h2>AI Signal Dashboard(any Device)</h2>
+  <p>View real-time trading signals for Forex, crypto, and commodities with VIP access for full features.</p>
+
+  <!-- Visit Count -->
+  <div class="download-count" id="aiSignalDashboard-count">Visits: 0</div>
+  
+  <!-- Download / View Link -->
+  <a href="index2.html" id="dashboard-link" class="btn">🔗 Open Dashboard</a>
+
+  <!-- Optional: VIP lock notice -->
+  <p style="text-align:center; color:#fbbf24;">Some signals are VIP-only; login to access full features.</p>
+
+  <!-- Screenshots Section -->
+  <div class="screenshots">
+    <h3>Screenshots</h3>
+    <div class="screenshot-images">
+      <img src="bot4.png" alt="AI Dashboard Screenshot 1">
+      <img src="bot5.png" alt="AI Dashboard Screenshot 2">
+      <img src="bot6.png" alt="AI Dashboard Screenshot 2">
+      <img src="bot7.png" alt="AI Dashboard Screenshot 2">
+    </div>
+  </div>
+
+  <!-- Reviews -->
+  <div class="reviews">
+    <h3>User Reviews</h3>
+    <div class="average-rating">
+      Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
+      (<span class="avg-value">0</span>/5)
+    </div>
+    <form class="rating-form">
+      <label>Rate this dashboard:</label>
+      <select class="rating-select">
+        <option value="1">1 ⭐️</option>
+        <option value="2">2 ⭐️</option>
+        <option value="3" selected>3 ⭐️</option>
+        <option value="4">4 ⭐️</option>
+        <option value="5">5 ⭐️</option>
+      </select>
+      <button type="submit">Submit Rating</button>
+    </form>
+    <form class="review-form">
+      <input type="text" placeholder="Your name" class="review-name" required>
+      <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+      <button type="submit">Submit Review</button>
+    </form>
+    <div class="reviews-list"></div>
+  </div>
+</div>
+
+
+
+    <!-- Buddy Bot -->
+    <div class="product" data-app="buddyExe">
+      <div class="icon">🤖💻</div>
+      <h2>Buddy Bot (Windows)</h2>
+      <p>Powerful automation and monitoring bot for Windows systems. Easy to use, reliable, and secure.</p>
+      <div class="download-count" id="exe-count">Downloads: 0</div>
+
+      <!-- Screenshots -->
+      <div class="screenshots">
+        <h3>Screenshots</h3>
+        <div class="screenshot-images">
+          <img src="bot1.png" alt="Screenshot 1">
+          <img src="bot2.png" alt="Screenshot 2">
+          <img src="bot3.png" alt="Screenshot 3">
+        </div>
+      </div>
+
+      <a href="SH.BOT_4_RENT.zip" class="btn" id="exe-download" target="_blank">Download EXE</a>
+<a href="SignalHawkBot_User_Guide.pdf" class="btn secondary" download>Download Bot User Guide</a>
+
+      <!-- Reviews -->
+      <div class="reviews">
+        <h3>User Reviews</h3>
+        <div class="average-rating">
+          Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
+          (<span class="avg-value">0</span>/5)
+        </div>
+        <form class="rating-form">
+          <label>Rate this app:</label>
+          <select class="rating-select">
+            <option value="1">1 ⭐️</option>
+            <option value="2">2 ⭐️</option>
+            <option value="3" selected>3 ⭐️</option>
+            <option value="4">4 ⭐️</option>
+            <option value="5">5 ⭐️</option>
+          </select>
+          <button type="submit">Submit Rating</button>
+        </form>
+        <form class="review-form">
+          <input type="text" placeholder="Your name" class="review-name" required>
+          <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+          <button type="submit">Submit Review</button>
+        </form>
+        <div class="reviews-list"></div>
+      </div>
+    </div>
+
+    <!-- AI Street Racer -->
+<div class="product" data-app="aiStreetRacer">
+  <div class="icon">🏎️🔥</div>
+
+  <h2>AI Street Racer (Windows)</h2>
+
+  <p>
+    Race through neon-lit streets against intelligent AI drivers.
+    High-speed action, smooth controls, and adrenaline-packed gameplay
+    designed for Windows PCs.
+  </p>
+
+  <!-- Download count (same style as JobConnectAdmin) -->
+  <div class="download-count" id="aiStreetRacer-count">
+    Downloads: 0
+  </div>
+
+  <a href="/AI_Street_racer.zip" class="btn" id="aiStreetRacer-download" target="_blank">🎮 Download Game</a>
+
+  <!-- Reviews -->
+  <div class="reviews">
+    <h3>User Reviews</h3>
+
+    <div class="average-rating">
+      Average Rating:
+      <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span>
+      (<span class="avg-value">0</span>/5)
+    </div>
+
+    <form class="rating-form">
+      <label>Rate this game:</label>
+      <select class="rating-select">
+        <option value="1">1 ⭐️</option>
+        <option value="2">2 ⭐️</option>
+        <option value="3" selected>3 ⭐️</option>
+        <option value="4">4 ⭐️</option>
+        <option value="5">5 ⭐️</option>
+      </select>
+      <button type="submit">Submit Rating</button>
+    </form>
+
+    <form class="review-form">
+      <input type="text" placeholder="Your name" class="review-name" required>
+      <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+      <button type="submit">Submit Review</button>
+    </form>
+
+    <div class="reviews-list"></div>
+  </div>
+</div>
+
+
+    <!-- JobConnectAdmin -->
+    <div class="product" data-app="jobConnectAdmin">
+      <div class="icon">💼📊</div>
+      <h2>JobConnectAdmin</h2>
+      <p>Discover jobs, apply with ease, and connect with top employers—all in one place! JobConnect makes job searching and hiring smooth, fast, and stress-free for users everywhere.</p>
+      <div class="download-count" id="admin-count">Downloads: 0</div>
+      <div class="security-note">
+        <strong>Security Notice</strong><br>
+        JobConnectAdmin is a trusted app that handles user data securely. 
+        Since it is installed outside Google Play, Google Drive may show a warning.
+        This is normal. Only install if you trust the source.
+      </div>
+     <a href="JobConnectAdmin.apk" class="btn" id="admin-download" target="_blank">Download APK</a>
+
+      <!-- Reviews -->
+      <div class="reviews">
+        <h3>User Reviews</h3>
+        <div class="average-rating">
+          Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
+          (<span class="avg-value">0</span>/5)
+        </div>
+        <form class="rating-form">
+          <label>Rate this app:</label>
+          <select class="rating-select">
+            <option value="1">1 ⭐️</option>
+            <option value="2">2 ⭐️</option>
+            <option value="3" selected>3 ⭐️</option>
+            <option value="4">4 ⭐️</option>
+            <option value="5">5 ⭐️</option>
+          </select>
+          <button type="submit">Submit Rating</button>
+        </form>
+        <form class="review-form">
+          <input type="text" placeholder="Your name" class="review-name" required>
+          <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+          <button type="submit">Submit Review</button>
+        </form>
+        <div class="reviews-list"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Lightbox -->
+  <div id="lightbox" onclick="this.style.display='none'">
+    <img id="lightbox-img" src="">
+  </div>
+
+  <!-- FAQ Section -->
+  <div class="faq">
+    <h2>FAQ</h2>
+    <div>
+      <strong>Q: Is Buddy Anti-Theft and SignalHawkBot safe?</strong>
+      <p>A: Buddy Anti-Theft only collects device info necessary for security alerts. SignalHawkBot only communicates with Firebase for subscription verification. No personal or trading credentials are transmitted.</p>
+    </div>
+    <div>
+      <strong>Q: Why does Google Drive show warnings when downloading the app?</strong>
+      <p>A: Google flags all executable files not from the Play Store. This is normal and expected. Our warning notice explains this for safety and trust.</p>
+    </div>
+    <div>
+      <strong>Q: Can I trust this bot with my trading account?</strong>
+      <p>A: The bot only reads credentials locally to connect with MetaTrader 5. Credentials are encrypted and never sent to any server other than subscription verification via Firebase.</p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>© 2026 Buddy Security • All rights reserved</footer>
+
+  <!-- Scripts -->
+<script>
+  // ========================
+  // Firebase Initialization
+  // ========================
+  const firebaseConfig = {
+    apiKey: "AIzaSyB1G6DhAZv70YLk65ESgZl0Cm1BHzab4a0",
+    authDomain: "buddydownloads-72e3b.firebaseapp.com",
+    databaseURL: "https://buddydownloads-72e3b-default-rtdb.firebaseio.com",
+    projectId: "buddydownloads-72e3b",
+    storageBucket: "buddydownloads-72e3b.appspot.com",
+    messagingSenderId: "782621240629",
+    appId: "1:782621240629:web:4678fac59caad0f3ac707c"
+};
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+ // ========================
+// Admin Contact Links
+// ========================
+const ADMIN_TELEGRAM = "https://t.me/@DeHawkfx";
+const ADMIN_WHATSAPP = "https://wa.me/256757316350"; 
+
+  // ========================
+  // User ID for Share Tracking
+  // ========================
+  function getUserId() {
+    let id = localStorage.getItem('buddyUserId');
+    if (!id) {
+      id = 'user_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+      localStorage.setItem('buddyUserId', id);
+    }
+    return id;
+  }
+
+function sendKeyToTelegram(key, userId) {
+  const message = `🎉 New Share Key Generated!\nKey: ${key}\nUser ID: ${userId}`;
+
+  fetch("/.netlify/functions/sendTelegram", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: message
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    console.log("Telegram notified securely ✅", data);
+  })
+  .catch(err => {
+    console.error("Telegram error ❌", err);
+  });
+}
+
+
+  // ========================
+// Share Reward System with Progress Bar
+// ========================
+function generateShareKey() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let key = '';
+  for (let i = 0; i < 8; i++) {
+    key += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return key;
+}
+
+function updateShareProgressDisplay(userId) {
+  const shareRef = db.ref(`buddyShares/${userId}`);
+  const progressBar = document.getElementById('share-progress-bar');
+  const shareCount = document.getElementById('share-count');
+
+  shareRef.on('value', snapshot => {
+    const data = snapshot.val() || { count: 0 };
+    const count = data.count || 0;
+    const percent = Math.min((count / 5) * 100, 100);
+
+    progressBar.style.width = percent + '%';
+    shareCount.textContent = `${count}/5`;
+  });
+}
+
+function recordShare(platform) {
+  const userId = getUserId();
+  if (!userId) return;
+
+  const shareRef = db.ref(`buddyShares/${userId}`);
+  shareRef.transaction(current => {
+    current = current || { count: 0, key: null };
+    if (current.key) return current; // already rewarded
+
+    current.count += 1;
+
+    // Update progress display
+    updateShareProgressDisplay(userId);
+
+    if (current.count >= 5 && !current.key) {
+  
+  current.key = generateShareKey();
+
+  // Send to Telegram
+  sendKeyToTelegram(current.key, userId);
+
+  alert(`🎉 You have shared to 5 people!
+Your reward key is:
+${current.key}
+
+Send this key to the admin to redeem your free day of using the bot or jobconnect.`);
+
+  // ==============================
+  // Show Admin Contact Section
+  // ==============================
+  document.getElementById("admin-contact").style.display = "block";
+
+  // Attach Telegram link
+  document.getElementById("telegram-admin").href =
+    ADMIN_TELEGRAM + "?text=" +
+    encodeURIComponent("Hello Admin, here is my reward key: " + current.key);
+
+  // Attach WhatsApp link
+  document.getElementById("whatsapp-admin").href =
+    ADMIN_WHATSAPP + "?text=" +
+    encodeURIComponent("Hello Admin, here is my reward key: " + current.key);
+
+} else if (current.count < 5) {
+
+  alert(`✅ Thanks for sharing!
+You have shared ${current.count} times.
+Share ${5 - current.count} more times to earn a free day of using the bot or jobconnect.`);
+
+}
+
+    return current;
+  });
+}
+
+// Initialize progress for current user
+updateShareProgressDisplay(getUserId());
+
+
+  // ========================
+  // Copy Link Function
+  // ========================
+  // ========================
+// Copy Link Function (updated)
+// ========================
+function copyWebsiteLink() {
+  const shareText = "Check out Buddy Products – a trading bot, signal-generating dashboard, and more:";
+  const fullText = `${shareText} ${window.location.href}`;
+
+  navigator.clipboard.writeText(fullText).then(() => {
+    alert("✅ Website link copied to clipboard!");
+    recordShare('copy'); // Increment share count
+  });
+}
+
+// ========================
+// Share Buttons Setup (updated)
+// ========================
+function setupShareButtons() {
+  const shareButtons = document.querySelectorAll('.share-btn');
+  const userId = getUserId();
+  updateShareProgressDisplay(userId); // Initialize progress display
+
+  const shareText = "Check out Buddy Products – a trading bot, signal-generating dashboard, and more:";
+
+  shareButtons.forEach(btn => {
+    const platform = btn.textContent.trim().toLowerCase();
+
+    if (btn.tagName === 'A') {
+      // WhatsApp
+      if (btn.href.includes('wa.me')) {
+        btn.href = `https://wa.me/?text=${encodeURIComponent(shareText + " " + window.location.href)}`;
+      }
+      // Facebook
+      else if (btn.href.includes('facebook.com')) {
+        btn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${encodeURIComponent(shareText)}`;
+      }
+      // Twitter/X
+      else if (btn.href.includes('twitter.com')) {
+        btn.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(window.location.href)}`;
+      }
+      // Telegram
+      else if (btn.href.includes('t.me')) {
+        btn.href = `https://t.me/share/url?text=${encodeURIComponent(shareText + " " + window.location.href)}&url=${encodeURIComponent(window.location.href)}`;
+      }
+
+      // Record share when social link is clicked
+      btn.addEventListener('click', () => {
+        recordShare(platform);
+      });
+
+    } else if (btn.tagName === 'BUTTON' && btn.onclick === null) {
+      // Copy link button
+      btn.addEventListener('click', () => {
+        copyWebsiteLink(); // Already calls recordShare('copy')
+      });
+    }
+  });
+}
+
+
+  // ========================
+  // Visit Counters
+  // ========================
+  // Local
+  let visits = parseInt(localStorage.getItem("buddySiteVisits") || "0") + 1;
+  localStorage.setItem("buddySiteVisits", visits);
+  document.getElementById("visit-counter").innerHTML =
+    `You have visited this site <strong>${visits}</strong> time(s).`;
+
+  // Global
+  const globalVisitRef = db.ref("buddyGlobalVisits");
+  globalVisitRef.transaction(current => (current || 0) + 1);
+  globalVisitRef.on("value", snapshot => {
+    document.getElementById("global-counter").innerHTML =
+      `Total site visits: <strong>${snapshot.val() || 0}</strong>`;
+  });
+
+  // ========================
+  // Download Counters
+  // ========================
+  function setupGlobalDownloadCounter(buttonId, countId, dbKey) {
+    const button = document.getElementById(buttonId);
+    const countDisplay = document.getElementById(countId);
+    if (!button || !countDisplay) return;
+
+    const ref = db.ref("buddyDownloads/" + dbKey);
+
+    // Live count
+    ref.on("value", snapshot => {
+      countDisplay.textContent = `Downloads: ${snapshot.val() || 0}`;
+    });
+
+    const localKey = "downloaded_" + dbKey;
+    button.addEventListener("click", () => {
+      if (localStorage.getItem(localKey)) {
+        console.log("Download already counted for this browser.");
+        return;
+      }
+      ref.transaction(current => (current || 0) + 1);
+      localStorage.setItem(localKey, "true");
+    });
+  }
+
+  setupGlobalDownloadCounter("apk-download", "apk-count", "buddyApk");
+  setupGlobalDownloadCounter("exe-download", "exe-count", "buddyExe");
+  setupGlobalDownloadCounter("admin-download", "admin-count", "jobConnectAdmin");
+  setupGlobalDownloadCounter("aiStreetRacer-download", "aiStreetRacer-count", "aiStreetRacer");
+
+// ========================
+// Dashboard Visit Counter
+// ========================
+function setupDashboardCounter(buttonSelector, countId, dbKey) {
+  const button = document.querySelector(buttonSelector);
+  const countDisplay = document.getElementById(countId);
+  if (!button || !countDisplay) return;
+
+  const ref = db.ref("buddyDashboardVisits/" + dbKey);
+
+  // Live count
+  ref.on("value", snapshot => {
+    countDisplay.textContent = `Visits: ${snapshot.val() || 0}`;
+  });
+
+  const localKey = "visited_" + dbKey;
+  button.addEventListener("click", () => {
+    if (localStorage.getItem(localKey)) {
+      console.log("Visit already counted for this browser.");
+      return;
+    }
+    ref.transaction(current => (current || 0) + 1);
+    localStorage.setItem(localKey, "true");
+  });
+}
+
+// Call this for your dashboard
+setupDashboardCounter("#dashboard-link", "aiSignalDashboard-count", "aiSignalDashboard");
+
+
+  // ========================
+  // Lightbox for Screenshots
+  // ========================
+  const screenshotImages = document.querySelectorAll('.screenshot-images img');
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightbox-img');
+  screenshotImages.forEach(img => {
+    img.addEventListener('click', () => {
+      lightbox.style.display = 'flex';
+      lightboxImg.src = img.src;
+    });
+  });
+
+  // ========================
+  // Reviews & Ratings
+  // ========================
+  document.querySelectorAll('.product').forEach(productDiv => {
+    const appKey = productDiv.dataset.app;
+    const reviewsRef = db.ref('buddyReviews/' + appKey);
+    const ratingsRef = db.ref('buddyRatings/' + appKey);
+
+    const reviewsList = productDiv.querySelector('.reviews-list');
+    const reviewForm = productDiv.querySelector('.review-form');
+    const reviewName = productDiv.querySelector('.review-name');
+    const reviewText = productDiv.querySelector('.review-text');
+
+    const avgStars = productDiv.querySelector('.avg-stars');
+    const avgValue = productDiv.querySelector('.avg-value');
+    const ratingForm = productDiv.querySelector('.rating-form');
+    const ratingSelect = productDiv.querySelector('.rating-select');
+
+    // Load reviews
+    reviewsRef.on('value', snapshot => {
+      reviewsList.innerHTML = '';
+      const reviews = snapshot.val() || {};
+      Object.values(reviews)
+        .sort((a,b) => b.createdAt - a.createdAt)
+        .forEach(r => {
+          const div = document.createElement('div');
+          div.className = 'review-item';
+          div.innerHTML = `<strong>${r.name}</strong>: ${r.comment}`;
+          reviewsList.appendChild(div);
+        });
+    });
+
+    // Submit review
+    reviewForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const name = reviewName.value.trim();
+      const comment = reviewText.value.trim();
+      if(name && comment){
+        reviewsRef.push({ name, comment, createdAt: Date.now() });
+        reviewForm.reset();
+      }
+    });
+
+    // Load ratings & update average
+    ratingsRef.on('value', snapshot => {
+      const ratings = snapshot.val() || {};
+      const values = Object.values(ratings).map(r => parseInt(r.value,10));
+      const avg = values.length ? (values.reduce((a,b)=>a+b,0)/values.length).toFixed(1) : 0;
+      avgValue.textContent = avg;
+      const starsCount = Math.round(avg);
+      avgStars.textContent = '⭐️'.repeat(starsCount) + '☆'.repeat(5-starsCount);
+    });
+
+    // Submit rating
+    ratingForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const value = ratingSelect.value;
+      ratingsRef.push({ value: parseInt(value), createdAt: Date.now() });
+    });
+  });
+
+  // ========================
+  // Initialize Share Buttons
+  // ========================
+  setupShareButtons();
+
+ // ========================
+// Auto Dark Mode Toggle (7 PM - 6 AM)
+// ========================
+function applyAutoTheme() {
+  const hour = new Date().getHours();
+  if (hour >= 19 || hour < 6) {
+    document.body.classList.add('dark-mode');
+  } else {
+    document.body.classList.remove('dark-mode');
+  }
+}
+
+// Run on page load
+applyAutoTheme();
+
+// Optional: Re-check every 15 minutes in case user leaves page open
+setInterval(applyAutoTheme, 15 * 60 * 1000);
+
+</script>
+
+</body>
+</html>
