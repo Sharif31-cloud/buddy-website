@@ -699,43 +699,16 @@ const ADMIN_WHATSAPP = "https://wa.me/256757316350";
 function sendKeyToTelegram(key, userId) {
   const message = `🎉 New Share Key Generated!\nKey: ${key}\nUser ID: ${userId}`;
 
-<<<<<<< HEAD
-  fetch("https://api.github.com/repos/Sharif31-cloud/buddy-website/dispatches", {
-    method: "POST",
-    headers: {
-      "Accept": "application/vnd.github+json",
-      "Authorization": `token YOUR_GITHUB_PERSONAL_ACCESS_TOKEN`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      event_type: "send_telegram_message",
-      client_payload: {
-        message: message
-      }
-    })
-  })
-  .then(res => {
-    if (res.ok) return res.json();
-    throw new Error("Failed to trigger workflow");
-  })
-  .then(data => {
-    console.log("Workflow triggered successfully ✅", data);
-  })
-  .catch(err => {
-    console.error("Workflow error ❌", err);
-  });
-=======
-  fetch("/api/triggerTelegram", { // your backend endpoint
+  fetch("/netlify-functions/triggerTelegram.js", { // or your backend endpoint
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message })
   })
   .then(res => {
     if (!res.ok) throw new Error("Failed to trigger workflow");
-    console.log("Telegram notified via GitHub Actions ✅");
+    console.log("Telegram workflow triggered successfully ✅");
   })
   .catch(err => console.error("Telegram error ❌", err));
->>>>>>> 3d387bb (Update Telegram workflow and secure frontend/backend functions)
 }
 
   // ========================
