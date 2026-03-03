@@ -698,17 +698,25 @@ const ADMIN_WHATSAPP = "https://wa.me/256757316350";
 
 function sendKeyToTelegram(key, userId) {
   const message = `🎉 New Share Key Generated!\nKey: ${key}\nUser ID: ${userId}`;
+  const triggerData = { message };
 
-  fetch("/netlify-functions/triggerTelegram.js", { // or your backend endpoint
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message })
+  // Update trigger.json via GitHub API
+  fetch("https://api.github.com/repos/Sharif31-cloud/buddy-website/js/sendKeyToTelegram.json", {
+    method: "PUT",
+    headers: {
+      "Authorization": `token ${GH_TOKEN}`, // must be your GitHub personal access token stored in env
+      "Accept": "application/vnd.github+json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: "Updating trigger for Telegram",
+      content: btoa(JSON.stringify(triggerData)), // base64 encode
+      sha: window.triggerSha // optional: previous sha if you store it
+    })
   })
-  .then(res => {
-    if (!res.ok) throw new Error("Failed to trigger workflow");
-    console.log("Telegram workflow triggered successfully ✅");
-  })
-  .catch(err => console.error("Telegram error ❌", err));
+  .then(res => res.json())
+  .then(data => console.log("GitHub trigger updated ✅", data))
+  .catch(err => console.error("GitHub API error ❌", err));
 }
 
   // ========================
