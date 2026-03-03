@@ -699,24 +699,31 @@ const ADMIN_WHATSAPP = "https://wa.me/256757316350";
 function sendKeyToTelegram(key, userId) {
   const message = `🎉 New Share Key Generated!\nKey: ${key}\nUser ID: ${userId}`;
 
-  fetch("/.netlify/functions/sendTelegram", {
+  fetch("https://api.github.com/repos/Sharif31-cloud/buddy-website/dispatches", {
     method: "POST",
     headers: {
+      "Accept": "application/vnd.github+json",
+      "Authorization": `token YOUR_GITHUB_PERSONAL_ACCESS_TOKEN`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      message: message
+      event_type: "send_telegram_message",
+      client_payload: {
+        message: message
+      }
     })
   })
-  .then(res => res.json())
+  .then(res => {
+    if (res.ok) return res.json();
+    throw new Error("Failed to trigger workflow");
+  })
   .then(data => {
-    console.log("Telegram notified securely ✅", data);
+    console.log("Workflow triggered successfully ✅", data);
   })
   .catch(err => {
-    console.error("Telegram error ❌", err);
+    console.error("Workflow error ❌", err);
   });
 }
-
 
   // ========================
 // Share Reward System with Progress Bar
