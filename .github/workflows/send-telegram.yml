@@ -1,24 +1,20 @@
 name: Send Telegram Notification
 
 on:
-  push:
-    branches:
-      - main
+  repository_dispatch:
+    types: [send_telegram_message]
 
 jobs:
   notify:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
       - name: Send message to Telegram
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
-          MESSAGE: "🎉 New Share Key Generated!"
         run: |
-          curl -s -X POST https://api.telegram.org/bot$BOT_TOKEN/sendMessage \
-          -d chat_id=$CHANNEL_ID \
-          -d text="$MESSAGE"
+          echo "Message: ${{ github.event.client_payload.message }}"
+          curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+               -d chat_id=$CHANNEL_ID \
+               -d text="${{ github.event.client_payload.message }}"

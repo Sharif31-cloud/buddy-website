@@ -699,6 +699,7 @@ const ADMIN_WHATSAPP = "https://wa.me/256757316350";
 function sendKeyToTelegram(key, userId) {
   const message = `🎉 New Share Key Generated!\nKey: ${key}\nUser ID: ${userId}`;
 
+<<<<<<< HEAD
   fetch("https://api.github.com/repos/Sharif31-cloud/buddy-website/dispatches", {
     method: "POST",
     headers: {
@@ -723,6 +724,18 @@ function sendKeyToTelegram(key, userId) {
   .catch(err => {
     console.error("Workflow error ❌", err);
   });
+=======
+  fetch("/api/triggerTelegram", { // your backend endpoint
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message })
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("Failed to trigger workflow");
+    console.log("Telegram notified via GitHub Actions ✅");
+  })
+  .catch(err => console.error("Telegram error ❌", err));
+>>>>>>> 3d387bb (Update Telegram workflow and secure frontend/backend functions)
 }
 
   // ========================
