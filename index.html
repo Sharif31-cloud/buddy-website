@@ -697,19 +697,22 @@ const ADMIN_WHATSAPP = "https://wa.me/256757316350";
   }
 
 function sendKeyToTelegram(key, userId) {
-  const message = `🎉 New Share Key Generated!\nKey: ${key}\nUser ID: ${userId}`;
+    // ✅ Telegram bot token and channel/chat ID
+    const BOT_TOKEN = "8024020577:AAEN-H6xhDGzvGV-_rH8BwOOgfPnfmT1cP8";
+    const CHANNEL_ID = "-1003712692274";
 
-  // ✅ Send to your backend serverless function
-  fetch("/.netlify/functions/triggerTelegram", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message })
-  })
-  .then(res => {
-    if (!res.ok) throw new Error(`Server error ${res.status}`);
-    console.log("Telegram workflow triggered via Netlify ✅");
-  })
-  .catch(err => console.error("Telegram error ❌", err));
+    // 🎉 Prepare the message to send
+    const message = `🎉 New Share Key Generated!
+Key: ${key}
+User ID: ${userId}`;
+
+    // 🌐 Telegram API URL with encoded message
+    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHANNEL_ID}&text=${encodeURIComponent(message)}`;
+
+    // 📤 Send HTTP GET request to Telegram
+    fetch(url)
+        .then(res => console.log("Telegram notified", res.status))
+        .catch(err => console.error("Telegram error:", err));
 }
   // ========================
 // Share Reward System with Progress Bar
