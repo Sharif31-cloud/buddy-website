@@ -1,8 +1,7 @@
 name: Telegram Notification
 
-# Run manually or on push
 on:
-  workflow_dispatch:
+  repository_dispatch: # triggered by external API call
 
 jobs:
   notify:
@@ -10,9 +9,10 @@ jobs:
     env:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+      SHARE_KEY: ${{ github.event.client_payload.key }}
+      USER_ID: ${{ github.event.client_payload.userId }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
