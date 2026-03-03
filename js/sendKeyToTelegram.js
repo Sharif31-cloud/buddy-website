@@ -1,34 +1,32 @@
-// sendKeyToTelegram.js
-async function sendKeyToTelegram(key, userId) {
-  const message = `🎉 New Share Key Generated!\nKey: ${key}\nUser ID: ${userId}`;
+// sendKey.js
+const fetch = require('node-fetch'); // If using Node.js <18, install via `npm install node-fetch`
 
-  try {
-    // Step 1: Get the current trigger.json info to get the SHA
-    const getResp = await fetch("https://api.github.com/repos/Sharif31-cloud/buddy-website/contents/trigger.json");
-    const getData = await getResp.json();
-    const sha = getData.sha; // required to update the file
+/**
+ * Send a share key notification to Telegram using secrets from GitHub Actions
+ * @param {string} key - The generated share key
+ * @param {string|number} userId - The user ID
+ */
+function sendKeyToTelegram(key, userId) {
+    const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+    const CHANNEL_ID = process.env.TELEGRAM_CHANNEL_ID;
 
-    // Step 2: Update trigger.json with the new message
-    const bodyData = {
-      message: "Updating trigger for Telegram",
-      content: btoa(JSON.stringify({ message })), // encode as base64
-      sha: sha
-    };
+    if (!BOT_TOKEN || !CHANNEL_ID) {
+        console.error("Error: Telegram bot token or channel ID not set!");
+        return;
+    }
 
-    const putResp = await fetch("https://api.github.com/repos/Sharif31-cloud/buddy-website/contents/trigger.json", {
-      method: "PUT",
-      headers: {
-        "Authorization": `token ${GH_TOKEN}`, // GH_TOKEN should be an env variable in your build/server
-        "Accept": "application/vnd.github+json",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(bodyData)
-    });
+    const message = `🎉 New Share Key Generated!
+Key: ${key}
+User ID: ${userId}`;
 
-    const result = await putResp.json();
-    console.log("GitHub trigger updated ✅", result);
+    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHANNEL_ID}&text=${encodeURIComponent(message)}`;
 
-  } catch (err) {
-    console.error("GitHub API / Telegram workflow error ❌", err);
-  }
+    fetch(url)
+        .then(res => console.log("Telegram notified", res.status))
+        .catch(err => console.error("Telegram error:", err));
 }
+
+// Example usage
+const exampleKey = "ABC123XYZ";
+const exampleUserId = 98765;
+sendKeyToTelegram(exampleKey, exampleUserId);
