@@ -663,49 +663,20 @@ body.dark-mode .screenshot-images img {
 
   <!-- Scripts -->
 <script>
- 
-// ==============================
-// GLOBAL DATABASE VARIABLE
-// ==============================
-let db;
-
-// ==============================
-// SAFE FIREBASE INITIALIZATION
-// ==============================
-async function initFirebase() {
-  try {
-    // 🔁 CHANGE THIS TO YOUR REAL VERCEL DOMAIN IF DIFFERENT
-    const response = await fetch("https://https://buddy-website-nine.vercel.app/api/initFirebase");
-
-    if (!response.ok) {
-      throw new Error("Failed to load Firebase config");
-    }
-
-    const data = await response.json();
-
-    if (!data.firebaseConfig) {
-      throw new Error("Invalid Firebase config response");
-    }
-
-    // ✅ Initialize Firebase
-    firebase.initializeApp(data.firebaseConfig);
-
-    // ✅ Assign global db
-    db = firebase.database();
-
-    console.log("✅ Firebase initialized successfully");
-
-  } catch (error) {
-    console.error("🔥 Firebase initialization failed:", error);
-  }
-}
-
-// ==============================
-// CALL INIT ON PAGE LOAD
-// ==============================
-document.addEventListener("DOMContentLoaded", function () {
-  initFirebase();
-});
+  // ========================
+  // Firebase Initialization
+  // ========================
+  const firebaseConfig = {
+    apiKey: "AIzaSyB1G6DhAZv70YLk65ESgZl0Cm1BHzab4a0",
+    authDomain: "buddydownloads-72e3b.firebaseapp.com",
+    databaseURL: "https://buddydownloads-72e3b-default-rtdb.firebaseio.com",
+    projectId: "buddydownloads-72e3b",
+    storageBucket: "buddydownloads-72e3b.appspot.com",
+    messagingSenderId: "782621240629",
+    appId: "1:782621240629:web:4678fac59caad0f3ac707c"
+};
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
  // ========================
 // Admin Contact Links
@@ -1061,8 +1032,6 @@ setInterval(applyAutoTheme, 15 * 60 * 1000);
 
 </body>
 </html>
-
-
 
 
 
