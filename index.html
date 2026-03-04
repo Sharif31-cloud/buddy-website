@@ -666,17 +666,19 @@ body.dark-mode .screenshot-images img {
   // ========================
   // Firebase Initialization
   // ========================
-  const firebaseConfig = {
-    apiKey: "AIzaSyB1G6DhAZv70YLk65ESgZl0Cm1BHzab4a0",
-    authDomain: "buddydownloads-72e3b.firebaseapp.com",
-    databaseURL: "https://buddydownloads-72e3b-default-rtdb.firebaseio.com",
-    projectId: "buddydownloads-72e3b",
-    storageBucket: "buddydownloads-72e3b.appspot.com",
-    messagingSenderId: "782621240629",
-    appId: "1:782621240629:web:4678fac59caad0f3ac707c"
-};
-  firebase.initializeApp(firebaseConfig);
+async function initFirebase() {
+  const res = await fetch("/api/initFirebase");
+  const data = await res.json();
+
+  firebase.initializeApp(data.firebaseConfig);
   const db = firebase.database();
+
+  console.log("Firebase initialized safely!", db);
+  return db;
+}
+
+// Usage
+initFirebase();
 
  // ========================
 // Admin Contact Links
@@ -1032,6 +1034,7 @@ setInterval(applyAutoTheme, 15 * 60 * 1000);
 
 </body>
 </html>
+
 
 
 
