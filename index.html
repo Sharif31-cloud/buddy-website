@@ -661,19 +661,31 @@ body.dark-mode .screenshot-images img {
   <!-- ======================== -->
 <!-- Contact Us Section -->
 <!-- ======================== -->
-<div id="contact-options" style="display:none; margin-top:15px;">
+<div id="contact-section" style="text-align:center; margin:40px 0;">
 
-  <button class="btn" onclick="openSupportBot()">
-    🤖 Chat with Support Bot
+  <h2>📞 Contact Us</h2>
+  <p>Need help or have questions? Reach our support team anytime.</p>
+
+  <button class="btn" onclick="toggleContactOptions()">
+    Contact Support
   </button>
 
-  <a id="contact-telegram" class="btn secondary" target="_blank">
-    ✈️ Contact on Telegram
-  </a>
+  <!-- Hidden contact options -->
+  <div id="contact-options" style="display:none; margin-top:15px;">
 
-  <a id="contact-whatsapp" class="btn secondary" target="_blank">
-    💬 Contact on WhatsApp
-  </a>
+    <button class="btn" onclick="openSupportBot()">
+      🤖 Chat with Support Bot
+    </button>
+
+    <a id="contact-telegram" class="btn secondary" target="_blank">
+      ✈️ Contact on Telegram
+    </a>
+
+    <a id="contact-whatsapp" class="btn secondary" target="_blank">
+      💬 Contact on WhatsApp
+    </a>
+
+  </div>
 
 </div>
 
