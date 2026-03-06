@@ -727,8 +727,16 @@ document.getElementById("contact-telegram").href = ADMIN_TELEGRAM;
 document.getElementById("contact-whatsapp").href = ADMIN_WHATSAPP;
 
   function openSupportBot(){
-  document.getElementById("support-bot").style.display="block";
-  botReply("Hello 👋 I am Buddy Support Bot. Ask me about downloads, rewards, apps or troubleshooting.");
+
+const bot = document.getElementById("support-bot");
+const box = document.getElementById("bot-messages");
+
+bot.style.display = "block";
+
+if(box.innerHTML === ""){
+botReply("Hello 👋 I am Buddy Support Bot. Ask me about downloads, rewards, apps or troubleshooting.");
+}
+
 }
 
 function botReply(text){
@@ -817,6 +825,10 @@ box.innerHTML += `
 
 box.scrollTop = box.scrollHeight;
 
+}
+
+  function closeSupportBot(){
+  document.getElementById("support-bot").style.display = "none";
 }
   // ========================
   // User ID for Share Tracking
@@ -1175,8 +1187,27 @@ box-shadow:0 10px 30px rgba(0,0,0,0.2);
 z-index:9999;
 ">
 
-<div style="background:#2c6bed;color:white;padding:10px;border-radius:10px 10px 0 0;">
-🤖 Buddy Support Bot
+<div style="
+background:#2c6bed;
+color:white;
+padding:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+">
+
+<span>🤖 Buddy Support Bot</span>
+
+<button onclick="closeSupportBot()" style="
+background:transparent;
+border:none;
+color:white;
+font-size:18px;
+cursor:pointer;
+">
+✖
+</button>
+
 </div>
 
 <div id="bot-messages" style="height:250px;overflow-y:auto;padding:10px;font-size:14px;"></div>
@@ -1190,6 +1221,7 @@ style="flex:1;border:none;padding:10px;">
 </div>
 </body>
 </html>
+
 
 
 
