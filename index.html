@@ -661,27 +661,19 @@ body.dark-mode .screenshot-images img {
   <!-- ======================== -->
 <!-- Contact Us Section -->
 <!-- ======================== -->
-<div id="contact-section" style="text-align:center; margin:40px 0;">
+<div id="contact-options" style="display:none; margin-top:15px;">
 
-  <h2>📞 Contact Us</h2>
-  <p>Need help or have questions? Reach our support team anytime.</p>
-
-  <button class="btn" onclick="toggleContactOptions()">
-    Contact Support
+  <button class="btn" onclick="openSupportBot()">
+    🤖 Chat with Support Bot
   </button>
 
-  <!-- Hidden contact options -->
-  <div id="contact-options" style="display:none; margin-top:15px;">
-    
-    <a id="contact-telegram" class="btn secondary" target="_blank">
-      ✈️ Contact on Telegram
-    </a>
+  <a id="contact-telegram" class="btn secondary" target="_blank">
+    ✈️ Contact on Telegram
+  </a>
 
-    <a id="contact-whatsapp" class="btn secondary" target="_blank">
-      💬 Contact on WhatsApp
-    </a>
-
-  </div>
+  <a id="contact-whatsapp" class="btn secondary" target="_blank">
+    💬 Contact on WhatsApp
+  </a>
 
 </div>
 
@@ -729,6 +721,65 @@ function toggleContactOptions() {
 // Set admin links
 document.getElementById("contact-telegram").href = ADMIN_TELEGRAM;
 document.getElementById("contact-whatsapp").href = ADMIN_WHATSAPP;
+
+  function openSupportBot(){
+  document.getElementById("support-bot").style.display="block";
+  botReply("Hello 👋 I am Buddy Support Bot. Ask me about downloads, rewards, apps or troubleshooting.");
+}
+
+function botReply(text){
+  const box = document.getElementById("bot-messages");
+  box.innerHTML += "<div style='margin-bottom:8px;color:#2c6bed'><b>Bot:</b> "+text+"</div>";
+  box.scrollTop = box.scrollHeight;
+}
+
+function sendBotMessage(){
+
+  const input = document.getElementById("bot-input");
+  const msg = input.value.toLowerCase();
+
+  if(!msg) return;
+
+  const box = document.getElementById("bot-messages");
+  box.innerHTML += "<div style='margin-bottom:8px'><b>You:</b> "+msg+"</div>";
+
+  input.value="";
+
+  // BOT KNOWLEDGE
+  if(msg.includes("share") || msg.includes("reward")){
+    botReply("To receive a reward, share the website 5 times using the share buttons. After completion you will receive a reward key.");
+  }
+
+  else if(msg.includes("download")){
+    botReply("You can download apps directly from the product cards. Press the Download button under the app you want.");
+  }
+
+  else if(msg.includes("anti theft")){
+    botReply("Buddy Anti-Theft protects your phone with SIM change alerts, silent security and tracking.");
+  }
+
+  else if(msg.includes("signal")){
+    botReply("The AI Signal Dashboard provides trading signals for forex and crypto. Some features require VIP access.");
+  }
+
+  else if(msg.includes("bot")){
+    botReply("Buddy Bot is a Windows automation and monitoring tool. Download the ZIP and follow the user guide.");
+  }
+
+  else if(msg.includes("problem") || msg.includes("error") || msg.includes("help")){
+    botReply("This issue may require human support.");
+
+    setTimeout(()=>{
+      botReply("Choose how to contact the admin:");
+      botReply("<a href='"+ADMIN_TELEGRAM+"' target='_blank'>✈️ Telegram</a> | <a href='"+ADMIN_WHATSAPP+"' target='_blank'>💬 WhatsApp</a>");
+    },800);
+  }
+
+  else{
+    botReply("I couldn't fully understand that. If it's important, I can connect you with the admin.");
+  }
+
+}
 
   // ========================
   // User ID for Share Tracking
@@ -1075,9 +1126,34 @@ applyAutoTheme();
 setInterval(applyAutoTheme, 15 * 60 * 1000);
 
 </script>
+<div id="support-bot" style="
+display:none;
+position:fixed;
+bottom:20px;
+right:20px;
+width:320px;
+background:white;
+border-radius:10px;
+box-shadow:0 10px 30px rgba(0,0,0,0.2);
+z-index:9999;
+">
 
+<div style="background:#2c6bed;color:white;padding:10px;border-radius:10px 10px 0 0;">
+🤖 Buddy Support Bot
+</div>
+
+<div id="bot-messages" style="height:250px;overflow-y:auto;padding:10px;font-size:14px;"></div>
+
+<div style="display:flex;border-top:1px solid #ddd;">
+<input id="bot-input" placeholder="Ask something..."
+style="flex:1;border:none;padding:10px;">
+<button onclick="sendBotMessage()" style="border:none;background:#2c6bed;color:white;padding:10px;">Send</button>
+</div>
+
+</div>
 </body>
 </html>
+
 
 
 
