@@ -677,13 +677,7 @@ body.dark-mode .screenshot-images img {
     🤖 Chat with Support Bot
   </button>
 
-  <a id="contact-telegram" class="btn secondary" target="_blank">
-    ✈️ Contact on Telegram
-  </a>
-
-  <a id="contact-whatsapp" class="btn secondary" target="_blank">
-    💬 Contact on WhatsApp
-  </a>
+  
 
 </div>
 
@@ -715,24 +709,7 @@ body.dark-mode .screenshot-images img {
 const ADMIN_TELEGRAM = "https://t.me/@DeHawkfx";
 const ADMIN_WHATSAPP = "https://wa.me/256757316350"; 
 
-  // ========================
-// Contact Support Section
-// ========================
-function toggleContactOptions() {
 
-  const contactBox = document.getElementById("contact-options");
-
-  if (contactBox.style.display === "none") {
-    contactBox.style.display = "block";
-  } else {
-    contactBox.style.display = "none";
-  }
-
-}
-
-// Set admin links
-document.getElementById("contact-telegram").href = ADMIN_TELEGRAM;
-document.getElementById("contact-whatsapp").href = ADMIN_WHATSAPP;
 
 function openSupportBot(){
 
@@ -1226,6 +1203,7 @@ style="flex:1;border:none;padding:10px;">
 </div>
 </body>
 </html>
+
 
 
 
