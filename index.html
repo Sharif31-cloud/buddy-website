@@ -675,15 +675,7 @@ body.dark-mode .screenshot-images img {
 
     <button class="btn" onclick="openSupportBot()">
       🤖 Chat with Support Bot
-    </button>
-
-    <a id="contact-telegram" class="btn secondary" target="_blank">
-      ✈️ Contact on Telegram
-    </a>
-
-    <a id="contact-whatsapp" class="btn secondary" target="_blank">
-      💬 Contact on WhatsApp
-    </a>
+ 
 
   </div>
 
@@ -747,52 +739,85 @@ function botReply(text){
 
 function sendBotMessage(){
 
-  const input = document.getElementById("bot-input");
-  const msg = input.value.toLowerCase();
+const input = document.getElementById("bot-input");
+const msg = input.value.toLowerCase();
 
-  if(!msg) return;
+if(!msg) return;
 
-  const box = document.getElementById("bot-messages");
-  box.innerHTML += "<div style='margin-bottom:8px'><b>You:</b> "+msg+"</div>";
+const box = document.getElementById("bot-messages");
 
-  input.value="";
+box.innerHTML += "<div style='margin-bottom:8px'><b>You:</b> "+msg+"</div>";
 
-  // BOT KNOWLEDGE
-  if(msg.includes("share") || msg.includes("reward")){
-    botReply("To receive a reward, share the website 5 times using the share buttons. After completion you will receive a reward key.");
-  }
+input.value="";
 
-  else if(msg.includes("download")){
-    botReply("You can download apps directly from the product cards. Press the Download button under the app you want.");
-  }
 
-  else if(msg.includes("anti theft")){
-    botReply("Buddy Anti-Theft protects your phone with SIM change alerts, silent security and tracking.");
-  }
+// ======================
+// BOT KNOWLEDGE SYSTEM
+// ======================
 
-  else if(msg.includes("signal")){
-    botReply("The AI Signal Dashboard provides trading signals for forex and crypto. Some features require VIP access.");
-  }
+if(msg.includes("hello") || msg.includes("hi") || msg.includes("hey")){
+botReply("Hello 👋 Welcome to Buddy Products. I can help with downloads, apps, rewards or troubleshooting.");
+}
 
-  else if(msg.includes("bot")){
-    botReply("Buddy Bot is a Windows automation and monitoring tool. Download the ZIP and follow the user guide.");
-  }
+else if(msg.includes("download")){
+botReply("You can download any app directly from this page by clicking the download button under the product.");
+}
 
-  else if(msg.includes("problem") || msg.includes("error") || msg.includes("help")){
-    botReply("This issue may require human support.");
+else if(msg.includes("reward") || msg.includes("share")){
+botReply("To receive a reward you must share the website 5 times. After that the reward unlocks automatically.");
+}
 
-    setTimeout(()=>{
-      botReply("Choose how to contact the admin:");
-      botReply("<a href='"+ADMIN_TELEGRAM+"' target='_blank'>✈️ Telegram</a> | <a href='"+ADMIN_WHATSAPP+"' target='_blank'>💬 WhatsApp</a>");
-    },800);
-  }
+else if(msg.includes("bot") || msg.includes("signalhawk")){
+botReply("SignalHawkBot is an AI trading assistant that provides signals for Forex and crypto.");
+}
 
-  else{
-    botReply("I couldn't fully understand that. If it's important, I can connect you with the admin.");
-  }
+else if(msg.includes("anti theft") || msg.includes("security")){
+botReply("Buddy Anti-Theft protects your phone using SIM alerts, location tracking and silent monitoring.");
+}
+
+else if(msg.includes("problem") || msg.includes("error") || msg.includes("help")){
+botReply("It looks like you need technical help. Would you like to contact the admin?");
+connectAdmin();
+}
+
+else if(msg.includes("admin") || msg.includes("support")){
+botReply("I will connect you to support.");
+connectAdmin();
+}
+
+else{
+botReply("I didn't fully understand. You can ask about downloads, rewards, apps, or support.");
+}
 
 }
 
+
+// ======================
+// CONNECT USER TO ADMIN
+// ======================
+
+function connectAdmin(){
+
+const box = document.getElementById("bot-messages");
+
+box.innerHTML += `
+<div style="margin-top:10px">
+<b>Contact Admin:</b><br><br>
+
+<a href="${ADMIN_TELEGRAM}" target="_blank" class="btn secondary">
+✈️ Telegram
+</a>
+
+<a href="${ADMIN_WHATSAPP}" target="_blank" class="btn secondary">
+💬 WhatsApp
+</a>
+
+</div>
+`;
+
+box.scrollTop = box.scrollHeight;
+
+}
   // ========================
   // User ID for Share Tracking
   // ========================
@@ -1165,6 +1190,7 @@ style="flex:1;border:none;padding:10px;">
 </div>
 </body>
 </html>
+
 
 
 
