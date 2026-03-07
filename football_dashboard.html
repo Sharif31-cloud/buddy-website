@@ -239,10 +239,13 @@ async function prediction(){
   }
   const [rHomeScored, rHomeConceded] = recentForm(home);
   const [rAwayScored, rAwayConceded] = recentForm(away);
-  const formHome = rHomeScored/(rHomeConceded+1e-5);
-  const formAway = rAwayScored/(rAwayConceded+1e-5);
-  baseHome *= 1 + 0.1*(formHome-formAway);
-  baseAway *= 1 - 0.1*(formHome-formAway);
+
+  // ------------------------------
+  // Dynamic expected goals
+  // ------------------------------
+  // Use recent goals + attack/defense stats
+  const expHomeGoals = Math.max(0.5, (rHomeScored * baseHome + rAwayConceded * 0.5));
+  const expAwayGoals = Math.max(0.5, (rAwayScored * baseAway + rHomeConceded * 0.5));
 
   // ------------------------------
   // Injuries
@@ -253,16 +256,9 @@ async function prediction(){
   const awayInjuries = Object.values(injuries).filter(p=>p.team.name===away).length;
   if(homeInjuries + awayInjuries>0){
     const injuryFactor = (awayInjuries-homeInjuries)/Math.max(homeInjuries+awayInjuries,1);
-    baseHome *= 1 + 0.05*injuryFactor;
-    baseAway *= 1 - 0.05*injuryFactor;
+    expHomeGoals *= 1 + 0.05*injuryFactor;
+    expAwayGoals *= 1 - 0.05*injuryFactor;
   }
-
-  // ------------------------------
-  // Expected goals
-  // ------------------------------
-  const leagueAvgGoals = 1.5;
-  const expHomeGoals = Math.max(0.1, baseHome*leagueAvgGoals);
-  const expAwayGoals = Math.max(0.1, baseAway*leagueAvgGoals);
 
   // ------------------------------
   // SIMULATION
@@ -348,4 +344,5 @@ async function defenseStrength(){
 }
 </script>
 </html>
+
 
