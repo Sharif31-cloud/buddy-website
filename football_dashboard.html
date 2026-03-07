@@ -8,7 +8,6 @@
   <link rel="shortcut icon" href="icon.ico">
   <link rel="apple-touch-icon" href="icon.png">
 
-
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -51,6 +50,7 @@ td, th{border:1px solid #ccc;padding:8px;text-align:center;}
 <button onclick="standings()">📊 Standings</button>
 <button onclick="attackStrength()">⚔ Attack Strength</button>
 <button onclick="defenseStrength()">🛡 Defense Strength</button>
+<button onclick="showPlayers()">👥 Players</button>
 </div>
 
 <div id="analysis" class="result"></div>
@@ -293,7 +293,6 @@ async function prediction(){
     <div class="stat">Most Likely Score: ${mostLikelyScore}</div>
   `;
 }
-
 // -------------------------
 // TOP SCORERS, STANDINGS, ATTACK/DEFENSE (unchanged)
 // -------------------------
@@ -342,7 +341,94 @@ async function defenseStrength(){
     <div class="stat">${awayTeam.value}: ${Math.round(stats[away]?.defense || 0)}</div>
   `;
 }
+
+// -------------------------
+// LOAD TEAM PLAYERS
+// -------------------------
+// -------------------------
+// LOAD TEAM PLAYERS
+// -------------------------
+async function loadTeamPlayers(team, comp) {
+    // 1️⃣ Get team ID from core DB
+    const snapTeams = await dbCore.ref("teams/" + comp).once("value");
+    const teamsData = snapTeams.val() || {};
+    let teamId = null;
+    Object.entries(teamsData).forEach(([tid, t]) => {
+        if (t.name.toLowerCase() === team.toLowerCase()) teamId = tid;
+    });
+    if (!teamId) return [];
+
+    // 2️⃣ Get players from players DB
+    const snapPlayers = await dbPlayers.ref(`players/${comp}/${teamId}`).once("value");
+    const playersData = snapPlayers.val() || [];
+
+    // 3️⃣ Flatten players
+    return playersData.map(p => ({
+        name: p.name || "Unknown",
+        position: p.position || "UNK",
+        nationality: p.nationality || "Unknown",
+        dob: p.dob || "Unknown"
+    }));
+}
+
+// -------------------------
+// SHOW PLAYERS TABLES SIDE BY SIDE
+// -------------------------
+async function showPlayers() {
+    const home = homeTeam.value;
+    const away = awayTeam.value;
+    const comp = competition.value;
+
+    if (!home || !away) {
+        analysis.innerHTML = "<div class='stat'>⚠ Please select both Home and Away teams first.</div>";
+        return;
+    }
+
+    const homePlayers = await loadTeamPlayers(home, comp);
+    const awayPlayers = await loadTeamPlayers(away, comp);
+
+    // -------------------------
+    // Sort players by position
+    // -------------------------
+    const positionOrder = { GK: 0, DEF: 1, MID: 2, FWD: 3, UNK: 4 };
+    const positionColors = { 
+        GK: "#d4efdf",    // Green
+        DEF: "#f9f59f",   // Yellow
+        MID: "#f5a623",   // Orange
+        FWD: "#f5b7b1",   // Red
+        UNK: "#d7dbdd"    // Grey
+    };
+
+    function sortPlayers(players) {
+        return players.sort((a, b) => (positionOrder[a.position] || 4) - (positionOrder[b.position] || 4));
+    }
+
+    // -------------------------
+    // Build HTML table for one team
+    // -------------------------
+    function renderTable(teamName, players) {
+        let tableHtml = `<div style="flex:1">
+            <h3>👥 ${teamName} Players (${players.length})</h3>
+            <table>
+                <thead><tr><th>Position</th><th>Player</th></tr></thead>
+                <tbody>`;
+        players.forEach(p => {
+            tableHtml += `<tr>
+                <td style="background:${positionColors[p.position] || '#d7dbdd'}">${p.position}</td>
+                <td>${p.name}</td>
+            </tr>`;
+        });
+        tableHtml += "</tbody></table></div>";
+        return tableHtml;
+    }
+
+    // -------------------------
+    // Combine tables side by side
+    // -------------------------
+    analysis.innerHTML = `<div style="display:flex;gap:50px;">
+        ${renderTable(home, sortPlayers(homePlayers))}
+        ${renderTable(away, sortPlayers(awayPlayers))}
+    </div>`;
+}
 </script>
 </html>
-
-
