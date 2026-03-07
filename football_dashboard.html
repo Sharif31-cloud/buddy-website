@@ -1,0 +1,349 @@
+html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<title>Football Intelligence Dashboard</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+
+body{
+font-family:Poppins;
+background:#eef2f7;
+margin:0;
+padding:0;
+}
+
+header{
+background:#0f172a;
+color:white;
+padding:20px;
+text-align:center;
+font-size:26px;
+font-weight:600;
+}
+
+.container{
+max-width:1100px;
+margin:auto;
+padding:30px;
+}
+
+.card{
+background:white;
+padding:25px;
+border-radius:10px;
+box-shadow:0 5px 15px rgba(0,0,0,0.08);
+margin-bottom:25px;
+}
+
+.controls{
+display:flex;
+gap:15px;
+flex-wrap:wrap;
+}
+
+select{
+padding:10px;
+border-radius:6px;
+border:1px solid #ccc;
+min-width:200px;
+}
+
+.buttons{
+margin-top:15px;
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+}
+
+button{
+padding:10px 16px;
+border:none;
+border-radius:6px;
+background:#2563eb;
+color:white;
+cursor:pointer;
+font-weight:500;
+transition:0.2s;
+}
+
+button:hover{
+background:#1e40af;
+transform:translateY(-2px);
+}
+
+.result{
+margin-top:20px;
+padding:20px;
+background:#f8fafc;
+border-radius:8px;
+font-size:15px;
+line-height:1.7;
+}
+
+h3{
+margin-top:0;
+color:#1e293b;
+}
+
+.stat{
+background:white;
+padding:10px;
+border-radius:6px;
+margin:6px 0;
+box-shadow:0 2px 6px rgba(0,0,0,0.05);
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+⚽ Football Intelligence Dashboard
+</header>
+
+<div class="container">
+
+<div class="card">
+
+<div class="controls">
+
+<select id="competition">
+<option value="PL">Premier League</option>
+<option value="PD">La Liga</option>
+<option value="BL1">Bundesliga</option>
+<option value="CL">Champions League</option>
+</select>
+
+<select id="homeTeam"></select>
+<select id="awayTeam"></select>
+
+</div>
+
+<div class="buttons">
+
+<button onclick="prediction()">🧠 Prediction</button>
+<button onclick="topPlayers()">⭐ Top Players</button>
+<button onclick="topScorers()">🥇 Top Scorers</button>
+<button onclick="attackStrength()">⚔ Attack Strength</button>
+<button onclick="defenseStrength()">🛡 Defense Strength</button>
+<button onclick="headToHead()">🤝 Head to Head</button>
+
+</div>
+
+<div id="analysis" class="result"></div>
+
+</div>
+
+</div>
+
+
+<script>
+
+// FIREBASE CONFIG
+const firebaseConfig = {
+databaseURL:"https://football-intelligence-sy-a93cf-default-rtdb.firebaseio.com"
+};
+
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const competition = document.getElementById("competition");
+
+competition.addEventListener("change",loadTeams);
+
+function sanitize(name){
+return name.replace(/[.$#[\]/]/g,"_");
+}
+
+
+// LOAD TEAMS
+function loadTeams(){
+
+let comp = competition.value;
+
+db.ref("teams/"+comp).once("value",(snap)=>{
+
+let data = snap.val();
+
+let home = document.getElementById("homeTeam");
+let away = document.getElementById("awayTeam");
+
+home.innerHTML="";
+away.innerHTML="";
+
+for(let id in data){
+
+let name=data[id].name;
+
+home.innerHTML+=`<option value="${name}">${name}</option>`;
+away.innerHTML+=`<option value="${name}">${name}</option>`;
+
+}
+
+});
+
+}
+
+loadTeams();
+
+
+// TOP SCORERS
+function topScorers(){
+
+let comp=competition.value;
+
+db.ref("top_scorers/"+comp).once("value",(snap)=>{
+
+let scorers=snap.val();
+
+let html="<h3>🥇 League Top Scorers</h3>";
+
+for(let i in scorers){
+
+let s=scorers[i];
+
+html+=`<div class="stat">${s.player} (${s.team}) — ${s.goals} goals</div>`;
+
+}
+
+document.getElementById("analysis").innerHTML=html;
+
+});
+
+}
+
+
+// ATTACK STRENGTH
+function attackStrength(){
+
+let home=sanitize(document.getElementById("homeTeam").value);
+let away=sanitize(document.getElementById("awayTeam").value);
+
+db.ref("team_strength").once("value",(snap)=>{
+
+let stats=snap.val();
+
+let html=`
+<h3>⚔ Attack Strength</h3>
+<div class="stat">${home}: ${stats[home].attack} goals scored</div>
+<div class="stat">${away}: ${stats[away].attack} goals scored</div>
+`;
+
+document.getElementById("analysis").innerHTML=html;
+
+});
+
+}
+
+
+// DEFENSE STRENGTH
+function defenseStrength(){
+
+let home=sanitize(document.getElementById("homeTeam").value);
+let away=sanitize(document.getElementById("awayTeam").value);
+
+db.ref("team_strength").once("value",(snap)=>{
+
+let stats=snap.val();
+
+let html=`
+<h3>🛡 Defense Strength</h3>
+<div class="stat">${home}: ${stats[home].defense} goals conceded</div>
+<div class="stat">${away}: ${stats[away].defense} goals conceded</div>
+`;
+
+document.getElementById("analysis").innerHTML=html;
+
+});
+
+}
+
+
+// HEAD TO HEAD
+function headToHead(){
+
+let comp=competition.value;
+
+let home=sanitize(document.getElementById("homeTeam").value);
+let away=sanitize(document.getElementById("awayTeam").value);
+
+let key=home+"_vs_"+away;
+
+db.ref("head_to_head/"+comp+"/"+key).once("value",(snap)=>{
+
+let h2h=snap.val();
+
+if(!h2h){
+
+document.getElementById("analysis").innerHTML="No head to head data available";
+return;
+
+}
+
+let html=`
+<h3>🤝 Head to Head</h3>
+<div class="stat">Matches: ${h2h.matches}</div>
+<div class="stat">Home wins: ${h2h.home_wins}</div>
+<div class="stat">Away wins: ${h2h.away_wins}</div>
+<div class="stat">Draws: ${h2h.draws}</div>
+`;
+
+document.getElementById("analysis").innerHTML=html;
+
+});
+
+}
+
+
+// TOP PLAYERS
+function topPlayers(){
+
+let comp=competition.value;
+
+db.ref("players/"+comp).once("value",(snap)=>{
+
+let data=snap.val();
+
+let html="<h3>⭐ Players</h3>";
+
+for(let team in data){
+
+for(let id in data[team]){
+
+let p=data[team][id];
+
+html+=`<div class="stat">${p.name} (${team}) — ${p.goals}G ${p.assists}A</div>`;
+
+}
+
+}
+
+document.getElementById("analysis").innerHTML=html;
+
+});
+
+}
+
+
+// PREDICTION
+function prediction(){
+
+document.getElementById("analysis").innerHTML=
+"<h3>🧠 Prediction</h3>Prediction is calculated by the Python AI engine.";
+
+}
+
+</script>
+
+</body>
+</html>
