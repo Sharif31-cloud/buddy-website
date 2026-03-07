@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <title>Football Intelligence Dashboard</title>
 
+<link rel="icon" href="icon.ico" type="image/x-icon">
+
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -90,7 +92,6 @@ for (const key in appsConfig){
   firebaseApps[key] = firebase.initializeApp(appsConfig[key], key);
 }
 
-// Database refs
 const dbCore = firebaseApps.core.database();
 const dbPlayers = firebaseApps.players.database();
 const dbAnalytics = firebaseApps.analytics.database();
@@ -103,9 +104,9 @@ function sanitize(name){
 }
 
 function poisson(lambda){
-  let L=Math.exp(-lambda), p=1, k=0;
-  do{ k++; p*=Math.random(); } while(p>L);
-  return k-1;
+  let L = Math.exp(-lambda), p = 1, k = 0;
+  do { k++; p *= Math.random(); } while(p > L);
+  return k - 1;
 }
 
 // -------------------------
@@ -139,38 +140,152 @@ async function loadTeamStats(){
 }
 
 // -------------------------
-// PREDICTION
+// LOAD MATCHES
+// -------------------------
+async function loadMatches(){
+  const snap = await dbCore.ref("matches/2026").once("value");
+  const data = snap.val() || {};
+  // convert to array of objects
+  return Object.values(data);
+}
+
+// -------------------------
+// PREDICTION (FULL)
 // -------------------------
 async function prediction(){
   const home = homeTeam.value;
   const away = awayTeam.value;
   const stats = await loadTeamStats();
-  const ha = Math.round(stats[sanitize(home)]?.attack || 1);
-  const aa = Math.round(stats[sanitize(away)]?.attack || 1);
+
+  if(!stats[sanitize(home)] || !stats[sanitize(away)]){
+    analysis.innerHTML = "⚠ Stats missing for one of the teams";
+    return;
+  }
+
+  // ------------------------------
+  // Base attack & defense
+  // ------------------------------
+  const ha = stats[sanitize(home)].attack;
+  const hd = stats[sanitize(home)].defense;
+  const aa = stats[sanitize(away)].attack;
+  const ad = stats[sanitize(away)].defense;
+
+  let baseHome = ha / (ha + ad);
+  let baseAway = aa / (aa + hd);
+
+  // ------------------------------
+  // Home advantage
+  // ------------------------------
+  const homeAdv = 0.1;
+  baseHome *= 1 + homeAdv;
+
+  // ------------------------------
+  // ELO ratings
+  // ------------------------------
+  const eloSnap = await dbAnalytics.ref("elo_ratings").once("value");
+  const elo = eloSnap.val() || {};
+  const hr = elo[sanitize(home)] || 1500;
+  const ar = elo[sanitize(away)] || 1500;
+  const eloFactor = (hr - ar) / 400;
+  baseHome *= 1 + 0.5 * eloFactor;
+  baseAway *= 1 - 0.5 * eloFactor;
+
+  // ------------------------------
+  // Head-to-head
+  // ------------------------------
+  const h2hSnap = await dbAnalytics.ref("head_to_head").once("value");
+  const h2h = h2hSnap.val() || {};
+  const keyHA = `${sanitize(home)}_${sanitize(away)}`;
+  const keyAH = `${sanitize(away)}_${sanitize(home)}`;
+  const h2hHome = h2h[keyHA] || 0;
+  const h2hAway = h2h[keyAH] || 0;
+  const totalH2H = h2hHome + h2hAway;
+  if(totalH2H>0){
+    const h2hFactor = (h2hHome - h2hAway)/totalH2H;
+    baseHome *= 1 + 0.1*h2hFactor;
+    baseAway *= 1 - 0.1*h2hFactor;
+  }
+
+  // ------------------------------
+  // League positions
+  // ------------------------------
+  const standingsSnap = await dbCore.ref(`standings/PL/2026`).once("value");
+  const standings = standingsSnap.val() || [];
+  const homePos = standings.find(t=>sanitize(t.team)===sanitize(home))?.position || null;
+  const awayPos = standings.find(t=>sanitize(t.team)===sanitize(away))?.position || null;
+  if(homePos && awayPos){
+    const posFactor = (awayPos - homePos)/20;
+    baseHome *= 1 + 0.1*posFactor;
+    baseAway *= 1 - 0.1*posFactor;
+  }
+
+  // ------------------------------
+  // Recent form (last 5 matches)
+  // ------------------------------
+  const matches = await loadMatches();
+  function recentForm(team){
+    const teamMatches = matches.filter(m=>m.homeTeam===team || m.awayTeam===team);
+    const last5 = teamMatches.slice(-5);
+    let scored=0, conceded=0;
+    last5.forEach(r=>{
+      if(r.homeTeam===team){ scored+=r.homeScore; conceded+=r.awayScore; }
+      else { scored+=r.awayScore; conceded+=r.homeScore; }
+    });
+    if(last5.length===0) return [1,1];
+    return [scored/last5.length, conceded/last5.length];
+  }
+  const [rHomeScored, rHomeConceded] = recentForm(home);
+  const [rAwayScored, rAwayConceded] = recentForm(away);
+  const formHome = rHomeScored/(rHomeConceded+1e-5);
+  const formAway = rAwayScored/(rAwayConceded+1e-5);
+  baseHome *= 1 + 0.1*(formHome-formAway);
+  baseAway *= 1 - 0.1*(formHome-formAway);
+
+  // ------------------------------
+  // Injuries
+  // ------------------------------
+  const injuriesSnap = await dbPlayers.ref("injuries").once("value");
+  const injuries = injuriesSnap.val() || {};
+  const homeInjuries = Object.values(injuries).filter(p=>p.team.name===home).length;
+  const awayInjuries = Object.values(injuries).filter(p=>p.team.name===away).length;
+  if(homeInjuries + awayInjuries>0){
+    const injuryFactor = (awayInjuries-homeInjuries)/Math.max(homeInjuries+awayInjuries,1);
+    baseHome *= 1 + 0.05*injuryFactor;
+    baseAway *= 1 - 0.05*injuryFactor;
+  }
+
+  // ------------------------------
+  // Expected goals
+  // ------------------------------
+  const leagueAvgGoals = 1.5;
+  const expHomeGoals = Math.max(0.1, baseHome*leagueAvgGoals);
+  const expAwayGoals = Math.max(0.1, baseAway*leagueAvgGoals);
+
+  // ------------------------------
+  // SIMULATION
+  // ------------------------------
   const sims = 10000;
   let hw=0, dr=0, aw=0;
   let homeGoalsTotal=0, awayGoalsTotal=0;
-  let scoreCounter = {};
+  let scoreCounter={};
 
   for(let i=0;i<sims;i++){
-    const hg = poisson(ha);
-    const ag = poisson(aa);
+    const hg = poisson(expHomeGoals);
+    const ag = poisson(expAwayGoals);
     homeGoalsTotal += hg;
     awayGoalsTotal += ag;
-
     if(hg>ag) hw++;
     else if(hg<ag) aw++;
     else dr++;
-
-    const key = `${hg}-${ag}`;
-    scoreCounter[key] = (scoreCounter[key] || 0) + 1;
+    const key=`${hg}-${ag}`;
+    scoreCounter[key] = (scoreCounter[key] || 0)+1;
   }
 
   const avgHome = (homeGoalsTotal/sims).toFixed(2);
   const avgAway = (awayGoalsTotal/sims).toFixed(2);
   const mostLikelyScore = Object.keys(scoreCounter).reduce((a,b)=>scoreCounter[a]>scoreCounter[b]?a:b);
 
-  analysis.innerHTML=`
+  analysis.innerHTML = `
     <h3>${home} vs ${away}</h3>
     <div class="stat">Home Win: ${Math.round(hw/sims*100)}%</div>
     <div class="stat">Draw: ${Math.round(dr/sims*100)}%</div>
@@ -181,7 +296,7 @@ async function prediction(){
 }
 
 // -------------------------
-// TOP SCORERS
+// TOP SCORERS, STANDINGS, ATTACK/DEFENSE (unchanged)
 // -------------------------
 async function topScorers(){
   const comp = competition.value;
@@ -194,9 +309,6 @@ async function topScorers(){
   analysis.innerHTML = html;
 }
 
-// -------------------------
-// STANDINGS
-// -------------------------
 async function standings(){
   const comp = competition.value;
   const snap = await dbCore.ref(`standings/${comp}/2026`).once("value");
@@ -210,9 +322,6 @@ async function standings(){
   analysis.innerHTML = html;
 }
 
-// -------------------------
-// ATTACK & DEFENSE
-// -------------------------
 async function attackStrength(){
   const stats = await loadTeamStats();
   const home = sanitize(homeTeam.value);
@@ -235,5 +344,4 @@ async function defenseStrength(){
   `;
 }
 </script>
-</body>
 </html>
