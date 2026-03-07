@@ -1,4 +1,3 @@
-html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,8 +5,8 @@ html
 <meta charset="UTF-8">
 <title>Football Intelligence Dashboard</title>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 
@@ -71,12 +70,10 @@ background:#2563eb;
 color:white;
 cursor:pointer;
 font-weight:500;
-transition:0.2s;
 }
 
 button:hover{
 background:#1e40af;
-transform:translateY(-2px);
 }
 
 .result{
@@ -84,13 +81,6 @@ margin-top:20px;
 padding:20px;
 background:#f8fafc;
 border-radius:8px;
-font-size:15px;
-line-height:1.7;
-}
-
-h3{
-margin-top:0;
-color:#1e293b;
 }
 
 .stat{
@@ -102,7 +92,6 @@ box-shadow:0 2px 6px rgba(0,0,0,0.05);
 }
 
 </style>
-
 </head>
 
 <body>
@@ -143,40 +132,56 @@ box-shadow:0 2px 6px rgba(0,0,0,0.05);
 <div id="analysis" class="result"></div>
 
 </div>
-
 </div>
 
 
 <script>
 
-// FIREBASE CONFIG
+// FIREBASE
 const firebaseConfig = {
 databaseURL:"https://football-intelligence-sy-a93cf-default-rtdb.firebaseio.com"
 };
 
-const app = firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-const competition = document.getElementById("competition");
-
+const competition=document.getElementById("competition");
 competition.addEventListener("change",loadTeams);
+
+// --------------------------------
+// HELPERS
+// --------------------------------
 
 function sanitize(name){
 return name.replace(/[.$#[\]/]/g,"_");
 }
 
+function poisson(lambda){
+let L=Math.exp(-lambda);
+let p=1;
+let k=0;
 
+do{
+k++;
+p*=Math.random();
+}while(p>L);
+
+return k-1;
+}
+
+// --------------------------------
 // LOAD TEAMS
+// --------------------------------
+
 function loadTeams(){
 
-let comp = competition.value;
+let comp=competition.value;
 
 db.ref("teams/"+comp).once("value",(snap)=>{
 
-let data = snap.val();
-
-let home = document.getElementById("homeTeam");
-let away = document.getElementById("awayTeam");
+let data=snap.val();
+let home=document.getElementById("homeTeam");
+let away=document.getElementById("awayTeam");
 
 home.innerHTML="";
 away.innerHTML="";
@@ -185,8 +190,8 @@ for(let id in data){
 
 let name=data[id].name;
 
-home.innerHTML+=`<option value="${name}">${name}</option>`;
-away.innerHTML+=`<option value="${name}">${name}</option>`;
+home.innerHTML+=`<option>${name}</option>`;
+away.innerHTML+=`<option>${name}</option>`;
 
 }
 
@@ -196,8 +201,109 @@ away.innerHTML+=`<option value="${name}">${name}</option>`;
 
 loadTeams();
 
+// --------------------------------
+// MATCH PREDICTION
+// --------------------------------
 
+function prediction(){
+
+let home=document.getElementById("homeTeam").value;
+let away=document.getElementById("awayTeam").value;
+
+let hk=sanitize(home);
+let ak=sanitize(away);
+
+db.ref("team_strength").once("value",(snap)=>{
+
+let stats=snap.val();
+
+let ha=stats[hk].attack;
+let aa=stats[ak].attack;
+
+let sims=10000;
+let hw=0,dr=0,aw=0;
+
+for(let i=0;i<sims;i++){
+
+let hg=poisson(ha);
+let ag=poisson(aa);
+
+if(hg>ag) hw++;
+else if(hg<ag) aw++;
+else dr++;
+
+}
+
+let html=`
+<h3>${home} vs ${away}</h3>
+<div class="stat">Home Win: ${Math.round(hw/sims*100)}%</div>
+<div class="stat">Draw: ${Math.round(dr/sims*100)}%</div>
+<div class="stat">Away Win: ${Math.round(aw/sims*100)}%</div>
+`;
+
+document.getElementById("analysis").innerHTML=html;
+
+});
+
+}
+
+// --------------------------------
+// TOP PLAYERS
+// --------------------------------
+
+function topPlayers(){
+
+let comp=competition.value;
+let home=document.getElementById("homeTeam").value;
+let away=document.getElementById("awayTeam").value;
+
+db.ref("players/"+comp).once("value",(snap)=>{
+
+let data=snap.val();
+
+let players=[];
+
+for(let team in data){
+for(let id in data[team]){
+
+let p=data[team][id];
+
+p.team=team;
+p.impact=p.goals*3+p.assists*2;
+
+players.push(p);
+
+}
+}
+
+let homePlayers=players.filter(p=>p.team==home)
+.sort((a,b)=>b.impact-a.impact).slice(0,3);
+
+let awayPlayers=players.filter(p=>p.team==away)
+.sort((a,b)=>b.impact-a.impact).slice(0,3);
+
+let html="<h3>⭐ Top Players</h3><h4>"+home+"</h4>";
+
+homePlayers.forEach(p=>{
+html+=`<div class="stat">${p.name} — ${p.goals}G ${p.assists}A</div>`;
+});
+
+html+="<h4>"+away+"</h4>";
+
+awayPlayers.forEach(p=>{
+html+=`<div class="stat">${p.name} — ${p.goals}G ${p.assists}A</div>`;
+});
+
+document.getElementById("analysis").innerHTML=html;
+
+});
+
+}
+
+// --------------------------------
 // TOP SCORERS
+// --------------------------------
+
 function topScorers(){
 
 let comp=competition.value;
@@ -208,13 +314,9 @@ let scorers=snap.val();
 
 let html="<h3>🥇 League Top Scorers</h3>";
 
-for(let i in scorers){
-
-let s=scorers[i];
-
+scorers.slice(0,10).forEach(s=>{
 html+=`<div class="stat">${s.player} (${s.team}) — ${s.goals} goals</div>`;
-
-}
+});
 
 document.getElementById("analysis").innerHTML=html;
 
@@ -222,60 +324,66 @@ document.getElementById("analysis").innerHTML=html;
 
 }
 
-
+// --------------------------------
 // ATTACK STRENGTH
+// --------------------------------
+
 function attackStrength(){
 
-let home=sanitize(document.getElementById("homeTeam").value);
-let away=sanitize(document.getElementById("awayTeam").value);
+let home=sanitize(homeTeam.value);
+let away=sanitize(awayTeam.value);
 
 db.ref("team_strength").once("value",(snap)=>{
 
 let stats=snap.val();
 
 let html=`
-<h3>⚔ Attack Strength</h3>
-<div class="stat">${home}: ${stats[home].attack} goals scored</div>
-<div class="stat">${away}: ${stats[away].attack} goals scored</div>
+<h3>⚔ Goals Scored</h3>
+<div class="stat">${home}: ${stats[home].attack}</div>
+<div class="stat">${away}: ${stats[away].attack}</div>
 `;
 
-document.getElementById("analysis").innerHTML=html;
+analysis.innerHTML=html;
 
 });
 
 }
 
-
+// --------------------------------
 // DEFENSE STRENGTH
+// --------------------------------
+
 function defenseStrength(){
 
-let home=sanitize(document.getElementById("homeTeam").value);
-let away=sanitize(document.getElementById("awayTeam").value);
+let home=sanitize(homeTeam.value);
+let away=sanitize(awayTeam.value);
 
 db.ref("team_strength").once("value",(snap)=>{
 
 let stats=snap.val();
 
 let html=`
-<h3>🛡 Defense Strength</h3>
-<div class="stat">${home}: ${stats[home].defense} goals conceded</div>
-<div class="stat">${away}: ${stats[away].defense} goals conceded</div>
+<h3>🛡 Goals Conceded</h3>
+<div class="stat">${home}: ${stats[home].defense}</div>
+<div class="stat">${away}: ${stats[away].defense}</div>
 `;
 
-document.getElementById("analysis").innerHTML=html;
+analysis.innerHTML=html;
 
 });
 
 }
 
-
+// --------------------------------
 // HEAD TO HEAD
+// --------------------------------
+
 function headToHead(){
 
 let comp=competition.value;
 
-let home=sanitize(document.getElementById("homeTeam").value);
-let away=sanitize(document.getElementById("awayTeam").value);
+let home=sanitize(homeTeam.value);
+let away=sanitize(awayTeam.value);
 
 let key=home+"_vs_"+away;
 
@@ -284,10 +392,8 @@ db.ref("head_to_head/"+comp+"/"+key).once("value",(snap)=>{
 let h2h=snap.val();
 
 if(!h2h){
-
-document.getElementById("analysis").innerHTML="No head to head data available";
+analysis.innerHTML="No head-to-head data";
 return;
-
 }
 
 let html=`
@@ -298,48 +404,9 @@ let html=`
 <div class="stat">Draws: ${h2h.draws}</div>
 `;
 
-document.getElementById("analysis").innerHTML=html;
+analysis.innerHTML=html;
 
 });
-
-}
-
-
-// TOP PLAYERS
-function topPlayers(){
-
-let comp=competition.value;
-
-db.ref("players/"+comp).once("value",(snap)=>{
-
-let data=snap.val();
-
-let html="<h3>⭐ Players</h3>";
-
-for(let team in data){
-
-for(let id in data[team]){
-
-let p=data[team][id];
-
-html+=`<div class="stat">${p.name} (${team}) — ${p.goals}G ${p.assists}A</div>`;
-
-}
-
-}
-
-document.getElementById("analysis").innerHTML=html;
-
-});
-
-}
-
-
-// PREDICTION
-function prediction(){
-
-document.getElementById("analysis").innerHTML=
-"<h3>🧠 Prediction</h3>Prediction is calculated by the Python AI engine.";
 
 }
 
