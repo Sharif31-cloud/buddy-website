@@ -36,30 +36,6 @@ td, th{border:1px solid #ccc;padding:8px;text-align:center;}
 
 <div class="controls">
 <select id="competition"></select>
-
-<script>
-// JS version of COMPETITIONS
-const COMPETITIONS = {
-  "PL": "Premier League",
-  "PD": "La Liga",
-  "BL1": "Bundesliga",
-  "CL": "Champions League",
-  "DED": "Eredivisie",
-  "BSA": "Campeonato Brasileiro Série A",
-  "FL1": "Ligue 1",
-  "ELC": "Championship",
-  "PPL": "Polish Ekstraklasa",
-  "SA": "Serie A",
-  "WC": "World Cup"
-};
-
-const compSelect = document.getElementById("competition");
-compSelect.innerHTML = ""; // clear existing options
-for (const key in COMPETITIONS){
-  compSelect.innerHTML += `<option value="${key}">${COMPETITIONS[key]}</option>`;
-}
-</script>
-
 <select id="homeTeam" placeholder="Home Team"></select>
 <select id="awayTeam" placeholder="Away Team"></select>
 </div>
@@ -77,11 +53,32 @@ for (const key in COMPETITIONS){
 </div>
 
 <script>
+// -------------------------
+// COMPETITIONS
+// -------------------------
+const COMPETITIONS = {
+  "PL": "Premier League",
+  "PD": "La Liga",
+  "BL1": "Bundesliga",
+  "CL": "Champions League",
+  "DED": "Eredivisie",
+  "BSA": "Campeonato Brasileiro Série A",
+  "FL1": "Ligue 1",
+  "ELC": "Championship",
+  "PPL": "Polish Ekstraklasa",
+  "SA": "Serie A",
+  "WC": "World Cup"
+};
+
+const compSelect = document.getElementById("competition");
+compSelect.innerHTML = "";
+for (const key in COMPETITIONS){
+  compSelect.innerHTML += `<option value="${key}">${COMPETITIONS[key]}</option>`;
+}
 
 // -------------------------
 // MULTI-FIREBASE CONFIG
 // -------------------------
-
 const appsConfig = {
   core: { databaseURL:"https://football-core-1b911-default-rtdb.firebaseio.com" },
   players: { databaseURL:"https://football-players-3f2c7-default-rtdb.firebaseio.com" },
@@ -101,7 +98,6 @@ const dbAnalytics = firebaseApps.analytics.database();
 // -------------------------
 // UTILS
 // -------------------------
-
 function sanitize(name){
   return name.replace(/[.$#[\]/]/g,"_");
 }
@@ -115,7 +111,6 @@ function poisson(lambda){
 // -------------------------
 // LOAD TEAMS
 // -------------------------
-
 const competition = document.getElementById("competition");
 const homeTeam = document.getElementById("homeTeam");
 const awayTeam = document.getElementById("awayTeam");
@@ -138,7 +133,6 @@ loadTeams();
 // -------------------------
 // LOAD TEAM STATS
 // -------------------------
-
 async function loadTeamStats(){
   const snap = await dbAnalytics.ref("team_strength").once("value");
   return snap.val() || {};
@@ -147,31 +141,48 @@ async function loadTeamStats(){
 // -------------------------
 // PREDICTION
 // -------------------------
-
 async function prediction(){
   const home = homeTeam.value;
   const away = awayTeam.value;
   const stats = await loadTeamStats();
-  const ha = stats[sanitize(home)]?.attack || 1;
-  const aa = stats[sanitize(away)]?.attack || 1;
+  const ha = Math.round(stats[sanitize(home)]?.attack || 1);
+  const aa = Math.round(stats[sanitize(away)]?.attack || 1);
   const sims = 10000;
   let hw=0, dr=0, aw=0;
+  let homeGoalsTotal=0, awayGoalsTotal=0;
+  let scoreCounter = {};
+
   for(let i=0;i<sims;i++){
-    const hg=poisson(ha), ag=poisson(aa);
-    if(hg>ag) hw++; else if(hg<ag) aw++; else dr++;
+    const hg = poisson(ha);
+    const ag = poisson(aa);
+    homeGoalsTotal += hg;
+    awayGoalsTotal += ag;
+
+    if(hg>ag) hw++;
+    else if(hg<ag) aw++;
+    else dr++;
+
+    const key = `${hg}-${ag}`;
+    scoreCounter[key] = (scoreCounter[key] || 0) + 1;
   }
+
+  const avgHome = (homeGoalsTotal/sims).toFixed(2);
+  const avgAway = (awayGoalsTotal/sims).toFixed(2);
+  const mostLikelyScore = Object.keys(scoreCounter).reduce((a,b)=>scoreCounter[a]>scoreCounter[b]?a:b);
+
   analysis.innerHTML=`
     <h3>${home} vs ${away}</h3>
     <div class="stat">Home Win: ${Math.round(hw/sims*100)}%</div>
     <div class="stat">Draw: ${Math.round(dr/sims*100)}%</div>
     <div class="stat">Away Win: ${Math.round(aw/sims*100)}%</div>
+    <div class="stat">Average Score: ${avgHome} - ${avgAway}</div>
+    <div class="stat">Most Likely Score: ${mostLikelyScore}</div>
   `;
 }
 
 // -------------------------
 // TOP SCORERS
 // -------------------------
-
 async function topScorers(){
   const comp = competition.value;
   const snap = await dbPlayers.ref("top_scorers/"+comp).once("value");
@@ -186,7 +197,6 @@ async function topScorers(){
 // -------------------------
 // STANDINGS
 // -------------------------
-
 async function standings(){
   const comp = competition.value;
   const snap = await dbCore.ref(`standings/${comp}/2026`).once("value");
@@ -203,7 +213,6 @@ async function standings(){
 // -------------------------
 // ATTACK & DEFENSE
 // -------------------------
-
 async function attackStrength(){
   const stats = await loadTeamStats();
   const home = sanitize(homeTeam.value);
@@ -225,7 +234,6 @@ async function defenseStrength(){
     <div class="stat">${awayTeam.value}: ${Math.round(stats[away]?.defense || 0)}</div>
   `;
 }
-
 </script>
 </body>
 </html>
