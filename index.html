@@ -821,11 +821,15 @@ function sendBotMessage() {
   }
 
   else if (msg.includes("signal")) {
-    botReply("📊 The AI Signal Dashboard provides trading signals for Forex and Crypto. Some features require VIP access. Want to learn more?");
+    botReply("📊 The AI Signal Dashboard is a web-based platform that provides intelligent trading signals for Forex, Crypto, and Commodities. It analyzes market data using indicators like EMA, RSI, and MACD to generate BUY, SELL, or HOLD signals with entry price, stop loss, and take profit levels. Some symbols and advanced features require VIP access. Want to learn more?");
   }
 
   else if (msg.includes("bot")) {
-    botReply("🤖 Buddy Bot is a Windows automation and monitoring tool. Download the ZIP and follow the user guide to get started.");
+    botReply("🤖 Buddy Bot is a Windows-based automation and monitoring tool designed to help users manage and run intelligent trading systems. It connects with platforms like MetaTrader 5, monitors market activity, runs automated trading strategies, and sends alerts or signals when trading opportunities appear. Download the ZIP package and follow the user guide to install and get started.");
+  }
+
+  else if (msg.includes("football") || msg.includes("dashboard")) {
+  botReply("⚽ The Football Intelligence Dashboard is an advanced match analysis platform that predicts football match outcomes using statistical models and real match data. It analyzes factors like team attack and defense strength, ELO ratings, recent form, league standings, injuries, and head-to-head history, then runs thousands of simulations to estimate win probabilities and likely scores. The dashboard also provides league standings, top scorers, team strength metrics, and full player lists for selected teams.");
   }
 
   else if (msg.includes("problem") || msg.includes("admin") || msg.includes("help")) {
@@ -1245,19 +1249,3 @@ style="flex:1;border:none;padding:10px;">
 </div>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
