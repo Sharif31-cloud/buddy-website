@@ -804,32 +804,54 @@ function sendBotMessage() {
   // BOT KNOWLEDGE & RESPONSES
   // ==========================
 
+let waitingForAdminConfirm = false;
+
+function handleMessage(msg) {
+  msg = msg.toLowerCase().trim();
+
+  // ✅ Greet the user
   if (msg.includes("hi") || msg.includes("hello") || msg.includes("hey")) {
     botReply("Hello! 👋 I'm Buddy, your assistant. How can I help you today?");
   }
 
+  // ✅ Share / reward prompt
   else if (msg.includes("share") || msg.includes("reward")) {
     botReply("🎁 Want a reward? Share the website 5 times using the share buttons, and you'll get a reward key! Ready to try?");
   }
 
+  // ✅ Download instructions
   else if (msg.includes("download")) {
     botReply("📥 You can download apps directly from the product cards. Just click the 'Download' button under the app you want!");
   }
 
+  // ✅ Anti-theft description
   else if (msg.includes("anti theft") || msg.includes("anti-theft")) {
     botReply("🛡️ Buddy Anti-Theft protects your phone with SIM change alerts, silent security, and tracking. Stay safe!");
   }
 
+  // ✅ AI Signal Dashboard
   else if (msg.includes("signal")) {
     botReply("📊 The AI Signal Dashboard is a web-based platform that provides intelligent trading signals for Forex, Crypto, and Commodities. It analyzes market data using indicators like EMA, RSI, and MACD to generate BUY, SELL, or HOLD signals with entry price, stop loss, and take profit levels. Some symbols and advanced features require VIP access. Want to learn more?");
   }
 
+  // ✅ Buddy Bot description
   else if (msg.includes("bot")) {
     botReply("🤖 Buddy Bot is a Windows-based automation and monitoring tool designed to help users manage and run intelligent trading systems. It connects with platforms like MetaTrader 5, monitors market activity, runs automated trading strategies, and sends alerts or signals when trading opportunities appear. Download the ZIP package and follow the user guide to install and get started.");
   }
 
+  // ✅ Football Dashboard
   else if (msg.includes("football") || msg.includes("dashboard")) {
-  botReply("⚽ The Football Intelligence Dashboard is an advanced match analysis platform that predicts football match outcomes using statistical models and real match data. It analyzes factors like team attack and defense strength, ELO ratings, recent form, league standings, injuries, and head-to-head history, then runs thousands of simulations to estimate win probabilities and likely scores. The dashboard also provides league standings, top scorers, team strength metrics, and full player lists for selected teams.");
+    botReply("⚽ The Football Intelligence Dashboard is an advanced match analysis platform that predicts football match outcomes using statistical models and real match data. It analyzes factors like team attack and defense strength, ELO ratings, recent form, league standings, injuries, and head-to-head history, then runs thousands of simulations to estimate win probabilities and likely scores. The dashboard also provides league standings, top scorers, team strength metrics, and full player lists for selected teams.");
+  }
+
+  // ✅ Problem / help / admin requests
+  else if (waitingForAdminConfirm && (msg.includes("yes") || msg.includes("yah") || msg.includes("ok"))) {
+    botReply("😕 Oh no! It seems you need serious assistance.");
+    setTimeout(() => {
+      botReply("You can contact the admin directly for help:");
+      botReply(`<a href='${ADMIN_TELEGRAM}' target='_blank'>✈️ Telegram</a> | <a href='${ADMIN_WHATSAPP}' target='_blank'>💬 WhatsApp</a>`);
+    }, 800);
+    waitingForAdminConfirm = false;
   }
 
   else if (msg.includes("problem") || msg.includes("admin") || msg.includes("help")) {
@@ -840,13 +862,15 @@ function sendBotMessage() {
     }, 800);
   }
 
+  // ✅ How are you
   else if (msg.includes("how are you")) {
     botReply("I'm doing great! 😎 Thanks for asking. How about you?");
   }
 
-  // Catch-all fallback
+  // ✅ Catch-all fallback for unknown messages
   else {
     botReply("🤔 I didn't quite catch that. If it's important, I can connect you with the admin.");
+    waitingForAdminConfirm = true;
   }
 }
 
@@ -1249,3 +1273,4 @@ style="flex:1;border:none;padding:10px;">
 </div>
 </body>
 </html>
+
