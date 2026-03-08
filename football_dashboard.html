@@ -388,23 +388,73 @@ async function showPlayers() {
     const awayPlayers = await loadTeamPlayers(away, comp);
 
     // -------------------------
-    // Sort players by position
+    // Granular position order for football lineup
     // -------------------------
-    const positionOrder = { GK: 0, DEF: 1, MID: 2, FWD: 3, UNK: 4 };
-    const positionColors = { 
-        GK: "#d4efdf",    // Green
-        DEF: "#f9f59f",   // Yellow
-        MID: "#f5a623",   // Orange
-        FWD: "#f5b7b1",   // Red
-        UNK: "#d7dbdd"    // Grey
+const positionMap = {
+    "Goalkeeper": "GK",
+    "Right-Back": "RB",
+    "Left-Back": "LB",
+    "Centre-Back": "CB",
+    "Defence": "DEF",
+    "Defensive Midfield": "DM",
+    "Central Midfield": "CM",
+    "Midfield": "MID",
+    "Attacking Midfield": "AM",
+    "Right Winger": "RW",
+    "Left Winger": "LW",
+    "Centre-Forward": "CF",
+    "Offence": "FWD"
+}; 
+
+const positionOrder = {
+    GK:0,
+    RB:1,
+    LB:2,
+    CB:3,
+    DEF:4,
+    DM:5,
+    CM:6,
+    AM:7,
+    MID:8,
+    RW:9,
+    LW:10,
+    FWD:12,
+    CF:11,
+    UNK:13
+};
+
+    const positionColors = {
+        "Goalkeeper": "#d4efdf",    // Green
+        "Left-Back": "#f9f59f",     // Yellow
+        "Right-Back": "#f9f59f",
+        "Centre-Back": "#f9f59f",
+        "Defence": "#f9f59f",
+        "Defensive Midfield": "#f5a623", // Orange
+        "Central Midfield": "#f5a623",
+        "Midfield": "#f5a623",
+        "Attacking Midfield": "#f5a623",
+        "Right Winger": "#f5b7b1",  // Red
+        "Left Winger": "#f5b7b1",
+        "Centre-Forward": "#f5b7b1",
+        "Offence": "#f5b7b1",
+        "UNK": "#d7dbdd"            // Grey
     };
 
-    function sortPlayers(players) {
-        return players.sort((a, b) => (positionOrder[a.position] || 4) - (positionOrder[b.position] || 4));
-    }
+    // -------------------------
+    // Sort players by position and then alphabetically
+    // -------------------------
+function sortPlayers(players){
+    return players.sort((a,b)=>{
+
+        const posA = positionMap[a.position] || "UNK";
+        const posB = positionMap[b.position] || "UNK";
+
+        return (positionOrder[posA] ?? 13) - (positionOrder[posB] ?? 13);
+    });
+}
 
     // -------------------------
-    // Build HTML table for one team
+    // Render table for one team
     // -------------------------
     function renderTable(teamName, players) {
         let tableHtml = `<div style="flex:1">
@@ -423,7 +473,7 @@ async function showPlayers() {
     }
 
     // -------------------------
-    // Combine tables side by side
+    // Combine home and away tables side by side
     // -------------------------
     analysis.innerHTML = `<div style="display:flex;gap:50px;">
         ${renderTable(home, sortPlayers(homePlayers))}
