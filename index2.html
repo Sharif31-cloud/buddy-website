@@ -210,6 +210,32 @@ function bearishEngulfing(data){
          (+b.close < +a.open);
 }
 
+function ADX(high, low, close, period = 14) {
+  let tr = [], plusDM = [], minusDM = [];
+
+  for (let i = 1; i < close.length; i++) {
+    let highDiff = high[i] - high[i-1];
+    let lowDiff = low[i-1] - low[i];
+
+    plusDM.push(highDiff > lowDiff && highDiff > 0 ? highDiff : 0);
+    minusDM.push(lowDiff > highDiff && lowDiff > 0 ? lowDiff : 0);
+
+    tr.push(Math.max(
+      high[i] - low[i],
+      Math.abs(high[i] - close[i-1]),
+      Math.abs(low[i] - close[i-1])
+    ));
+  }
+
+  let atr = EMA(tr.slice(-period), period);
+  let plusDI = 100 * (EMA(plusDM.slice(-period), period) / atr);
+  let minusDI = 100 * (EMA(minusDM.slice(-period), period) / atr);
+
+  let dx = (Math.abs(plusDI - minusDI) / (plusDI + minusDI)) * 100;
+
+  return dx;
+}
+
 // ================= HIGHER TIMEFRAME TREND =================
 async function getHigherTimeframeTrend(symbol){
 
@@ -435,6 +461,8 @@ async function runSignals(){
 
     let macdObj = MACD(cl);
 
+    let adx = ADX(h,l,cl);
+
     let trend = trendStrength(ema10,ema20);
 
     // ================= PROFESSIONAL SIGNAL =================
@@ -458,6 +486,10 @@ async function runSignals(){
     if(sig.signal === "SELL" && higherTrend !== "BEAR"){
       sig.signal = "HOLD";
     }
+
+    if(adx < 25){
+   sig.signal = "HOLD";
+}
 
     // ================= SUPPORT / RESISTANCE =================
     let sr = supportResistance(h,l);
