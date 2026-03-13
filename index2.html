@@ -161,12 +161,33 @@ function ATR(h,l,c,p=14){
   return EMA(t.slice(-p),p);
 }
 
-function MACD(v){
-  let ema12=EMA(v.slice(-50),12);
-  let ema26=EMA(v.slice(-50),26);
-  let macd=ema12-ema26;
-  let signal=EMA([macd],9);
-  return {macd,signal};
+function MACD(values){
+
+  const ema = (data, period) => {
+    const k = 2 / (period + 1);
+    let emaArr = [data[0]];
+
+    for (let i = 1; i < data.length; i++) {
+      emaArr.push(data[i] * k + emaArr[i - 1] * (1 - k));
+    }
+
+    return emaArr;
+  };
+
+  // Calculate EMA arrays
+  let ema12 = ema(values, 12);
+  let ema26 = ema(values, 26);
+
+  // MACD line
+  let macdLine = ema12.map((v, i) => v - ema26[i]);
+
+  // Signal line
+  let signalLine = ema(macdLine.slice(26), 9);
+
+  return {
+    macd: macdLine.at(-1),
+    signal: signalLine.at(-1)
+  };
 }
 
 // ================= TREND STRENGTH =================
@@ -487,7 +508,7 @@ async function runSignals(){
       sig.signal = "HOLD";
     }
 
-    if(adx < 25){
+    if(adx < 20){
    sig.signal = "HOLD";
 }
 
@@ -770,7 +791,7 @@ activateVipBtn.onclick=()=>{
 };
 
 symbol.addEventListener('change',runSignals);
-setInterval(runSignals,20*60*1000);
+setInterval(runSignals,15*60*1000);
 
 const openTVBtn = document.getElementById("openTVBtn");
 
