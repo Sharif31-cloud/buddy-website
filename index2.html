@@ -133,13 +133,142 @@ const cacheTime = 2 * 60 * 1000; // 2 minutes cache
 
 
 // =============== INDICATORS =================
-function EMA(v,p){let k=2/(p+1),e=v[0];for(let i=1;i<v.length;i++)e=v[i]*k+e*(1-k);return e;}
-function RSI(v,p=7){let g=0,l=0;for(let i=v.length-p;i<v.length-1;i++){let d=v[i+1]-v[i];d>0?g+=d:l-=d}let rs=g/(l||1);return 100-100/(1+rs);}
-function ATR(h,l,c,p=14){let t=[];for(let i=1;i<c.length;i++)t.push(Math.max(h[i]-l[i],Math.abs(h[i]-c[i-1]),Math.abs(l[i]-c[i-1])));return EMA(t.slice(-p),p);}
-function MACD(v){let a=EMA(v.slice(-26),12),b=EMA(v.slice(-26),26);return{macd:a-b,signal:EMA([a-b],9)};}
-function generateSignal(d){let s=0;d.ema10>d.ema20?s+=30:s-=30;d.rsi>55?s+=20:d.rsi<45?s-=20:null;d.macd>d.macdSignal?s+=20:s-=20;if(s>=35)return{signal:"BUY",strength:s};if(s<=-35)return{signal:"SELL",strength:Math.abs(s)};return{signal:"HOLD",strength:Math.abs(s)};}
-function SLTP(e,a,s){let r=a*1.2,t=r*1.5;if(s==="BUY")return{sl:e-r,tp:e+t};if(s==="SELL")return{sl:e+r,tp:e-t};return{sl:e,tp:e};}
+function EMA(v,p){
+  let k=2/(p+1),e=v[0];
+  for(let i=1;i<v.length;i++) e=v[i]*k+e*(1-k);
+  return e;
+}
 
+function RSI(v,p=14){
+  let g=0,l=0;
+  for(let i=v.length-p;i<v.length-1;i++){
+    let d=v[i+1]-v[i];
+    d>0?g+=d:l-=d;
+  }
+  let rs=g/(l||1);
+  return 100-100/(1+rs);
+}
+
+function ATR(h,l,c,p=14){
+  let t=[];
+  for(let i=1;i<c.length;i++){
+    t.push(Math.max(
+      h[i]-l[i],
+      Math.abs(h[i]-c[i-1]),
+      Math.abs(l[i]-c[i-1])
+    ));
+  }
+  return EMA(t.slice(-p),p);
+}
+
+function MACD(v){
+  let ema12=EMA(v.slice(-50),12);
+  let ema26=EMA(v.slice(-50),26);
+  let macd=ema12-ema26;
+  let signal=EMA([macd],9);
+  return {macd,signal};
+}
+
+// ================= TREND STRENGTH =================
+function trendStrength(ema10,ema20){
+  return Math.abs(ema10-ema20);
+}
+
+// ================= SUPPORT RESISTANCE =================
+function supportResistance(highs,lows){
+  let resistance=Math.max(...highs.slice(-50));
+  let support=Math.min(...lows.slice(-50));
+  return {resistance,support};
+}
+
+// ================= VOLUME STRENGTH =================
+function volumeStrength(data){
+  let volumes=data.map(x=>+x.volume||0);
+  let avg=volumes.slice(-20).reduce((a,b)=>a+b,0)/20;
+  let current=volumes.at(-1);
+  return current>avg;
+}
+
+// ================= CANDLE PATTERNS =================
+function bullishEngulfing(data){
+  let a=data.at(-2);
+  let b=data.at(-1);
+
+  return (+b.close > +b.open) &&
+         (+a.close < +a.open) &&
+         (+b.close > +a.open) &&
+         (+b.open < +a.close);
+}
+
+function bearishEngulfing(data){
+  let a=data.at(-2);
+  let b=data.at(-1);
+
+  return (+b.close < +b.open) &&
+         (+a.close > +a.open) &&
+         (+b.open > +a.close) &&
+         (+b.close < +a.open);
+}
+
+// ================= HIGHER TIMEFRAME TREND =================
+async function getHigherTimeframeTrend(symbol){
+
+  let url=`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1h&outputsize=200&apikey=${TWELVE_KEY}`;
+  let r=await fetch(url);
+  let j=await r.json();
+
+  if(!j.values) return "SIDEWAYS";
+
+  let data=j.values.reverse();
+  let closes=data.map(x=>+x.close);
+
+  let ema50=EMA(closes.slice(-100),50);
+  let ema200=EMA(closes.slice(-200),200);
+
+  if(ema50>ema200) return "BULL";
+  if(ema50<ema200) return "BEAR";
+  return "SIDEWAYS";
+}
+
+// ================= PROFESSIONAL SIGNAL ENGINE =================
+function generateProfessionalSignal(d){
+
+  let score=0;
+
+  // EMA TREND
+  if(d.ema10>d.ema20) score+=25;
+  else score-=25;
+
+  // RSI MOMENTUM
+  if(d.rsi>60) score+=20;
+  else if(d.rsi<40) score-=20;
+
+  // MACD MOMENTUM
+  if(d.macd>d.macdSignal) score+=25;
+  else score-=25;
+
+  // EXTREME MOMENTUM BONUS
+  if(d.rsi>70) score+=10;
+  if(d.rsi<30) score-=10;
+
+  // TREND STRENGTH BONUS
+  if(d.trendStrength> d.price*0.0005) score+=10;
+
+  if(score>=50) return {signal:"BUY",strength:score};
+  if(score<=-50) return {signal:"SELL",strength:Math.abs(score)};
+
+  return {signal:"HOLD",strength:Math.abs(score)};
+}
+
+function SLTP(e,a,s){
+  let r=a*1.2;
+  let t=r*1.5;
+
+  if(s==="BUY") return {sl:e-r,tp:e+t};
+  if(s==="SELL") return {sl:e+r,tp:e-t};
+
+  return {sl:e,tp:e};
+}
 // =============== FETCH MARKET DATA =================
 async function fetchData(symbol){
   let url=`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${INTERVAL}&outputsize=200&apikey=${TWELVE_KEY}`;
@@ -273,49 +402,127 @@ async function sendSignalIfNotExists(signalData) {
 
 // ================= SIGNALS =================
 async function runSignals(){
+
   const symbolVal = symbol.value;
   loadChart(symbolVal);
 
   const now = Date.now();
+
   if(cachedSignals[symbolVal] && now - cachedSignals[symbolVal].time < cacheTime){
     displaySignals(cachedSignals[symbolVal].data);
     plotSignalOnChart({...cachedSignals[symbolVal].data, symbolVal});
     return;
   }
 
-  try {
-    let data = await fetchData(symbolVal);
-    let cl = data.map(x=>+x.close), h=data.map(x=>+x.high), l=data.map(x=>+x.low);
+  try{
 
-    let sig = generateSignal({
-      ema10:EMA(cl.slice(-20),10), 
-      ema20:EMA(cl.slice(-30),20), 
-      rsi:RSI(cl), 
-      macd:MACD(cl).macd, 
-      macdSignal:MACD(cl).signal
+    let data = await fetchData(symbolVal);
+
+    if(!data || data.length < 50){
+      signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>Not enough market data.</p>";
+      return;
+    }
+
+    let cl = data.map(x=>+x.close);
+    let h  = data.map(x=>+x.high);
+    let l  = data.map(x=>+x.low);
+
+    // ================= INDICATORS =================
+    let ema10 = EMA(cl.slice(-20),10);
+    let ema20 = EMA(cl.slice(-30),20);
+
+    let rsi = RSI(cl);
+
+    let macdObj = MACD(cl);
+
+    let trend = trendStrength(ema10,ema20);
+
+    // ================= PROFESSIONAL SIGNAL =================
+    let sig = generateProfessionalSignal({
+      ema10:ema10,
+      ema20:ema20,
+      rsi:rsi,
+      macd:macdObj.macd,
+      macdSignal:macdObj.signal,
+      trendStrength:trend,
+      price:cl.at(-1)
     });
 
+    // ================= HIGHER TIMEFRAME FILTER =================
+    let higherTrend = await getHigherTimeframeTrend(symbolVal);
+
+    if(sig.signal === "BUY" && higherTrend !== "BULL"){
+      sig.signal = "HOLD";
+    }
+
+    if(sig.signal === "SELL" && higherTrend !== "BEAR"){
+      sig.signal = "HOLD";
+    }
+
+    // ================= SUPPORT / RESISTANCE =================
+    let sr = supportResistance(h,l);
+
     let entry = cl.at(-1);
+
+    if(sig.signal === "BUY" && entry > sr.resistance * 0.995){
+      sig.signal = "HOLD";
+    }
+
+    if(sig.signal === "SELL" && entry < sr.support * 1.005){
+      sig.signal = "HOLD";
+    }
+
+    // ================= VOLUME CONFIRMATION =================
+    if(!volumeStrength(data)){
+      sig.signal = "HOLD";
+    }
+
+    // ================= CANDLE CONFIRMATION =================
+    if(sig.signal === "BUY" && !bullishEngulfing(data)){
+      sig.signal = "HOLD";
+    }
+
+    if(sig.signal === "SELL" && !bearishEngulfing(data)){
+      sig.signal = "HOLD";
+    }
+
+    // ================= STOPLOSS TAKEPROFIT =================
     let sltp = SLTP(entry, ATR(h,l,cl), sig.signal);
-    let lastCandleTime = new Date(data.at(-1).datetime).getTime(); 
 
-    const signalData = {symbolVal, sig, entry, sltp, candleTime: lastCandleTime};
-    cachedSignals[symbolVal] = {data: signalData, time: now};
+    let lastCandleTime = new Date(data.at(-1).datetime).getTime();
 
+    const signalData = {
+      symbolVal,
+      sig,
+      entry,
+      sltp,
+      candleTime:lastCandleTime
+    };
+
+    // ================= CACHE =================
+    cachedSignals[symbolVal] = {
+      data:signalData,
+      time:now
+    };
+
+    // ================= DISPLAY =================
     displaySignals(signalData);
-    plotSignalOnChart(signalData); // plot on main chart
 
+    // ================= CHART PLOT =================
+    plotSignalOnChart(signalData);
 
+    // ================= FIREBASE SEND =================
+    sendSignalIfNotExists(signalData);
 
-sendSignalIfNotExists(signalData);
+  }
+  catch(e){
 
+    console.error(e);
 
-
-  } catch(e){
     signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>❌ Error fetching data from Twelvedata. Check API key or symbol.</p>";
+
   }
 }
-
 
 
 function displaySignals({symbolVal, sig, entry, sltp}) {
