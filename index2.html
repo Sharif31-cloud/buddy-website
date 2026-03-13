@@ -460,11 +460,7 @@ registerBtn.onclick = () => {
     alert(e.message);
   });
 };
-.then(uc=>{
-  set(ref(db,'users/'+uc.user.uid),{email:uc.user.email,vip:false,created:new Date().toISOString()});
-  alert("Account created. Request VIP from the button.");
-})
-.catch(e=>alert(e.message));
+
 
 onAuthStateChanged(auth, user => {
   clearInterval(vipCountdownInterval); // clear old VIP countdown
