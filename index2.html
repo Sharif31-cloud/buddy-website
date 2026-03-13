@@ -771,16 +771,6 @@ onValue(userRef, (snap) => {
 
   runSignals();
 
-});.then(r => {
-    if (r.exists() && r.val().status === "pending") {
-      upgradeBtn.style.display = "none"; // hide button if request pending
-    }
-
-    // Run signals after VIP check
-    runSignals();
-  }).catch(err => {
-    console.error("Auth/VIP check error:", err);
-  });
 });
 
 
