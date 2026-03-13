@@ -425,8 +425,41 @@ function vipExpired(uid) {
 
 
 // =============== AUTH =================
-loginBtn.onclick = ()=>signInWithEmailAndPassword(auth,email.value,password.value).catch(e=>alert(e.message));
-registerBtn.onclick = ()=>createUserWithEmailAndPassword(auth,email.value,password.value)
+loginBtn.onclick = () => {
+  const userEmail = email.value.trim();
+  const userPassword = password.value.trim();
+
+  signInWithEmailAndPassword(auth, userEmail, userPassword)
+  .catch(e => alert(e.message));
+};
+registerBtn.onclick = () => {
+  const userEmail = email.value.trim();
+  const userPassword = password.value.trim();
+
+  if(!userEmail){
+    alert("Please enter an email.");
+    return;
+  }
+
+  if(!userPassword){
+    alert("Please enter a password.");
+    return;
+  }
+
+  createUserWithEmailAndPassword(auth, userEmail, userPassword)
+  .then(uc=>{
+    set(ref(db,'users/'+uc.user.uid),{
+      email: uc.user.email,
+      vip:false,
+      created:new Date().toISOString()
+    });
+    alert("✅ Account created. Request VIP from the button.");
+  })
+  .catch(e=>{
+    console.error(e);
+    alert(e.message);
+  });
+};
 .then(uc=>{
   set(ref(db,'users/'+uc.user.uid),{email:uc.user.email,vip:false,created:new Date().toISOString()});
   alert("Account created. Request VIP from the button.");
