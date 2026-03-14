@@ -94,6 +94,7 @@ import { getDatabase, ref, set, get, child, onValue } from "https://www.gstatic.
 // =============== TWELVEDATA CONFIG ===============
 const TWELVE_KEY = "894c1cdec16d47b98980a4423f254352";
 const INTERVAL = "15min";
+let vipReloaded = false;
 
 // =============== FIREBASE =================
 const firebaseConfig = {
@@ -752,9 +753,10 @@ onValue(userRef, (snap) => {
       isVIP = true;
 
       // If admin just approved VIP while user is on page
-      if (!wasVIP) {
-        location.reload();
-      }
+      if (!wasVIP && isVIP && !vipReloaded) {
+  vipReloaded = true;
+  setTimeout(()=>location.reload(),500);
+}
 
       startVipCountdown(data.vipExpiry);
 
