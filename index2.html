@@ -816,7 +816,7 @@ activateVipBtn.onclick=()=>{
   .then(()=>{alert("✅ VIP request sent! Admin will verify payment.");activateVipBtn.disabled=true;activateVipBtn.innerText="TID Submitted";})
   .catch(err=>alert(err.message));
 };
-
+});
 symbol.addEventListener('change',runSignals);
 setInterval(runSignals,15*60*1000);
 
