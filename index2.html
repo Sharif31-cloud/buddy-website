@@ -495,62 +495,41 @@ async function runSignals() {
       price: entry
     });
 
-    let blockedBy = null;
+    // ================= HIGHER TIMEFRAME FILTER =================
+    let higherTrend = await getHigherTimeframeTrend(symbolVal);
 
-// ================= HIGHER TIMEFRAME FILTER =================
-let higherTrend = await getHigherTimeframeTrend(symbolVal);
+    let higherTFFlag = false;
+    if (sig.signal === "BUY" && higherTrend === "BULL") higherTFFlag = true;
+    if (sig.signal === "SELL" && higherTrend === "BEAR") higherTFFlag = true;
 
-let higherTFFlag = false;
-if (sig.signal === "BUY" && higherTrend === "BULL") higherTFFlag = true;
-if (sig.signal === "SELL" && higherTrend === "BEAR") higherTFFlag = true;
-
-if ((sig.signal === "BUY" && higherTrend !== "BULL") || (sig.signal === "SELL" && higherTrend !== "BEAR")) {
-  sig.signal = "HOLD";
-  blockedBy = "Higher Timeframe Trend";
-}
+    if ((sig.signal === "BUY" && higherTrend !== "BULL") || (sig.signal === "SELL" && higherTrend !== "BEAR")) {
+      sig.signal = "HOLD";
+    }
 
     // ================= ADX FILTER =================
-   if (!adx) {
-  sig.signal = "HOLD";
-  blockedBy = "Weak Trend (ADX)";
-}
+    let adxFlag = adx >= 20;
+    if (!adxFlag) sig.signal = "HOLD";
 
     // ================= SUPPORT / RESISTANCE FILTER =================
+    let srFlag = true;
     if (sig.signal === "BUY" && entry > sr.resistance * 0.995) {
-  sig.signal = "HOLD";
-  sr = false;
-  blockedBy = "Near Resistance";
-}
-
-if (sig.signal === "SELL" && entry < sr.support * 1.005) {
-  sig.signal = "HOLD";
-  sr = false;
-  blockedBy = "Near Support";
-}
+      sig.signal = "HOLD";
+      srFlag = false;
+    }
+    if (sig.signal === "SELL" && entry < sr.support * 1.005) {
+      sig.signal = "HOLD";
+      srFlag = false;
+    }
 
     // ================= VOLUME CONFIRMATION =================
-let volumeFlag = volumeStrength(data);
+    let volumeFlag = volumeStrength(data);
+    if (!volumeFlag) sig.signal = "HOLD";
 
-// Volume increases confidence but never cancels trade
-if (volumeFlag && sig.signal !== "HOLD") {
-  sig.strength += 5;
-}
-
-// ================= CANDLE CONFIRMATION =================
-let candleFlag = false;
-
-if (sig.signal === "BUY" && bullishEngulfing(data)) {
-  candleFlag = true;
-}
-
-if (sig.signal === "SELL" && bearishEngulfing(data)) {
-  candleFlag = true;
-}
-
-// Candle pattern increases confidence but never cancels trade
-if (candleFlag && sig.signal !== "HOLD") {
-  sig.strength += 10;
-}
+    // ================= CANDLE CONFIRMATION =================
+    let candleFlag = false;
+    if (sig.signal === "BUY" && bullishEngulfing(data)) candleFlag = true;
+    if (sig.signal === "SELL" && bearishEngulfing(data)) candleFlag = true;
+    if (!candleFlag && sig.signal !== "HOLD") sig.signal = "HOLD";
 
     // ================= STOPLOSS / TAKEPROFIT =================
     let sltp = SLTP(entry, ATR(h, l, cl), sig.signal);
@@ -566,8 +545,6 @@ if (candleFlag && sig.signal !== "HOLD") {
       supportResistance: srFlag,
       candlePattern: candleFlag
     };
-
-    sig.blockedBy = blockedBy;
 
     let lastCandleTime = new Date(data.at(-1).datetime).getTime();
 
@@ -642,9 +619,6 @@ function displaySignals({symbolVal, sig, entry, sltp}) {
 
       <h3>${symbolVal}</h3>
       <h2 class="${sig.signal.toLowerCase()}">${sig.signal}</h2>
-      ${sig.signal === "HOLD" && sig.blockedBy ? 
-`<p style="color:#fbbf24;">⚠️ Trade blocked by: <b>${sig.blockedBy}</b></p>` 
-: ""}
 
       <p>Entry: ${entry.toFixed(2)} 
         <span class="copy-link" data-copy="${entry.toFixed(2)}">🔗</span>
