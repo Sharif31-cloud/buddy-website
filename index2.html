@@ -495,31 +495,40 @@ async function runSignals() {
       price: entry
     });
 
-    // ================= HIGHER TIMEFRAME FILTER =================
-    let higherTrend = await getHigherTimeframeTrend(symbolVal);
+    let blockedBy = null;
 
-    let higherTFFlag = false;
-    if (sig.signal === "BUY" && higherTrend === "BULL") higherTFFlag = true;
-    if (sig.signal === "SELL" && higherTrend === "BEAR") higherTFFlag = true;
+// ================= HIGHER TIMEFRAME FILTER =================
+let higherTrend = await getHigherTimeframeTrend(symbolVal);
 
-    if ((sig.signal === "BUY" && higherTrend !== "BULL") || (sig.signal === "SELL" && higherTrend !== "BEAR")) {
-      sig.signal = "HOLD";
-    }
+let higherTFFlag = false;
+if (sig.signal === "BUY" && higherTrend === "BULL") higherTFFlag = true;
+if (sig.signal === "SELL" && higherTrend === "BEAR") higherTFFlag = true;
+
+if ((sig.signal === "BUY" && higherTrend !== "BULL") || (sig.signal === "SELL" && higherTrend !== "BEAR")) {
+  sig.signal = "HOLD";
+  blockedBy = "Higher Timeframe Trend";
+}
 
     // ================= ADX FILTER =================
     let adxFlag = adx >= 20;
-    if (!adxFlag) sig.signal = "HOLD";
+    if (!adxFlag) {
+  sig.signal = "HOLD";
+  blockedBy = "Weak Trend (ADX)";
+}
 
     // ================= SUPPORT / RESISTANCE FILTER =================
     let srFlag = true;
     if (sig.signal === "BUY" && entry > sr.resistance * 0.995) {
-      sig.signal = "HOLD";
-      srFlag = false;
-    }
-    if (sig.signal === "SELL" && entry < sr.support * 1.005) {
-      sig.signal = "HOLD";
-      srFlag = false;
-    }
+  sig.signal = "HOLD";
+  srFlag = false;
+  blockedBy = "Near Resistance";
+}
+
+if (sig.signal === "SELL" && entry < sr.support * 1.005) {
+  sig.signal = "HOLD";
+  srFlag = false;
+  blockedBy = "Near Support";
+}
 
     // ================= VOLUME CONFIRMATION =================
 let volumeFlag = volumeStrength(data);
@@ -558,6 +567,7 @@ if (candleFlag && sig.signal !== "HOLD") {
       supportResistance: srFlag,
       candlePattern: candleFlag
     };
+    sig.blockedBy = blockedBy;
 
     let lastCandleTime = new Date(data.at(-1).datetime).getTime();
 
@@ -632,6 +642,9 @@ function displaySignals({symbolVal, sig, entry, sltp}) {
 
       <h3>${symbolVal}</h3>
       <h2 class="${sig.signal.toLowerCase()}">${sig.signal}</h2>
+      ${sig.signal === "HOLD" && sig.blockedBy ? 
+`<p style="color:#fbbf24;">⚠️ Trade blocked by: <b>${sig.blockedBy}</b></p>` 
+: ""}
 
       <p>Entry: ${entry.toFixed(2)} 
         <span class="copy-link" data-copy="${entry.toFixed(2)}">🔗</span>
