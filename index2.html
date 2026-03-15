@@ -518,13 +518,13 @@ if ((sig.signal === "BUY" && higherTrend !== "BULL") || (sig.signal === "SELL" &
     // ================= SUPPORT / RESISTANCE FILTER =================
     if (sig.signal === "BUY" && entry > sr.resistance * 0.995) {
   sig.signal = "HOLD";
-  srFlag = false;
+  sr = false;
   blockedBy = "Near Resistance";
 }
 
 if (sig.signal === "SELL" && entry < sr.support * 1.005) {
   sig.signal = "HOLD";
-  srFlag = false;
+  sr = false;
   blockedBy = "Near Support";
 }
 
