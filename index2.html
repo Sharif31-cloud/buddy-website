@@ -510,7 +510,7 @@ if ((sig.signal === "BUY" && higherTrend !== "BULL") || (sig.signal === "SELL" &
 }
 
     // ================= ADX FILTER =================
-   if (!adxFlag) {
+   if (!adx) {
   sig.signal = "HOLD";
   blockedBy = "Weak Trend (ADX)";
 }
