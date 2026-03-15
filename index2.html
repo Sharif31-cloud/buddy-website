@@ -522,14 +522,28 @@ async function runSignals() {
     }
 
     // ================= VOLUME CONFIRMATION =================
-    let volumeFlag = volumeStrength(data);
-    if (!volumeFlag) sig.signal = "HOLD";
+let volumeFlag = volumeStrength(data);
 
-    // ================= CANDLE CONFIRMATION =================
-    let candleFlag = false;
-    if (sig.signal === "BUY" && bullishEngulfing(data)) candleFlag = true;
-    if (sig.signal === "SELL" && bearishEngulfing(data)) candleFlag = true;
-    if (!candleFlag && sig.signal !== "HOLD") sig.signal = "HOLD";
+// Volume increases confidence but never cancels trade
+if (volumeFlag && sig.signal !== "HOLD") {
+  sig.strength += 5;
+}
+
+// ================= CANDLE CONFIRMATION =================
+let candleFlag = false;
+
+if (sig.signal === "BUY" && bullishEngulfing(data)) {
+  candleFlag = true;
+}
+
+if (sig.signal === "SELL" && bearishEngulfing(data)) {
+  candleFlag = true;
+}
+
+// Candle pattern increases confidence but never cancels trade
+if (candleFlag && sig.signal !== "HOLD") {
+  sig.strength += 10;
+}
 
     // ================= STOPLOSS / TAKEPROFIT =================
     let sltp = SLTP(entry, ATR(h, l, cl), sig.signal);
