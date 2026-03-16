@@ -395,246 +395,292 @@ body.dark-mode .screenshot-images img {
   </a>
 </div>
 
-  <!-- Products Section -->
-  <div class="products">
+    <!-- ======================== -->
+<!-- Contact Us Section -->
+<!-- ======================== -->
+<div id="contact-section" style="text-align:center; margin:40px 0;">
 
-    <!-- Buddy Anti-Theft App -->
-    <div class="product" data-app="buddyApk">
-      <div class="icon">🔐📱</div>
-      <h2>Buddy Anti-Theft App</h2>
-      <p>Secure your phone against theft with SIM change alerts, location tracking, and silent protection.</p>
-      <div class="download-count" id="apk-count">Downloads: 0</div>
-      <div class="security-note">
-        <strong>Security Notice</strong><br>
-        Buddy Anti-Theft is a security app that uses device protection features.
-        Because it is installed outside Google Play, Google Drive may show a warning.
-        This is expected. Only install if you trust the source.
-      </div>
-      <a href="BuddyAntiTheft.apk" class="btn" id="apk-download" target="_blank">Download APK</a>
+  <h2>📞 Contact Us</h2>
+  <p>Need help or have questions? Reach our support team anytime.</p>
 
-      <!-- Reviews -->
-      <div class="reviews">
-        <h3>User Reviews</h3>
-        <div class="average-rating">
-          Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
-          (<span class="avg-value">0</span>/5)
-        </div>
-        <form class="rating-form">
-          <label>Rate this app:</label>
-          <select class="rating-select">
-            <option value="1">1 ⭐️</option>
-            <option value="2">2 ⭐️</option>
-            <option value="3" selected>3 ⭐️</option>
-            <option value="4">4 ⭐️</option>
-            <option value="5">5 ⭐️</option>
-          </select>
-          <button type="submit">Submit Rating</button>
-        </form>
-        <form class="review-form">
-          <input type="text" placeholder="Your name" class="review-name" required>
-          <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
-          <button type="submit">Submit Review</button>
-        </form>
-        <div class="reviews-list"></div>
-      </div>
+  <button class="btn" onclick="openSupportBot()">
+    Contact Support
+  </button>
+
+<!-- Products Section -->
+<div class="products">
+
+  <!-- Buddy Anti-Theft App -->
+  <div class="product" data-app="buddyApk">
+    <div class="icon">🔐📱</div>
+    <h2>Buddy Anti-Theft App</h2>
+    <p>Secure your phone against theft with SIM change alerts, location tracking, and silent protection.</p>
+
+    <!-- Downloads -->
+    <div class="download-count" id="apk-count">Downloads: 0</div>
+    <a href="BuddyAntiTheft.apk" class="btn" id="apk-download" target="_blank">Download APK</a>
+
+    <!-- Security Notice -->
+    <div class="security-note">
+      <strong>Security Notice</strong><br>
+      Buddy Anti-Theft is a security app that uses device protection features.
+      Because it is installed outside Google Play, Google Drive may show a warning.
+      This is expected. Only install if you trust the source.
     </div>
 
-    <!-- AI Signal Dashboard -->
-<div class="product" data-app="aiSignalDashboard">
-  <div class="icon">📊🤖</div>
-  <h2>AI Signal Dashboard(any Device)</h2>
-  <p>View real-time trading signals for Forex, crypto, and commodities with VIP access for full features.</p>
-
-  <!-- Visit Count -->
-  <div class="download-count" id="aiSignalDashboard-count">Visits: 0</div>
-  
-  <!-- Download / View Link -->
-  <a href="index2.html" id="dashboard-link" class="btn">🔗 Open Dashboard</a>
-
-  <!-- Optional: VIP lock notice -->
-  <p style="text-align:center; color:#fbbf24;">Some signals are VIP-only; login to access full features.</p>
-
-  <!-- Screenshots Section -->
-  <div class="screenshots">
-    <h3>Screenshots</h3>
-    <div class="screenshot-images">
-      <img src="bot4.png" alt="AI Dashboard Screenshot 1">
-      <img src="bot5.png" alt="AI Dashboard Screenshot 2">
-      <img src="bot6.png" alt="AI Dashboard Screenshot 2">
-      <img src="bot7.png" alt="AI Dashboard Screenshot 2">
+    <!-- Reviews -->
+    <div class="reviews">
+      <h3>User Reviews</h3>
+      <div class="average-rating">
+        Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
+        (<span class="avg-value">0</span>/5)
+      </div>
+      <form class="rating-form">
+        <label>Rate this app:</label>
+        <select class="rating-select">
+          <option value="1">1 ⭐️</option>
+          <option value="2">2 ⭐️</option>
+          <option value="3" selected>3 ⭐️</option>
+          <option value="4">4 ⭐️</option>
+          <option value="5">5 ⭐️</option>
+        </select>
+        <button type="submit">Submit Rating</button>
+      </form>
+      <form class="review-form">
+        <input type="text" placeholder="Your name" class="review-name" required>
+        <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+        <button type="submit">Submit Review</button>
+      </form>
+      <div class="reviews-list"></div>
     </div>
   </div>
 
-  <!-- Reviews -->
-  <div class="reviews">
-    <h3>User Reviews</h3>
-    <div class="average-rating">
-      Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
-      (<span class="avg-value">0</span>/5)
+  <!-- AI Signal Dashboard -->
+  <div class="product" data-app="aiSignalDashboard">
+    <div class="icon">📊🤖</div>
+    <h2>AI Signal Dashboard (Any Device)</h2>
+    <p>View real-time trading signals for Forex, crypto, and commodities with VIP access for full features.</p>
+
+    <!-- Visits -->
+    <div class="download-count" id="aiSignalDashboard-count">Visits: 0</div>
+    <a href="index2.html" id="dashboard-link" class="btn">🔗 Open Dashboard</a>
+
+    <!-- VIP Notice -->
+    <p style="text-align:center; color:#fbbf24;">
+      Some signals are VIP-only; login to access full features.
+    </p>
+
+    <!-- Screenshots -->
+    <div class="screenshots">
+      <h3>Screenshots</h3>
+      <div class="screenshot-images">
+        <img src="bot4.png" alt="AI Dashboard Screenshot 1">
+        <img src="bot5.png" alt="AI Dashboard Screenshot 2">
+        <img src="bot6.png" alt="AI Dashboard Screenshot 3">
+        <img src="bot7.png" alt="AI Dashboard Screenshot 4">
+      </div>
     </div>
-    <form class="rating-form">
-      <label>Rate this dashboard:</label>
-      <select class="rating-select">
-        <option value="1">1 ⭐️</option>
-        <option value="2">2 ⭐️</option>
-        <option value="3" selected>3 ⭐️</option>
-        <option value="4">4 ⭐️</option>
-        <option value="5">5 ⭐️</option>
-      </select>
-      <button type="submit">Submit Rating</button>
-    </form>
-    <form class="review-form">
-      <input type="text" placeholder="Your name" class="review-name" required>
-      <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
-      <button type="submit">Submit Review</button>
-    </form>
-    <div class="reviews-list"></div>
+
+    <!-- Reviews -->
+    <div class="reviews">
+      <h3>User Reviews</h3>
+      <div class="average-rating">
+        Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
+        (<span class="avg-value">0</span>/5)
+      </div>
+      <form class="rating-form">
+        <label>Rate this dashboard:</label>
+        <select class="rating-select">
+          <option value="1">1 ⭐️</option>
+          <option value="2">2 ⭐️</option>
+          <option value="3" selected>3 ⭐️</option>
+          <option value="4">4 ⭐️</option>
+          <option value="5">5 ⭐️</option>
+        </select>
+        <button type="submit">Submit Rating</button>
+      </form>
+      <form class="review-form">
+        <input type="text" placeholder="Your name" class="review-name" required>
+        <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+        <button type="submit">Submit Review</button>
+      </form>
+      <div class="reviews-list"></div>
+    </div>
   </div>
+
+  <!-- Buddy Bot (Windows) -->
+  <div class="product" data-app="buddyExe">
+    <div class="icon">🤖💻</div>
+    <h2>Buddy Bot (Windows)</h2>
+    <p>Powerful automation and monitoring bot for Windows systems. Easy to use, reliable, and secure.</p>
+
+    <!-- Downloads -->
+    <div class="download-count" id="exe-count">Downloads: 0</div>
+    <a href="SH.BOT_4_RENT.zip" class="btn" id="exe-download" target="_blank">Download EXE</a>
+    <a href="SignalHawkBot_User_Guide.pdf" class="btn secondary" download>Download Bot User Guide</a>
+
+    <!-- Screenshots -->
+    <div class="screenshots">
+      <h3>Screenshots</h3>
+      <div class="screenshot-images">
+        <img src="bot1.png" alt="Screenshot 1">
+        <img src="bot2.png" alt="Screenshot 2">
+        <img src="bot3.png" alt="Screenshot 3">
+      </div>
+    </div>
+
+    <!-- Reviews -->
+    <div class="reviews">
+      <h3>User Reviews</h3>
+      <div class="average-rating">
+        Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
+        (<span class="avg-value">0</span>/5)
+      </div>
+      <form class="rating-form">
+        <label>Rate this app:</label>
+        <select class="rating-select">
+          <option value="1">1 ⭐️</option>
+          <option value="2">2 ⭐️</option>
+          <option value="3" selected>3 ⭐️</option>
+          <option value="4">4 ⭐️</option>
+          <option value="5">5 ⭐️</option>
+        </select>
+        <button type="submit">Submit Rating</button>
+      </form>
+      <form class="review-form">
+        <input type="text" placeholder="Your name" class="review-name" required>
+        <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+        <button type="submit">Submit Review</button>
+      </form>
+      <div class="reviews-list"></div>
+    </div>
+  </div>
+
+  <!-- AI Street Racer (Windows) -->
+  <div class="product" data-app="aiStreetRacer">
+    <div class="icon">🏎️🔥</div>
+    <h2>AI Street Racer (Windows)</h2>
+    <p>Race through neon-lit streets against intelligent AI drivers. High-speed action, smooth controls, and adrenaline-packed gameplay designed for Windows PCs.</p>
+
+    <!-- Downloads -->
+    <div class="download-count" id="aiStreetRacer-count">Downloads: 0</div>
+    <a href="AI_Street_racer.zip" class="btn" id="aiStreetRacer-download" target="_blank">🎮 Download Game</a>
+
+    <!-- Reviews -->
+    <div class="reviews">
+      <h3>User Reviews</h3>
+      <div class="average-rating">
+        Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
+        (<span class="avg-value">0</span>/5)
+      </div>
+      <form class="rating-form">
+        <label>Rate this game:</label>
+        <select class="rating-select">
+          <option value="1">1 ⭐️</option>
+          <option value="2">2 ⭐️</option>
+          <option value="3" selected>3 ⭐️</option>
+          <option value="4">4 ⭐️</option>
+          <option value="5">5 ⭐️</option>
+        </select>
+        <button type="submit">Submit Rating</button>
+      </form>
+      <form class="review-form">
+        <input type="text" placeholder="Your name" class="review-name" required>
+        <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+        <button type="submit">Submit Review</button>
+      </form>
+      <div class="reviews-list"></div>
+    </div>
+  </div>
+
+  <!-- JobConnectAdmin -->
+  <div class="product" data-app="jobConnectAdmin">
+    <div class="icon">💼📊</div>
+    <h2>JobConnectAdmin</h2>
+    <p>Discover jobs, apply with ease, and connect with top employers—all in one place! JobConnect makes job searching and hiring smooth, fast, and stress-free for users everywhere.</p>
+
+    <!-- Downloads -->
+    <div class="download-count" id="admin-count">Downloads: 0</div>
+    <a href="JobConnectAdmin.apk" class="btn" id="admin-download" target="_blank">Download APK</a>
+
+    <!-- Security Notice -->
+    <div class="security-note">
+      <strong>Security Notice</strong><br>
+      JobConnectAdmin is a trusted app that handles user data securely. 
+      Since it is installed outside Google Play, Google Drive may show a warning.
+      This is normal. Only install if you trust the source.
+    </div>
+
+    <!-- Reviews -->
+    <div class="reviews">
+      <h3>User Reviews</h3>
+      <div class="average-rating">
+        Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
+        (<span class="avg-value">0</span>/5)
+      </div>
+      <form class="rating-form">
+        <label>Rate this app:</label>
+        <select class="rating-select">
+          <option value="1">1 ⭐️</option>
+          <option value="2">2 ⭐️</option>
+          <option value="3" selected>3 ⭐️</option>
+          <option value="4">4 ⭐️</option>
+          <option value="5">5 ⭐️</option>
+        </select>
+        <button type="submit">Submit Rating</button>
+      </form>
+      <form class="review-form">
+        <input type="text" placeholder="Your name" class="review-name" required>
+        <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+        <button type="submit">Submit Review</button>
+      </form>
+      <div class="reviews-list"></div>
+    </div>
+  </div>
+
+  <!-- Football Intelligence Dashboard -->
+  <div class="product" data-app="footballDashboard">
+    <div class="icon">⚽🧠</div>
+    <h2>Football Intelligence Dashboard (Any Device)</h2>
+    <p>Analyze football matches using AI-powered insights. View team attack strength, defense strength, top scorers, head-to-head stats, and smart match predictions across major leagues.</p>
+
+    <!-- Visits -->
+    <div class="download-count" id="footballDashboard-count">Visits: 0</div>
+    <a href="football_dashboard.html" id="footballDashboard-link" class="btn">⚽ Open Football Dashboard</a>
+
+    <!-- Notice -->
+    <p style="text-align:center; color:#fbbf24;">
+      Some advanced analytics may require login or premium access.
+    </p>
+
+    <!-- Reviews -->
+    <div class="reviews">
+      <h3>User Reviews</h3>
+      <div class="average-rating">
+        Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
+        (<span class="avg-value">0</span>/5)
+      </div>
+      <form class="rating-form">
+        <label>Rate this dashboard:</label>
+        <select class="rating-select">
+          <option value="1">1 ⭐️</option>
+          <option value="2">2 ⭐️</option>
+          <option value="3" selected>3 ⭐️</option>
+          <option value="4">4 ⭐️</option>
+          <option value="5">5 ⭐️</option>
+        </select>
+        <button type="submit">Submit Rating</button>
+      </form>
+      <form class="review-form">
+        <input type="text" placeholder="Your name" class="review-name" required>
+        <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+        <button type="submit">Submit Review</button>
+      </form>
+      <div class="reviews-list"></div>
+    </div>
+  </div>
+
 </div>
-
-
-
-    <!-- Buddy Bot -->
-    <div class="product" data-app="buddyExe">
-      <div class="icon">🤖💻</div>
-      <h2>Buddy Bot (Windows)</h2>
-      <p>Powerful automation and monitoring bot for Windows systems. Easy to use, reliable, and secure.</p>
-      <div class="download-count" id="exe-count">Downloads: 0</div>
-
-      <!-- Screenshots -->
-      <div class="screenshots">
-        <h3>Screenshots</h3>
-        <div class="screenshot-images">
-          <img src="bot1.png" alt="Screenshot 1">
-          <img src="bot2.png" alt="Screenshot 2">
-          <img src="bot3.png" alt="Screenshot 3">
-        </div>
-      </div>
-
-      <a href="SH.BOT_4_RENT.zip" class="btn" id="exe-download" target="_blank">Download EXE</a>
-<a href="SignalHawkBot_User_Guide.pdf" class="btn secondary" download>Download Bot User Guide</a>
-
-      <!-- Reviews -->
-      <div class="reviews">
-        <h3>User Reviews</h3>
-        <div class="average-rating">
-          Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
-          (<span class="avg-value">0</span>/5)
-        </div>
-        <form class="rating-form">
-          <label>Rate this app:</label>
-          <select class="rating-select">
-            <option value="1">1 ⭐️</option>
-            <option value="2">2 ⭐️</option>
-            <option value="3" selected>3 ⭐️</option>
-            <option value="4">4 ⭐️</option>
-            <option value="5">5 ⭐️</option>
-          </select>
-          <button type="submit">Submit Rating</button>
-        </form>
-        <form class="review-form">
-          <input type="text" placeholder="Your name" class="review-name" required>
-          <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
-          <button type="submit">Submit Review</button>
-        </form>
-        <div class="reviews-list"></div>
-      </div>
-    </div>
-
-    <!-- AI Street Racer -->
-<div class="product" data-app="aiStreetRacer">
-  <div class="icon">🏎️🔥</div>
-
-  <h2>AI Street Racer (Windows)</h2>
-
-  <p>
-    Race through neon-lit streets against intelligent AI drivers.
-    High-speed action, smooth controls, and adrenaline-packed gameplay
-    designed for Windows PCs.
-  </p>
-
-  <!-- Download count (same style as JobConnectAdmin) -->
-  <div class="download-count" id="aiStreetRacer-count">
-    Downloads: 0
-  </div>
-
-  <a href="AI_Street_racer.zip" class="btn" id="aiStreetRacer-download" target="_blank">🎮 Download Game</a>
-
-  <!-- Reviews -->
-  <div class="reviews">
-    <h3>User Reviews</h3>
-
-    <div class="average-rating">
-      Average Rating:
-      <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span>
-      (<span class="avg-value">0</span>/5)
-    </div>
-
-    <form class="rating-form">
-      <label>Rate this game:</label>
-      <select class="rating-select">
-        <option value="1">1 ⭐️</option>
-        <option value="2">2 ⭐️</option>
-        <option value="3" selected>3 ⭐️</option>
-        <option value="4">4 ⭐️</option>
-        <option value="5">5 ⭐️</option>
-      </select>
-      <button type="submit">Submit Rating</button>
-    </form>
-
-    <form class="review-form">
-      <input type="text" placeholder="Your name" class="review-name" required>
-      <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
-      <button type="submit">Submit Review</button>
-    </form>
-
-    <div class="reviews-list"></div>
-  </div>
-</div>
-
-
-    <!-- JobConnectAdmin -->
-    <div class="product" data-app="jobConnectAdmin">
-      <div class="icon">💼📊</div>
-      <h2>JobConnectAdmin</h2>
-      <p>Discover jobs, apply with ease, and connect with top employers—all in one place! JobConnect makes job searching and hiring smooth, fast, and stress-free for users everywhere.</p>
-      <div class="download-count" id="admin-count">Downloads: 0</div>
-      <div class="security-note">
-        <strong>Security Notice</strong><br>
-        JobConnectAdmin is a trusted app that handles user data securely. 
-        Since it is installed outside Google Play, Google Drive may show a warning.
-        This is normal. Only install if you trust the source.
-      </div>
-     <a href="JobConnectAdmin.apk" class="btn" id="admin-download" target="_blank">Download APK</a>
-
-      <!-- Reviews -->
-      <div class="reviews">
-        <h3>User Reviews</h3>
-        <div class="average-rating">
-          Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
-          (<span class="avg-value">0</span>/5)
-        </div>
-        <form class="rating-form">
-          <label>Rate this app:</label>
-          <select class="rating-select">
-            <option value="1">1 ⭐️</option>
-            <option value="2">2 ⭐️</option>
-            <option value="3" selected>3 ⭐️</option>
-            <option value="4">4 ⭐️</option>
-            <option value="5">5 ⭐️</option>
-          </select>
-          <button type="submit">Submit Rating</button>
-        </form>
-        <form class="review-form">
-          <input type="text" placeholder="Your name" class="review-name" required>
-          <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
-          <button type="submit">Submit Review</button>
-        </form>
-        <div class="reviews-list"></div>
-      </div>
-    </div>
-
-  </div>
 
   <!-- Lightbox -->
   <div id="lightbox" onclick="this.style.display='none'">
@@ -649,20 +695,95 @@ body.dark-mode .screenshot-images img {
       <p>A: Buddy Anti-Theft only collects device info necessary for security alerts. SignalHawkBot only communicates with Firebase for subscription verification. No personal or trading credentials are transmitted.</p>
     </div>
     <div>
-      <strong>Q: Why does Google Drive show warnings when downloading the app?</strong>
-      <p>A: Google flags all executable files not from the Play Store. This is normal and expected. Our warning notice explains this for safety and trust.</p>
-    </div>
+  <strong>Q: Why do I see a warning when downloading the Buddy Anti-Theft app?</strong>
+  <p>
+    A: Because the app is not downloaded directly  from the Google Play Store,
+    Google may show a standard warning before the Installation. This is a normal security precaution
+    for all apps distributed outside the Play Store. The app is safe to install and does not
+    contain any viruses or harmful software.
+  </p>
+</div>
     <div>
       <strong>Q: Can I trust this bot with my trading account?</strong>
       <p>A: The bot only reads credentials locally to connect with MetaTrader 5. Credentials are encrypted and never sent to any server other than subscription verification via Firebase.</p>
     </div>
   </div>
 
+</div>
+
   <!-- Footer -->
   <footer>© 2026 Buddy Security • All rights reserved</footer>
 
   <!-- Scripts -->
 <script>
+// ========================
+// DEVTOOLS PROTECTION (ALLOW ONLY YOUR DEVICE)
+// ========================
+(async function(){
+
+  try{
+
+    // Get visitor IP
+    const res = await fetch("https://api.ipify.org?format=json");
+    const data = await res.json();
+    const userIP = data.ip;
+
+    // YOUR DEVICE IP
+    const OWNER_IP = "102.215.111.41";
+
+    // If NOT your device
+    if(userIP !== OWNER_IP){
+
+      console.log("Protected mode active");
+
+      // Block right click
+      document.addEventListener("contextmenu", e => e.preventDefault());
+
+      // Block devtools keys
+      document.addEventListener("keydown", function(e){
+
+        if(
+          e.keyCode === 123 || // F12
+          (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
+          (e.ctrlKey && e.shiftKey && e.keyCode === 74) || // Ctrl+Shift+J
+          (e.ctrlKey && e.keyCode === 85) // Ctrl+U
+        ){
+          e.preventDefault();
+        }
+
+      });
+
+      // Detect devtools open
+      setInterval(function(){
+
+        const threshold = 160;
+
+        if(
+          window.outerWidth - window.innerWidth > threshold ||
+          window.outerHeight - window.innerHeight > threshold
+        ){
+
+          document.body.innerHTML =
+          "<h1 style='text-align:center;margin-top:100px;font-family:sans-serif;'>⚠ Developer tools are not allowed.</h1>";
+
+        }
+
+      },1000);
+
+    }else{
+
+      console.log("Owner detected → DevTools allowed");
+
+    }
+
+  }catch(e){
+
+    console.log("IP check failed");
+
+  }
+
+})();
+  
   // ========================
   // Firebase Initialization
   // ========================
@@ -681,9 +802,156 @@ body.dark-mode .screenshot-images img {
  // ========================
 // Admin Contact Links
 // ========================
-const ADMIN_TELEGRAM = "https://t.me/@DeHawkfx";
+const ADMIN_TELEGRAM = "https://t.me/+qXOGtxbORnkzM2Q0";
 const ADMIN_WHATSAPP = "https://wa.me/256757316350"; 
 
+  // ========================
+// Contact Support Section
+// ========================
+function toggleContactOptions() {
+
+  const contactBox = document.getElementById("contact-options");
+
+  if (contactBox.style.display === "none") {
+    contactBox.style.display = "block";
+  } else {
+    contactBox.style.display = "none";
+  }
+
+}
+
+function openSupportBot(){
+
+const bot = document.getElementById("support-bot");
+const box = document.getElementById("bot-messages");
+
+bot.style.display = "block";
+
+if(box.innerHTML === ""){
+botReply("Hello 👋 I am Buddy Support Bot. Ask me about downloads, rewards, apps or troubleshooting.");
+}
+
+}
+
+function botReply(text){
+  const box = document.getElementById("bot-messages");
+  box.innerHTML += "<div style='margin-bottom:8px;color:#2c6bed'><b>Bot:</b> "+text+"</div>";
+  box.scrollTop = box.scrollHeight;
+}
+
+// ============================================
+// SUPPORT BOT FUNCTIONS
+// ============================================
+
+
+// ========================
+// Support Bot State
+// ========================
+let waitingForAdminConfirm = false;
+
+// ========================
+// Open / Close Support Bot
+// ========================
+function openSupportBot() {
+  const bot = document.getElementById("support-bot");
+  const box = document.getElementById("bot-messages");
+
+  bot.style.display = "block";
+
+  if (box.innerHTML.trim() === "") {
+    botReply("Hello 👋 I am Buddy Support Bot. Ask me about downloads, rewards, apps, or troubleshooting.");
+  }
+}
+
+function closeSupportBot() {
+  document.getElementById("support-bot").style.display = "none";
+}
+
+// ========================
+// Display Bot Messages
+// ========================
+function botReply(text) {
+  const box = document.getElementById("bot-messages");
+  box.innerHTML += `<div style='margin-bottom:8px;color:#2c6bed'><b>Bot:</b> ${text}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+// ========================
+// Send User Message
+// ========================
+function sendBotMessage() {
+  const input = document.getElementById("bot-input");
+  const msg = input.value.trim();
+
+  if (!msg) return;
+
+  const box = document.getElementById("bot-messages");
+  box.innerHTML += `<div style='margin-bottom:8px'><b>You:</b> ${msg}</div>`;
+  input.value = "";
+
+  handleMessage(msg);
+}
+
+// ========================
+// Handle Incoming Message Logic
+// ========================
+function handleMessage(msg) {
+  msg = msg.toLowerCase().trim();
+
+  // Greet the user
+  if (/hi|hello|hey/.test(msg)) {
+    botReply("Hello! 👋 I'm Buddy, your assistant. How can I help you today?");
+  }
+  // Share / reward
+  else if (/share|reward/.test(msg)) {
+    botReply("🎁 Want a reward? Share the website 5 times using the share buttons, and you'll get a reward key! Ready to try?");
+  }
+  // Download instructions
+  else if (/download/.test(msg)) {
+    botReply("📥 You can download apps directly from the product cards. Just click the 'Download' button under the app you want!");
+  }
+  // Anti-theft
+  else if (/anti[\s-]?theft/.test(msg)) {
+    botReply("🛡️ Buddy Anti-Theft protects your phone with SIM change alerts, silent security, and tracking. Stay safe!");
+  }
+  // AI Signal Dashboard
+  else if (/signal/.test(msg)) {
+    botReply("📊 The AI Signal Dashboard provides intelligent trading signals for Forex, Crypto, and Commodities. Some features require VIP access.");
+  }
+  // Buddy Bot
+  else if (/bot/.test(msg)) {
+    botReply("🤖 Buddy Bot is a Windows-based automation and monitoring tool. Connects with platforms like MetaTrader 5. Download the ZIP package and follow the user guide.");
+  }
+  // Football Dashboard
+  else if (/football|dashboard/.test(msg)) {
+    botReply("⚽ The Football Intelligence Dashboard predicts match outcomes using statistical models and real match data. Analyze team strength, top scorers, league standings, and more.");
+  }
+  // Help / admin request
+  else if (/problem|admin|help/.test(msg)) {
+    botReply("😕 Oh no! It seems you need serious assistance.");
+    setTimeout(() => {
+      botReply(`You can contact the admin directly for help: <a href='${ADMIN_TELEGRAM}' target='_blank'>✈️ Telegram</a> | <a href='${ADMIN_WHATSAPP}' target='_blank'>💬 WhatsApp</a>`);
+    }, 500);
+  }
+  // Admin confirmation prompt
+  else if (waitingForAdminConfirm && /yes|yah|ok/.test(msg)) {
+    botReply("😕 Oh no! It seems you need serious assistance.");
+    setTimeout(() => {
+      botReply(`You can contact the admin directly for help: <a href='${ADMIN_TELEGRAM}' target='_blank'>✈️ Telegram</a> | <a href='${ADMIN_WHATSAPP}' target='_blank'>💬 WhatsApp</a>`);
+    }, 500);
+    waitingForAdminConfirm = false;
+  }
+  // How are you
+  else if (/how are you/.test(msg)) {
+    botReply("I'm doing great! 😎 Thanks for asking. How about you?");
+  }
+  // Fallback
+  else {
+    botReply("🤔 I didn't quite catch that. If it's important, I can connect you with the admin.");
+    waitingForAdminConfirm = true;
+  }
+}
+  
   // ========================
   // User ID for Share Tracking
   // ========================
@@ -928,7 +1196,11 @@ function setupDashboardCounter(buttonSelector, countId, dbKey) {
 }
 
 // Call this for your dashboard
+// AI Signal Dashboard
 setupDashboardCounter("#dashboard-link", "aiSignalDashboard-count", "aiSignalDashboard");
+
+// Football Dashboard
+setupDashboardCounter("#footballDashboard-link", "footballDashboard-count", "footballDashboard");
 
 
   // ========================
@@ -1029,12 +1301,52 @@ applyAutoTheme();
 setInterval(applyAutoTheme, 15 * 60 * 1000);
 
 </script>
+<div id="support-bot" style="
+display:none;
+position:fixed;
+bottom:20px;
+right:20px;
+width:320px;
+background:white;
+border-radius:10px;
+box-shadow:0 10px 30px rgba(0,0,0,0.2);
+z-index:9999;
+">
 
+<div style="
+background:#2c6bed;
+color:white;
+padding:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+">
+
+<span>🤖 Buddy Support Bot</span>
+
+<button onclick="closeSupportBot()" style="
+background:transparent;
+border:none;
+color:white;
+font-size:18px;
+cursor:pointer;
+">
+✖
+</button>
+
+</div>
+
+<div id="bot-messages" style="height:250px;overflow-y:auto;padding:10px;font-size:14px;"></div>
+
+<div style="display:flex;border-top:1px solid #ddd;">
+<input id="bot-input" placeholder="Ask something..."
+style="flex:1;border:none;padding:10px;">
+<button onclick="sendBotMessage()" style="border:none;background:#2c6bed;color:white;padding:10px;">Send</button>
+</div>
+
+</div>
 </body>
 </html>
-
-
-
 
 
 

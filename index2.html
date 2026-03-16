@@ -87,6 +87,74 @@ select option.free-symbol { color: #22c55e; font-weight: bold; }
 </div>
 
 <script type="module">
+// ========================
+// DEVTOOLS PROTECTION (ALLOW ONLY YOUR DEVICE)
+// ========================
+(async function(){
+
+  try{
+
+    // Get visitor IP
+    const res = await fetch("https://api.ipify.org?format=json");
+    const data = await res.json();
+    const userIP = data.ip;
+
+    // YOUR DEVICE IP
+    const OWNER_IP = "102.215.111.41";
+
+    // If NOT your device
+    if(userIP !== OWNER_IP){
+
+      console.log("Protected mode active");
+
+      // Block right click
+      document.addEventListener("contextmenu", e => e.preventDefault());
+
+      // Block devtools keys
+      document.addEventListener("keydown", function(e){
+
+        if(
+          e.keyCode === 123 || // F12
+          (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
+          (e.ctrlKey && e.shiftKey && e.keyCode === 74) || // Ctrl+Shift+J
+          (e.ctrlKey && e.keyCode === 85) // Ctrl+U
+        ){
+          e.preventDefault();
+        }
+
+      });
+
+      // Detect devtools open
+      setInterval(function(){
+
+        const threshold = 160;
+
+        if(
+          window.outerWidth - window.innerWidth > threshold ||
+          window.outerHeight - window.innerHeight > threshold
+        ){
+
+          document.body.innerHTML =
+          "<h1 style='text-align:center;margin-top:100px;font-family:sans-serif;'>⚠ Developer tools are not allowed.</h1>";
+
+        }
+
+      },1000);
+
+    }else{
+
+      console.log("Owner detected → DevTools allowed");
+
+    }
+
+  }catch(e){
+
+    console.log("IP check failed");
+
+  }
+
+})();
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -133,13 +201,189 @@ const cacheTime = 2 * 60 * 1000; // 2 minutes cache
 
 
 // =============== INDICATORS =================
-function EMA(v,p){let k=2/(p+1),e=v[0];for(let i=1;i<v.length;i++)e=v[i]*k+e*(1-k);return e;}
-function RSI(v,p=7){let g=0,l=0;for(let i=v.length-p;i<v.length-1;i++){let d=v[i+1]-v[i];d>0?g+=d:l-=d}let rs=g/(l||1);return 100-100/(1+rs);}
-function ATR(h,l,c,p=14){let t=[];for(let i=1;i<c.length;i++)t.push(Math.max(h[i]-l[i],Math.abs(h[i]-c[i-1]),Math.abs(l[i]-c[i-1])));return EMA(t.slice(-p),p);}
-function MACD(v){let a=EMA(v.slice(-26),12),b=EMA(v.slice(-26),26);return{macd:a-b,signal:EMA([a-b],9)};}
-function generateSignal(d){let s=0;d.ema10>d.ema20?s+=30:s-=30;d.rsi>55?s+=20:d.rsi<45?s-=20:null;d.macd>d.macdSignal?s+=20:s-=20;if(s>=35)return{signal:"BUY",strength:s};if(s<=-35)return{signal:"SELL",strength:Math.abs(s)};return{signal:"HOLD",strength:Math.abs(s)};}
-function SLTP(e,a,s){let r=a*1.2,t=r*1.5;if(s==="BUY")return{sl:e-r,tp:e+t};if(s==="SELL")return{sl:e+r,tp:e-t};return{sl:e,tp:e};}
+function EMA(v,p){
+  let k=2/(p+1),e=v[0];
+  for(let i=1;i<v.length;i++) e=v[i]*k+e*(1-k);
+  return e;
+}
 
+function RSI(v,p=14){
+  let g=0,l=0;
+  for(let i=v.length-p;i<v.length-1;i++){
+    let d=v[i+1]-v[i];
+    d>0?g+=d:l-=d;
+  }
+  let rs=g/(l||1);
+  return 100-100/(1+rs);
+}
+
+function ATR(h,l,c,p=14){
+  let t=[];
+  for(let i=1;i<c.length;i++){
+    t.push(Math.max(
+      h[i]-l[i],
+      Math.abs(h[i]-c[i-1]),
+      Math.abs(l[i]-c[i-1])
+    ));
+  }
+  return EMA(t.slice(-p),p);
+}
+
+function MACD(values){
+
+  const ema = (data, period) => {
+    const k = 2 / (period + 1);
+    let emaArr = [data[0]];
+
+    for (let i = 1; i < data.length; i++) {
+      emaArr.push(data[i] * k + emaArr[i - 1] * (1 - k));
+    }
+
+    return emaArr;
+  };
+
+  // Calculate EMA arrays
+  let ema12 = ema(values, 12);
+  let ema26 = ema(values, 26);
+
+  // MACD line
+  let macdLine = ema12.map((v, i) => v - ema26[i]);
+
+  // Signal line
+  let signalLine = ema(macdLine.slice(26), 9);
+
+  return {
+    macd: macdLine.at(-1),
+    signal: signalLine.at(-1)
+  };
+}
+
+// ================= TREND STRENGTH =================
+function trendStrength(ema10,ema20){
+  return Math.abs(ema10-ema20);
+}
+
+// ================= SUPPORT RESISTANCE =================
+function supportResistance(highs,lows){
+  let resistance=Math.max(...highs.slice(-50));
+  let support=Math.min(...lows.slice(-50));
+  return {resistance,support};
+}
+
+// ================= VOLUME STRENGTH =================
+function volumeStrength(data){
+  let volumes=data.map(x=>+x.volume||0);
+  let avg=volumes.slice(-20).reduce((a,b)=>a+b,0)/20;
+  let current=volumes.at(-1);
+  return current>avg;
+}
+
+// ================= CANDLE PATTERNS =================
+function bullishEngulfing(data){
+  let a=data.at(-2);
+  let b=data.at(-1);
+
+  return (+b.close > +b.open) &&
+         (+a.close < +a.open) &&
+         (+b.close > +a.open) &&
+         (+b.open < +a.close);
+}
+
+function bearishEngulfing(data){
+  let a=data.at(-2);
+  let b=data.at(-1);
+
+  return (+b.close < +b.open) &&
+         (+a.close > +a.open) &&
+         (+b.open > +a.close) &&
+         (+b.close < +a.open);
+}
+
+function ADX(high, low, close, period = 14) {
+  let tr = [], plusDM = [], minusDM = [];
+
+  for (let i = 1; i < close.length; i++) {
+    let highDiff = high[i] - high[i-1];
+    let lowDiff = low[i-1] - low[i];
+
+    plusDM.push(highDiff > lowDiff && highDiff > 0 ? highDiff : 0);
+    minusDM.push(lowDiff > highDiff && lowDiff > 0 ? lowDiff : 0);
+
+    tr.push(Math.max(
+      high[i] - low[i],
+      Math.abs(high[i] - close[i-1]),
+      Math.abs(low[i] - close[i-1])
+    ));
+  }
+
+  let atr = EMA(tr.slice(-period), period);
+  let plusDI = 100 * (EMA(plusDM.slice(-period), period) / atr);
+  let minusDI = 100 * (EMA(minusDM.slice(-period), period) / atr);
+
+  let dx = (Math.abs(plusDI - minusDI) / (plusDI + minusDI)) * 100;
+
+  return dx;
+}
+
+// ================= HIGHER TIMEFRAME TREND =================
+async function getHigherTimeframeTrend(symbol){
+
+  let url=`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1h&outputsize=200&apikey=${TWELVE_KEY}`;
+  let r=await fetch(url);
+  let j=await r.json();
+
+  if(!j.values) return "SIDEWAYS";
+
+  let data=j.values.reverse();
+  let closes=data.map(x=>+x.close);
+
+  let ema50=EMA(closes.slice(-100),50);
+  let ema200=EMA(closes.slice(-200),200);
+
+  if(ema50>ema200) return "BULL";
+  if(ema50<ema200) return "BEAR";
+  return "SIDEWAYS";
+}
+
+// ================= PROFESSIONAL SIGNAL ENGINE =================
+function generateProfessionalSignal(d){
+
+  let score=0;
+
+  // EMA TREND
+  if(d.ema10>d.ema20) score+=25;
+  else score-=25;
+
+  // RSI MOMENTUM
+  if(d.rsi>60) score+=20;
+  else if(d.rsi<40) score-=20;
+
+  // MACD MOMENTUM
+  if(d.macd>d.macdSignal) score+=25;
+  else score-=25;
+
+  // EXTREME MOMENTUM BONUS
+  if(d.rsi>70) score+=10;
+  if(d.rsi<30) score-=10;
+
+  // TREND STRENGTH BONUS
+  if(d.trendStrength> d.price*0.0005) score+=10;
+
+  if(score>=50) return {signal:"BUY",strength:score};
+  if(score<=-50) return {signal:"SELL",strength:Math.abs(score)};
+
+  return {signal:"HOLD",strength:Math.abs(score)};
+}
+
+function SLTP(e,a,s){
+  let r=a*1.2;
+  let t=r*1.5;
+
+  if(s==="BUY") return {sl:e-r,tp:e+t};
+  if(s==="SELL") return {sl:e+r,tp:e-t};
+
+  return {sl:e,tp:e};
+}
 // =============== FETCH MARKET DATA =================
 async function fetchData(symbol){
   let url=`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${INTERVAL}&outputsize=200&apikey=${TWELVE_KEY}`;
@@ -159,7 +403,7 @@ function loadChart(symbolVal){
  chartWidget = new TradingView.widget({
   container_id:"chart",
   symbol:symbolVal.replace("/",""),
-  interval:"5",
+  interval:"15",
   theme:"dark",
   autosize:true,  // keep this
   studies: []
@@ -272,53 +516,160 @@ async function sendSignalIfNotExists(signalData) {
 
 
 // ================= SIGNALS =================
-async function runSignals(){
+async function runSignals() {
+
   const symbolVal = symbol.value;
   loadChart(symbolVal);
 
   const now = Date.now();
-  if(cachedSignals[symbolVal] && now - cachedSignals[symbolVal].time < cacheTime){
+
+  if (cachedSignals[symbolVal] && now - cachedSignals[symbolVal].time < cacheTime) {
     displaySignals(cachedSignals[symbolVal].data);
-    plotSignalOnChart({...cachedSignals[symbolVal].data, symbolVal});
+    plotSignalOnChart({ ...cachedSignals[symbolVal].data, symbolVal });
     return;
   }
 
   try {
-    let data = await fetchData(symbolVal);
-    let cl = data.map(x=>+x.close), h=data.map(x=>+x.high), l=data.map(x=>+x.low);
 
-    let sig = generateSignal({
-      ema10:EMA(cl.slice(-20),10), 
-      ema20:EMA(cl.slice(-30),20), 
-      rsi:RSI(cl), 
-      macd:MACD(cl).macd, 
-      macdSignal:MACD(cl).signal
+    let data = await fetchData(symbolVal);
+
+    if (!data || data.length < 50) {
+      signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>Not enough market data.</p>";
+      return;
+    }
+
+    let cl = data.map(x => +x.close);
+    let h = data.map(x => +x.high);
+    let l = data.map(x => +x.low);
+
+    // ================= INDICATORS =================
+    let ema10 = EMA(cl.slice(-20), 10);
+    let ema20 = EMA(cl.slice(-30), 20);
+    let rsi = RSI(cl);
+    let macdObj = MACD(cl);
+    let adx = ADX(h, l, cl);
+    let trend = trendStrength(ema10, ema20);
+    let sr = supportResistance(h, l);
+    let entry = cl.at(-1);
+
+    // ================= PROFESSIONAL SIGNAL =================
+    let sig = generateProfessionalSignal({
+      ema10,
+      ema20,
+      rsi,
+      macd: macdObj.macd,
+      macdSignal: macdObj.signal,
+      trendStrength: trend,
+      price: entry
     });
 
-    let entry = cl.at(-1);
-    let sltp = SLTP(entry, ATR(h,l,cl), sig.signal);
-    let lastCandleTime = new Date(data.at(-1).datetime).getTime(); 
+    let blockedBy = null;
 
-    const signalData = {symbolVal, sig, entry, sltp, candleTime: lastCandleTime};
-    cachedSignals[symbolVal] = {data: signalData, time: now};
+// ================= HIGHER TIMEFRAME FILTER =================
+let higherTrend = await getHigherTimeframeTrend(symbolVal);
 
+let higherTFFlag = false;
+if (sig.signal === "BUY" && higherTrend === "BULL") higherTFFlag = true;
+if (sig.signal === "SELL" && higherTrend === "BEAR") higherTFFlag = true;
+
+if ((sig.signal === "BUY" && higherTrend !== "BULL") || (sig.signal === "SELL" && higherTrend !== "BEAR")) {
+  sig.signal = "HOLD";
+  blockedBy = "Higher Timeframe Trend";
+}
+
+    // ================= ADX FILTER =================
+    let adxFlag = adx >= 20;
+    if (!adxFlag) {
+  sig.signal = "HOLD";
+  blockedBy = "Weak Trend (ADX)";
+}
+
+    // ================= SUPPORT / RESISTANCE FILTER =================
+    let srFlag = true;
+    if (sig.signal === "BUY" && entry > sr.resistance * 0.995) {
+  sig.signal = "HOLD";
+  srFlag = false;
+  blockedBy = "Near Resistance";
+}
+
+if (sig.signal === "SELL" && entry < sr.support * 1.005) {
+  sig.signal = "HOLD";
+  srFlag = false;
+  blockedBy = "Near Support";
+}
+
+    // ================= VOLUME CONFIRMATION =================
+let volumeFlag = volumeStrength(data);
+
+// Volume increases confidence but never cancels trade
+if (volumeFlag && sig.signal !== "HOLD") {
+  sig.strength += 5;
+}
+
+// ================= CANDLE CONFIRMATION =================
+let candleFlag = false;
+
+if (sig.signal === "BUY" && bullishEngulfing(data)) {
+  candleFlag = true;
+}
+
+if (sig.signal === "SELL" && bearishEngulfing(data)) {
+  candleFlag = true;
+}
+
+// Candle pattern increases confidence but never cancels trade
+if (candleFlag && sig.signal !== "HOLD") {
+  sig.strength += 10;
+}
+    // ================= STOPLOSS / TAKEPROFIT =================
+    let sltp = SLTP(entry, ATR(h, l, cl), sig.signal);
+
+    // ================= ADD FEATURES =================
+    sig.features = {
+      emaTrend: ema10 > ema20,
+      rsiMomentum: rsi > 60,
+      macdMomentum: macdObj.macd > macdObj.signal,
+      higherTF: higherTFFlag,
+      adxTrend: adxFlag,
+      volume: volumeFlag,
+      supportResistance: srFlag,
+      candlePattern: candleFlag
+    };
+    sig.blockedBy = blockedBy;
+
+    let lastCandleTime = new Date(data.at(-1).datetime).getTime();
+
+    const signalData = {
+      symbolVal,
+      sig,
+      entry,
+      sltp,
+      candleTime: lastCandleTime
+    };
+
+    // ================= CACHE =================
+    cachedSignals[symbolVal] = {
+      data: signalData,
+      time: now
+    };
+
+    // ================= DISPLAY =================
     displaySignals(signalData);
-    plotSignalOnChart(signalData); // plot on main chart
 
+    
 
+    // ================= FIREBASE SEND =================
+    sendSignalIfNotExists(signalData);
 
-sendSignalIfNotExists(signalData);
-
-
-
-  } catch(e){
+  } catch (e) {
+    console.error(e);
     signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>❌ Error fetching data from Twelvedata. Check API key or symbol.</p>";
   }
 }
 
 
-
 function displaySignals({symbolVal, sig, entry, sltp}) {
+
   const isFree = freeSymbols.includes(symbolVal);
   let vipBadgeHtml = "";
   let blurClass = "";
@@ -331,33 +682,94 @@ function displaySignals({symbolVal, sig, entry, sltp}) {
     blurClass = "vip-lock";
   }
 
+  // Build feature agreement lists
+  let agreeHtml = "";
+  let disagreeHtml = "";
+
+  if(sig.features){
+
+    Object.entries(sig.features).forEach(([name,val]) => {
+
+      const label = name
+        .replace(/([A-Z])/g," $1")
+        .replace(/^./,str=>str.toUpperCase());
+
+      if(val){
+        agreeHtml += `<li>✅ ${label}</li>`;
+      }else{
+        disagreeHtml += `<li>❌ ${label}</li>`;
+      }
+
+    });
+
+  }
+
   signals.innerHTML = `
     <div class="signal ${blurClass}">
       ${vipBadgeHtml}
+
       <h3>${symbolVal}</h3>
       <h2 class="${sig.signal.toLowerCase()}">${sig.signal}</h2>
-      <p>Entry: ${entry.toFixed(2)} <span class="copy-link" data-copy="${entry.toFixed(2)}">🔗</span></p>
-      <p>SL: ${sltp.sl.toFixed(2)} <span class="copy-link" data-copy="${sltp.sl.toFixed(2)}">🔗</span></p>
-      <p>TP: ${sltp.tp.toFixed(2)} <span class="copy-link" data-copy="${sltp.tp.toFixed(2)}">🔗</span></p>
+      ${sig.signal === "HOLD" && sig.blockedBy ? 
+`<p style="color:#fbbf24;">⚠️ Trade blocked by: <b>${sig.blockedBy}</b></p>` 
+: ""}
+
+      <p>Entry: ${entry.toFixed(2)} 
+        <span class="copy-link" data-copy="${entry.toFixed(2)}">🔗</span>
+      </p>
+
+      <p>SL: ${sltp.sl.toFixed(2)} 
+        <span class="copy-link" data-copy="${sltp.sl.toFixed(2)}">🔗</span>
+      </p>
+
+      <p>TP: ${sltp.tp.toFixed(2)} 
+        <span class="copy-link" data-copy="${sltp.tp.toFixed(2)}">🔗</span>
+      </p>
+
       <p>Strength: ${sig.strength}%</p>
-      ${(isVIP||isFree) ? `<p><span class="copy-link" data-copy="${symbolVal} ${sig.signal}">🔗 </span></p>` : ""}
+
+      ${(isVIP||isFree) ? `
+        <div class="signal-analysis">
+
+          <h4>Features Agreeing</h4>
+          <ul class="agree-list">${agreeHtml || "<li>None</li>"}</ul>
+
+          <h4>Features Disagreeing</h4>
+          <ul class="disagree-list">${disagreeHtml || "<li>None</li>"}</ul>
+
+        </div>
+
+        <p>
+          <span class="copy-link" data-copy="${symbolVal} ${sig.signal}">
+            🔗 Copy Signal
+          </span>
+        </p>
+      ` : ""}
+
     </div>
+
     ${(isVIP||isFree) ? "" : "<p style='text-align:center'>🔒 Request VIP to unlock signals</p>"}
   `;
 
-  // Add some basic style for copy-link
+  // style
   const style = document.createElement('style');
-  style.innerHTML = `.copy-link{cursor:pointer; color:#2563eb; margin-left:5px; text-decoration:underline;}`;
+  style.innerHTML = `
+    .copy-link{cursor:pointer;color:#2563eb;margin-left:5px;text-decoration:underline;}
+    .signal-analysis{margin-top:10px;font-size:13px}
+    .agree-list{color:#16a34a}
+    .disagree-list{color:#dc2626}
+  `;
   document.head.appendChild(style);
 
-  // Attach click events safely
+  // copy handlers
   const copyLinks = signals.querySelectorAll('.copy-link');
-  copyLinks.forEach(el => {
-    el.onclick = () => {
-      const text = el.getAttribute('data-copy');
+  copyLinks.forEach(el=>{
+    el.onclick=()=>{
+      const text=el.getAttribute('data-copy');
       copySignal(text);
     }
   });
+
 }
 
 
@@ -425,13 +837,42 @@ function vipExpired(uid) {
 
 
 // =============== AUTH =================
-loginBtn.onclick = ()=>signInWithEmailAndPassword(auth,email.value,password.value).catch(e=>alert(e.message));
-registerBtn.onclick = ()=>createUserWithEmailAndPassword(auth,email.value,password.value)
-.then(uc=>{
-  set(ref(db,'users/'+uc.user.uid),{email:uc.user.email,vip:false,created:new Date().toISOString()});
-  alert("Account created. Request VIP from the button.");
-})
-.catch(e=>alert(e.message));
+loginBtn.onclick = () => {
+  const userEmail = email.value.trim();
+  const userPassword = password.value.trim();
+
+  signInWithEmailAndPassword(auth, userEmail, userPassword)
+  .catch(e => alert(e.message));
+};
+registerBtn.onclick = () => {
+  const userEmail = email.value.trim();
+  const userPassword = password.value.trim();
+
+  if(!userEmail){
+    alert("Please enter an email.");
+    return;
+  }
+
+  if(!userPassword){
+    alert("Please enter a password.");
+    return;
+  }
+
+  createUserWithEmailAndPassword(auth, userEmail, userPassword)
+  .then(uc=>{
+    set(ref(db,'users/'+uc.user.uid),{
+      email: uc.user.email,
+      vip:false,
+      created:new Date().toISOString()
+    });
+    alert("✅ Account created. Request VIP from the button.");
+  })
+  .catch(e=>{
+    console.error(e);
+    alert(e.message);
+  });
+};
+
 
 onAuthStateChanged(auth, user => {
   clearInterval(vipCountdownInterval); // clear old VIP countdown
@@ -502,7 +943,7 @@ activateVipBtn.onclick=()=>{
 };
 
 symbol.addEventListener('change',runSignals);
-setInterval(runSignals,20*60*1000);
+setInterval(runSignals,15*60*1000);
 
 const openTVBtn = document.getElementById("openTVBtn");
 
