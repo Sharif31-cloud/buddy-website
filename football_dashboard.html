@@ -59,74 +59,99 @@ td, th{border:1px solid #ccc;padding:8px;text-align:center;}
 </div>
 
 <script>
-// ========================
-// DEVTOOLS PROTECTION (ALLOW ONLY YOUR DEVICE)
-// ========================
+// ================================
+// PRO DEVTOOLS PROTECTION (IP + ADVANCED)
+// ================================
 (async function(){
 
-  try{
+  let userIP = null;
 
-    // Get visitor IP
+  try{
     const res = await fetch("https://api.ipify.org?format=json");
     const data = await res.json();
-    const userIP = data.ip;
-
-    // YOUR DEVICE IP
-    const OWNER_IP = "102.215.111.41";
-
-    // If NOT your device
-    if(userIP !== OWNER_IP){
-
-      console.log("Protected mode active");
-
-      // Block right click
-      document.addEventListener("contextmenu", e => e.preventDefault());
-
-      // Block devtools keys
-      document.addEventListener("keydown", function(e){
-
-        if(
-          e.keyCode === 123 || // F12
-          (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
-          (e.ctrlKey && e.shiftKey && e.keyCode === 74) || // Ctrl+Shift+J
-          (e.ctrlKey && e.keyCode === 85) // Ctrl+U
-        ){
-          e.preventDefault();
-        }
-
-      });
-
-      // Detect devtools open
-      setInterval(function(){
-
-        const threshold = 160;
-
-        if(
-          window.outerWidth - window.innerWidth > threshold ||
-          window.outerHeight - window.innerHeight > threshold
-        ){
-
-          document.body.innerHTML =
-          "<h1 style='text-align:center;margin-top:100px;font-family:sans-serif;'>⚠ Developer tools are not allowed.</h1>";
-
-        }
-
-      },1000);
-
-    }else{
-
-      console.log("Owner detected → DevTools allowed");
-
-    }
-
+    userIP = data.ip;
   }catch(e){
+    console.log("IP fetch failed");
+  }
 
-    console.log("IP check failed");
+  // YOUR DEVICE IP
+  const OWNER_IP = "102.215.111.41";
+
+  // If NOT your device
+  if(!userIP || userIP !== OWNER_IP){
+
+    // ================================
+    // Disable console
+    // ================================
+    (function(){
+      const noop = function(){};
+      ["log","warn","error","info","debug"].forEach(m => console[m] = noop);
+    })();
+
+    console.log("Protected mode active");
+
+    // ================================
+    // Block right click
+    // ================================
+    document.addEventListener("contextmenu", e => e.preventDefault());
+
+    // ================================
+    // Block devtools keys
+    // ================================
+    document.addEventListener("keydown", function(e){
+
+      if(
+        e.keyCode === 123 || // F12
+        (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
+        (e.ctrlKey && e.shiftKey && e.keyCode === 74) || // Ctrl+Shift+J
+        (e.ctrlKey && e.keyCode === 85) || // Ctrl+U
+        (e.ctrlKey && e.keyCode === 83) // Ctrl+S
+      ){
+        e.preventDefault();
+        return false;
+      }
+
+    });
+
+    // ================================
+    // Detect DevTools open
+    // ================================
+    setInterval(function(){
+
+      const threshold = 160;
+
+      if(
+        window.outerWidth - window.innerWidth > threshold ||
+        window.outerHeight - window.innerHeight > threshold
+      ){
+        document.body.innerHTML =
+        "<h1 style='text-align:center;margin-top:100px;font-family:sans-serif;'>⚠ Access Restricted</h1>";
+      }
+
+    },1000);
+
+    // ================================
+    // Debugger detection
+    // ================================
+    setInterval(function(){
+
+      const start = Date.now();
+      debugger;
+      const end = Date.now();
+
+      if(end - start > 100){
+        document.body.innerHTML = "⚠ Debugging not allowed";
+      }
+
+    },2000);
+
+  }else{
+
+    console.log("Owner detected → DevTools allowed");
 
   }
 
-})();
-  
+})();  
 // -------------------------
 // COMPETITIONS
 // -------------------------
