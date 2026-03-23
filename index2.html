@@ -594,33 +594,27 @@ async function runSignals() {
 // ================= HIGHER TIMEFRAME FILTER =================
 let higherTrend = await getHigherTimeframeTrend(symbolVal);
 
-// Default influence score
+let higherTFFlag = false;
 let higherTFInfluence = 0;
 
-if (sig.signal === "BUY") {
-  if (higherTrend === "BULL") {
-    higherTFInfluence = 1;   // strong confirmation
-  } else if (higherTrend === "BEAR") {
-    higherTFInfluence = -1;  // conflict
-  }
+if (sig.signal === "BUY" && higherTrend === "BULL") {
+  higherTFFlag = true;
+  higherTFInfluence = 1;
 }
 
-if (sig.signal === "SELL") {
-  if (higherTrend === "BEAR") {
-    higherTFInfluence = 1;
-  } else if (higherTrend === "BULL") {
-    higherTFInfluence = -1;
-  }
+if (sig.signal === "SELL" && higherTrend === "BEAR") {
+  higherTFFlag = true;
+  higherTFInfluence = 1;
+}
+
+if ((sig.signal === "BUY" && higherTrend !== "BULL") || (sig.signal === "SELL" && higherTrend !== "BEAR")) {
+  higherTFInfluence = -1;
 }
 
 // Attach influence instead of blocking
 sig.higherTFTrend = higherTrend;
+sig.higherTFFlag = higherTFFlag;
 sig.higherTFInfluence = higherTFInfluence;
-
-// Optional: adjust confidence if you use it
-if (typeof sig.confidence === "number") {
-  sig.confidence += higherTFInfluence * 0.2; // tweak weight as needed
-}
 
     // ================= ADX FILTER =================
     let adxFlag = adx >= 20;
