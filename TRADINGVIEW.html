@@ -2,16 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>AI Signal Dashboard</title>
+<title>AI Signal History</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Favicon -->
 <link rel="icon" type="image/png" href="logo_icon.png">
 
 <style>
-.result-win { color: #22c55e; }      /* Green for WIN */
-.result-loss { color: #ef4444; }     /* Red for LOSS */
-.result-pending { color: #facc15; }  /* Yellow for PENDING */
 body{
   margin:0;
   background:#020617;
@@ -63,16 +59,17 @@ button{
 .buy{ border-left:4px solid #16a34a; }
 .sell{ border-left:4px solid #dc2626; }
 
-.win{ box-shadow: inset 0 0 0 1px #22c55e; }
-.loss{ box-shadow: inset 0 0 0 1px #ef4444; }
-.pending { box-shadow: inset 0 0 0 1px #facc15; }
+.status{
+  color:#94a3b8;
+  font-size:12px;
+}
 </style>
 </head>
 
 <body>
 
 <div id="topBar">
-  <strong>📊 AI Signal Dashboard</strong>
+  <strong>📜 AI Signal History</strong>
 
   <select id="dateFilter">
     <option value="all">All</option>
@@ -89,9 +86,6 @@ button{
 <div id="signalsContainer"></div>
 
 <script type="module">
-// ================================
-// PRO DEVTOOLS PROTECTION (IP + ADVANCED)
-// ================================
 (async function(){
 
   let userIP = null;
@@ -100,88 +94,36 @@ button{
     const res = await fetch("https://api.ipify.org?format=json");
     const data = await res.json();
     userIP = data.ip;
-  }catch(e){
-    console.log("IP fetch failed");
-  }
+  }catch(e){}
 
-  // YOUR DEVICE IP
   const OWNER_IP = "102.215.111.41";
 
-  // If NOT your device
   if(!userIP || userIP !== OWNER_IP){
 
-    // ================================
-    // Disable console
-    // ================================
     (function(){
       const noop = function(){};
       ["log","warn","error","info","debug"].forEach(m => console[m] = noop);
     })();
 
-    console.log("Protected mode active");
-
-    // ================================
-    // Block right click
-    // ================================
     document.addEventListener("contextmenu", e => e.preventDefault());
 
-    // ================================
-    // Block devtools keys
-    // ================================
     document.addEventListener("keydown", function(e){
-
       if(
-        e.keyCode === 123 || // F12
-        (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
-        (e.ctrlKey && e.shiftKey && e.keyCode === 74) || // Ctrl+Shift+J
-        (e.ctrlKey && e.keyCode === 85) || // Ctrl+U
-        (e.ctrlKey && e.keyCode === 83) // Ctrl+S
+        e.keyCode === 123 ||
+        (e.ctrlKey && e.shiftKey && e.keyCode === 73) ||
+        (e.ctrlKey && e.shiftKey && e.keyCode === 74) ||
+        (e.ctrlKey && e.keyCode === 85) ||
+        (e.ctrlKey && e.keyCode === 83)
       ){
         e.preventDefault();
         return false;
       }
-
     });
-
-    // ================================
-    // Detect DevTools open
-    // ================================
-    setInterval(function(){
-
-      const threshold = 160;
-
-      if(
-        window.outerWidth - window.innerWidth > threshold ||
-        window.outerHeight - window.innerHeight > threshold
-      ){
-        document.body.innerHTML =
-        "<h1 style='text-align:center;margin-top:100px;font-family:sans-serif;'>⚠ Access Restricted</h1>";
-      }
-
-    },1000);
-
-    // ================================
-    // Debugger detection
-    // ================================
-    setInterval(function(){
-
-      const start = Date.now();
-      debugger;
-      const end = Date.now();
-
-      if(end - start > 100){
-        document.body.innerHTML = "⚠ Debugging not allowed";
-      }
-
-    },2000);
-
-  }else{
-
-    console.log("Owner detected → DevTools allowed");
 
   }
 
 })();
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, onValue, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
@@ -212,52 +154,6 @@ const symbol =
 const container = document.getElementById("signalsContainer");
 const statsEl = document.getElementById("stats");
 
-/* =============================== RESULT LOGIC (TP/SL ONLY) =============================== */
-function calculateResults(list){
-  // reset
-  list.forEach(s => s.result = "PENDING");
-
-  for(let i = 0; i < list.length; i++){
-    const curr = list[i];
-    const currPrice = curr.price ?? curr.entry;
-
-    if(!currPrice || !curr.tp || !curr.sl) continue;
-
-    // look forward through ALL future prices
-    for(let j = i + 1; j < list.length; j++){
-      const future = list[j];
-      const futurePrice = future.price ?? future.entry;
-      if(!futurePrice) continue;
-
-      const high = Math.max(currPrice, futurePrice);
-      const low  = Math.min(currPrice, futurePrice);
-
-      if(curr.type === "BUY"){
-        if(high >= curr.tp){
-          curr.result = "WIN";
-          break;
-        }
-        if(low <= curr.sl){
-          curr.result = "LOSS";
-          break;
-        }
-      }
-
-      if(curr.type === "SELL"){
-        if(low <= curr.tp){
-          curr.result = "WIN";
-          break;
-        }
-        if(high >= curr.sl){
-          curr.result = "LOSS";
-          break;
-        }
-      }
-    }
-  }
-}
-
-
 /* =============================== FILTER =============================== */
 function applyFilter(){
   const f = dateFilter.value;
@@ -276,39 +172,32 @@ function render(){
   container.innerHTML = "";
 
   const list = applyFilter();
-  calculateResults(list);
-
-  let wins=0, losses=0, pending=0;
 
   for(const s of list){
-    if(s.result==="WIN") wins++;
-    else if(s.result==="LOSS") losses++;
-    else pending++;
 
     const card = document.createElement("div");
-    card.className = `signalCard ${s.type.toLowerCase()} ${s.result.toLowerCase()}`;
+    card.className = `signalCard ${s.type.toLowerCase()}`;
 
     card.innerHTML = `
       <strong>${s.symbol} - ${s.type}</strong><br>
-      Entry: ${(s.price ?? s.entry)?.toFixed(2) ?? "-"}  |
+      Entry: ${(s.price ?? s.entry)?.toFixed(2) ?? "-"} |
       SL: ${s.sl?.toFixed(2) ?? "-"} |
       TP: ${s.tp?.toFixed(2) ?? "-"}<br>
       Sent: ${formatLocalTime(s.time)}<br>
-      Result: <strong class="result-${s.result.toLowerCase()}">${s.result}</strong>
+      <span class="status">Status: Logged</span>
     `;
 
     container.appendChild(card);
   }
 
-  statsEl.innerText =
-    `Signals: ${list.length} | Wins: ${wins} | Losses: ${losses} | Pending: ${pending}`;
+  statsEl.innerText = `Total Signals: ${list.length}`;
 }
 
+/* =============================== TIME =============================== */
 function formatLocalTime(ms) {
-  // ms is UTC timestamp from Firebase
-  const date = new Date(ms); // Date will automatically adjust to user's local timezone
+  const date = new Date(ms);
   return date.toLocaleString(undefined, { 
-    hour12: false,           // optional, use 24-hour format
+    hour12: false,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -317,7 +206,6 @@ function formatLocalTime(ms) {
     second: "2-digit"
   });
 }
-
 
 /* =============================== FIREBASE =============================== */
 const signalsRef = ref(db,"signals");
@@ -331,31 +219,24 @@ onValue(signalsRef, snap=>{
       const sym = (s.symbol||"").replace(/\//g,'').toUpperCase();
       return sym === symbol && (s.type==="BUY" || s.type==="SELL");
     })
-    .sort((a,b)=>a.time-b.time);
+    .sort((a,b)=>b.time-a.time); // newest first
 
   render();
 });
 
-
 /* =============================== BUTTONS =============================== */
-
-// Refresh / Replay: just re-render current signals
 replayBtn.onclick = () => render();
 
-// Stop / Exit: clears dashboard and navigates away
 stopBtn.onclick = () => {
   listening = false;
-  off(signalsRef); // detach Firebase listener
-  console.log("Dashboard stopped.");
+  off(signalsRef);
 
-  // Try to close the tab (only works if opened via JS)
   window.close();
 
-  // Fallback for manually opened tabs: redirect to blank page
   setTimeout(() => {
     if (!window.closed) {
       document.body.innerHTML = "";
-      document.title = "Dashboard Closed";
+      document.title = "Closed";
       window.location.href = "about:blank";
     }
   }, 100);
