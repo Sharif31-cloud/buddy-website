@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Signal History</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="icon" type="image/png" href="logo_icon.png">
+
+<style>
+body{
+  margin:0;
+  background:#020617;
+  color:#e5e7eb;
+  font-family:Arial, sans-serif;
+}
+
+#topBar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px;
+  border-bottom:1px solid #1e293b;
+}
+
+#stats{
+  margin-left:auto;
+  font-size:13px;
+  color:#94a3b8;
+}
+
+select, button{
+  padding:6px 10px;
+  border-radius:6px;
+  border:none;
+  font-size:13px;
+}
+
+button{
+  background:#ef4444;
+  color:white;
+  cursor:pointer;
+}
+
+#signalsContainer{
+  padding:10px;
+  max-height:calc(100vh - 50px);
+  overflow-y:auto;
+}
+
+.signalCard{
+  border-radius:6px;
+  padding:10px;
+  margin-bottom:10px;
+  background:#1e293b;
+  font-size:13px;
+}
+
+.buy{ border-left:4px solid #16a34a; }
+.sell{ border-left:4px solid #dc2626; }
+
+.status{
+  color:#94a3b8;
+  font-size:12px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="topBar">
+  <strong>📜 AI Signal History</strong>
+
+  <select id="dateFilter">
+    <option value="all">All</option>
+    <option value="today">Today</option>
+    <option value="week">This Week</option>
+  </select>
+
+  <button id="replayBtn">▶ Refresh</button>
+  <button id="stopBtn">⏹ Stop</button>
+
+  <span id="stats"></span>
+</div>
+
+<div id="signalsContainer"></div>
+
+<script type="module">
+(async function(){
+
+  let userIP = null;
+
+  try{
+    const res = await fetch("https://api.ipify.org?format=json");
+    const data = await res.json();
+    userIP = data.ip;
+  }catch(e){}
+
+  const OWNER_IP = "102.215.111.41";
+
+  if(!userIP || userIP !== OWNER_IP){
+
+    (function(){
+      const noop = function(){};
+      ["log","warn","error","info","debug"].forEach(m => console[m] = noop);
+    })();
+
+    document.addEventListener("contextmenu", e => e.preventDefault());
+
+    document.addEventListener("keydown", function(e){
+      if(
+        e.keyCode === 123 ||
+        (e.ctrlKey && e.shiftKey && e.keyCode === 73) ||
+        (e.ctrlKey && e.shiftKey && e.keyCode === 74) ||
+        (e.ctrlKey && e.keyCode === 85) ||
+        (e.ctrlKey && e.keyCode === 83)
+      ){
+        e.preventDefault();
+        return false;
+      }
+    });
+
+  }
+
+})();
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, onValue, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+/* 🔴 FIREBASE CONFIG */
+const firebaseConfig = {
+  apiKey: "AIzaSyB1G6DhAZv70YLk65ESgZl0Cm1BHzab4a0",
+  authDomain: "buddydownloads-72e3b.firebaseapp.com",
+  databaseURL: "https://buddydownloads-72e3b-default-rtdb.firebaseio.com",
+  projectId: "buddydownloads-72e3b",
+  storageBucket: "buddydownloads-72e3b.appspot.com",
+  messagingSenderId: "782621240629",
+  appId: "1:782621240629:web:4678fac59caad0f3ac707c"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+/* =============================== STATE =============================== */
+let signals = [];
+let listening = true;
+
+const symbol =
+  new URLSearchParams(window.location.search)
+    .get("symbol")
+    ?.replace(/\//g,'')
+    .toUpperCase() || "XAUUSD";
+
+const container = document.getElementById("signalsContainer");
+const statsEl = document.getElementById("stats");
+
+/* =============================== FILTER =============================== */
+function applyFilter(){
+  const f = dateFilter.value;
+  const now = Date.now();
+
+  return signals.filter(s=>{
+    const t = Number(s.time);
+    if(f==="today") return now - t < 86400000;
+    if(f==="week") return now - t < 604800000;
+    return true;
+  });
+}
+
+/* =============================== UI RENDER =============================== */
+function render(){
+  container.innerHTML = "";
+
+  const list = applyFilter();
+
+  for(const s of list){
+
+    const card = document.createElement("div");
+    card.className = `signalCard ${s.type.toLowerCase()}`;
+
+    card.innerHTML = `
+      <strong>${s.symbol} - ${s.type}</strong><br>
+      Entry: ${(s.price ?? s.entry)?.toFixed(2) ?? "-"} |
+      SL: ${s.sl?.toFixed(2) ?? "-"} |
+      TP: ${s.tp?.toFixed(2) ?? "-"}<br>
+      Sent: ${formatLocalTime(s.time)}<br>
+      <span class="status">Status: Logged</span>
+    `;
+
+    container.appendChild(card);
+  }
+
+  statsEl.innerText = `Total Signals: ${list.length}`;
+}
+
+/* =============================== TIME =============================== */
+function formatLocalTime(ms) {
+  const date = new Date(ms);
+  return date.toLocaleString(undefined, { 
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+}
+
+/* =============================== FIREBASE =============================== */
+const signalsRef = ref(db,"signals");
+
+onValue(signalsRef, snap=>{
+  if(!listening || !snap.exists()) return;
+
+  signals = Object.values(snap.val())
+    .map(s=>({...s, type:String(s.type).toUpperCase()}))
+    .filter(s=>{
+      const sym = (s.symbol||"").replace(/\//g,'').toUpperCase();
+      return sym === symbol && (s.type==="BUY" || s.type==="SELL");
+    })
+    .sort((a,b)=>b.time-a.time); // newest first
+
+  render();
+});
+
+/* =============================== BUTTONS =============================== */
+replayBtn.onclick = () => render();
+
+stopBtn.onclick = () => {
+  listening = false;
+  off(signalsRef);
+
+  window.close();
+
+  setTimeout(() => {
+    if (!window.closed) {
+      document.body.innerHTML = "";
+      document.title = "Closed";
+      window.location.href = "about:blank";
+    }
+  }, 100);
+};
+
+</script>
+
+</body>
+</html>
