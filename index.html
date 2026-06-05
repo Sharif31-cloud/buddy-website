@@ -1017,10 +1017,15 @@ function handleMessage(msg) {
   }
 
 function sendKeyToTelegram(key, userId) {
-  fetch("https://vercel.com/sharif31-clouds-projects/buddy-website/ArXx2m1ciQ9fmAJx8ZqQqJ25SmgP/api/send-telegram", {
+  fetch("https://buddy-website-git-main-sharif31-clouds-projects.vercel.app/api/send-telegram", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ key, userId })
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      key,
+      userId
+    })
   })
   .then(res => res.json())
   .then(data => console.log("Telegram notified", data))
