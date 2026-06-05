@@ -7,48 +7,55 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  if (req.method === "POST") {
-    try {
-      const { key, userId } = req.body || {};
-
-      const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      const chatId = process.env.TELEGRAM_CHAT_ID;
-
-      if (!botToken || !chatId) {
-        return res.status(500).json({
-          error: "Missing env vars",
-          botToken: !!botToken,
-          chatId: !!chatId
-        });
-      }
-
-      const message = `🎁 KEY: ${key} | USER: ${userId}`;
-
-      const tgRes = await fetch(
-        `https://api.telegram.org/bot${botToken}/sendMessage`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: chatId,
-            text: message
-          })
-        }
-      );
-
-      const data = await tgRes.json();
-
-      return res.status(200).json({
-        success: true,
-        telegramResponse: data
-      });
-
-    } catch (err) {
-      return res.status(500).json({
-        error: err.message
-      });
-    }
+  if (req.method !== "POST") {
+    return res.status(200).json({ status: "API working" });
   }
 
-  return res.status(200).json({ status: "API working" });
+  try {
+    const { key, userId } = req.body || {};
+
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.TELEGRAM_CHAT_ID;
+
+    if (!botToken || !chatId) {
+      return res.status(500).json({
+        error: "Missing env vars",
+        botToken: !!botToken,
+        chatId: !!chatId
+      });
+    }
+
+    const message = `🎁 KEY: ${key} | USER: ${userId}`;
+
+    const tgRes = await fetch(
+      `https://api.telegram.org/bot${botToken}/sendMessage`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message
+        })
+      }
+    );
+
+    const data = await tgRes.json();
+
+    if (!tgRes.ok || !data.ok) {
+      return res.status(500).json({
+        error: "Telegram API failed",
+        telegramResponse: data
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      telegramResponse: data
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      error: err.message
+    });
+  }
 }
