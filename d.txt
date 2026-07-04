@@ -1,0 +1,2274 @@
+import numpy as np
+# -----------------------------
+# ADVANCED DRAWDOWN CONTROL
+# -----------------------------
+position_monitor_data = {}
+
+PEAK_EQUITY = 0.0
+DAILY_START_EQUITY = 0.0
+LAST_EQUITY_DAY = None
+
+MAX_TOTAL_DRAWDOWN_PCT =  9999.0 # total max DD (like prop firm overall)
+MAX_DAILY_DRAWDOWN_PCT =  9999.0  # daily DD limit
+
+TELEGRAM_TOKEN = "8027721063:AAGgsvFKP6doCpgRZKZxe_iUPCeFV2OQVHM"
+TELEGRAM_CHAT_IDS = [
+    -1003030027105,
+    -1002909180256
+]
+# MT5 library
+try:
+    import MetaTrader5 as mt5
+except Exception:
+    mt5 = None
+    print("MetaTrader5 package not available. Install with: pip install MetaTrader5")
+
+# -----------------------------`
+# SYMBOL CONFIGURATION
+# -----------------------------
+# Descriptive names
+symbols = ["XAUUSD", "XAGUSD"]
+
+# Example
+symbols = ["XAUUSDm", "XAGUSDm", "ETHUSDm", "BTCUSDm","EURUSDm","EURJPYm", "GBPUSDm","USTECm","GBPJPYm","USOILm"]
+mt5_symbols = symbols.copy()  # if MT5 symbols are identical
+
+FETCH_COUNT = 200  # number of candles to fetch from MT5
+FETCH_DELAY = 300  # seconds between iterations
+
+OUTPUT_CSV = "D:/signalHawkbot/historical_data.csv"
+# OUTPUT_CSV = f"{mt5_symbols}_signals_pro.csv"
+import pandas as pd
+import os
+
+OUTPUT_CSV = "historical_data.csv"
+
+# Define the CSV headers
+headers = [
+    "time", "symbol", "close", "technical_5m", "technical_15m",
+    "final_signal", "strength", "SL", "TP", "lots",
+    "order_action", "order_result", "account_balance", "account_equity"
+]
+
+# Check if CSV exists; if not, create an empty one with headers
+if not os.path.exists(OUTPUT_CSV):
+    print(f"⚠️ CSV not found, creating empty CSV: {OUTPUT_CSV}")
+    df = pd.DataFrame(columns=headers)
+    df.to_csv(OUTPUT_CSV, index=False)
+
+# MT5 credentials - prefer environment variables
+MT5_LOGIN = int(os.getenv("MT5_LOGIN", "298026189"))
+MT5_PASSWORD = os.getenv("MT5_PASSWORD", "@Quite07")
+MT5_SERVER = os.getenv("MT5_SERVER", "Exness-MT5Trial9")
+
+# Trading / risk config
+RISK_PCT = 0.01  # fraction of account balance risked per trade (1% default)
+MIN_STRENGTH_TO_TRADE = 60
+ALLOW_TRADES = True
+LOT_SIZE_MIN = 0.01  # broker minimum lot - used as lower bound
+CLOSE_OPPOSITE_ON_REVERSE = True
+REQUIRE_60M_CONFIRM = False
+MAX_SL_PIPS = 2000
+cooldown_until = 0
+cooldown_until = {symbol: 0 for symbol in mt5_symbols}
+last_loss_event_time = 0
+
+# Trailing/breakeven config (you can adjust)
+breakeven_usd = 1
+trail_usd = 1
+
+# Max same-direction positions allowed (None for unlimited)
+MAX_SAME_DIRECTION = 1
+
+# -----------------------------
+# INIT CSV
+# -----------------------------
+if not os.path.exists(OUTPUT_CSV) or os.path.getsize(OUTPUT_CSV) == 0:
+    pd.DataFrame(columns=[
+        "time", "close",
+        "technical_5m",
+        "technical_15m",
+        "final_signal", "strength", "SL", "TP", "lots",
+        "order_action", "order_result", "account_balance", "account_equity"
+    ]).to_csv(OUTPUT_CSV, index=False)
+
+
+# -----------------------------
+# Utility: MT5 OHLC fetch
+# -----------------------------
+def fetch_ohlc_mt5(symbol, timeframe, bars=FETCH_COUNT):
+    """
+    Fetch OHLC data from MT5 for a single symbol.
+    Returns a pandas DataFrame indexed by datetime, or None if no data.
+    """
+    if mt5 is None:
+        logger.error("MT5 library not available.")
+        return None
+
+    # Ensure symbol is selected in Market Watch
+    if not mt5.symbol_select(symbol, True):
+        logger.warning(f"Could not select {symbol} in Market Watch.")
+        return None
+
+    rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, bars)
+    if rates is None or len(rates) == 0:
+        logger.warning(f"MT5 returned no data for {symbol}")
+        return None
+
+    df = pd.DataFrame(rates)
+    df['time'] = pd.to_datetime(df['time'], unit='s')
+    df.set_index('time', inplace=True)
+    df = df.rename(columns={
+        'open': 'open',
+        'high': 'high',
+        'low': 'low',
+        'close': 'close',
+        'tick_volume': 'volume'
+    })
+    return df[['open', 'high', 'low', 'close', 'volume']]
+
+
+# -----------------------------
+# Indicators
+# -----------------------------
+# -----------------------------
+# Faster Indicators (5m focus)
+# -----------------------------
+def add_indicators(df, adx_period=14):
+    df = df.copy()
+
+    # --- Moving Averages ---
+    df["SMA_5"] = df["close"].rolling(5).mean()
+    df["EMA_10"] = df["close"].ewm(span=10, adjust=False).mean()
+    df["EMA_20"] = df["close"].ewm(span=20, adjust=False).mean()
+
+    # --- RSI ---
+    delta = df["close"].diff()
+    gain = delta.where(delta > 0, 0).rolling(7).mean()
+    loss = -delta.where(delta < 0, 0).rolling(7).mean()
+    rs = gain / loss
+    df["RSI_7"] = 100 - (100 / (1 + rs))
+
+    # --- MACD ---
+    df["EMA_8"] = df["close"].ewm(span=8, adjust=False).mean()
+    df["EMA_21"] = df["close"].ewm(span=21, adjust=False).mean()
+    df["MACD"] = df["EMA_8"] - df["EMA_21"]
+    df["MACD_Signal"] = df["MACD"].ewm(span=5, adjust=False).mean()
+
+    # --- Stochastic ---
+    low7 = df["low"].rolling(7).min()
+    high7 = df["high"].rolling(7).max()
+    df["Stochastic_K"] = ((df["close"] - low7) / (high7 - low7)) * 100
+    df["Stochastic_D"] = df["Stochastic_K"].rolling(3).mean()
+
+    # --- ATR ---
+    df["H-L"] = df["high"] - df["low"]
+    df["H-PC"] = (df["high"] - df["close"].shift(1)).abs()
+    df["L-PC"] = (df["low"] - df["close"].shift(1)).abs()
+    df["TR"] = df[["H-L", "H-PC", "L-PC"]].max(axis=1)
+    df["ATR_7"] = df["TR"].rolling(7).mean()
+    df["ATR_MA_14"] = df["ATR_7"].rolling(14).mean()
+    df.drop(columns=["H-L", "H-PC", "L-PC"], inplace=True)
+
+    # --- ADX ---
+    high = df["high"]
+    low = df["low"]
+    close = df["close"]
+
+    # True Range
+    tr = pd.Series(np.maximum.reduce([
+        high - low,
+        (high - close.shift(1)).abs(),
+        (low - close.shift(1)).abs()
+    ]), index=df.index)
+    atr_adx = tr.rolling(adx_period, min_periods=1).mean()
+
+    # Directional Movement
+    up = high.diff()
+    down = -low.diff()
+    plus_dm = np.where((up > down) & (up > 0), up, 0.0)
+    minus_dm = np.where((down > up) & (down > 0), down, 0.0)
+
+    plus_di = 100 * pd.Series(plus_dm, index=df.index).rolling(adx_period, min_periods=1).sum() / atr_adx.replace(0,
+                                                                                                                  1e-10)
+    minus_di = 100 * pd.Series(minus_dm, index=df.index).rolling(adx_period, min_periods=1).sum() / atr_adx.replace(0,
+                                                                                                                    1e-10)
+
+    dx = 100 * (plus_di - minus_di).abs() / (plus_di + minus_di).replace(0, 1e-10)
+    df["ADX_14"] = dx.rolling(adx_period, min_periods=1).mean()
+
+    return df
+
+
+# -----------------------------
+# Technical Signal (weighted voting)
+# -----------------------------
+# -----------------------------
+# Faster Technical Signal
+# -----------------------------
+def technical_signal(row, prev_row=None):
+    """
+    Combined logic:
+    - Fast: reacts in 1–2 candles
+    - Safe: avoids chop & false reversals
+    - Early: enters before indicators fully lag
+    """
+
+    score = 0
+
+    # =========================
+    # 1. TREND STRUCTURE (CORE)
+    # =========================
+    # This PREVENTS selling in uptrends
+    if pd.notna(row.get("EMA_10")) and pd.notna(row.get("EMA_20")):
+        if row["EMA_10"] > row["EMA_20"]:
+            score += 30
+        elif row["EMA_10"] < row["EMA_20"]:
+            score -= 30
+
+    # Trend slope confirmation (early, not laggy)
+    if prev_row is not None and pd.notna(row.get("EMA_10")):
+        if row["EMA_10"] > prev_row["EMA_10"]:
+            score += 10
+        elif row["EMA_10"] < prev_row["EMA_10"]:
+            score -= 10
+
+    # =========================
+    # 2. MOMENTUM (EARLY ENTRY)
+    # =========================
+    # RSI zone + direction
+    if pd.notna(row.get("RSI_7")):
+        if row["RSI_7"] > 55:
+            score += 15
+        elif row["RSI_7"] < 45:
+            score -= 15
+
+        if prev_row is not None:
+            if row["RSI_7"] > prev_row["RSI_7"]:
+                score += 5
+            elif row["RSI_7"] < prev_row["RSI_7"]:
+                score -= 5
+
+    # MACD momentum (not cross-only → faster)
+    if pd.notna(row.get("MACD")) and pd.notna(row.get("MACD_Signal")):
+        if row["MACD"] > row["MACD_Signal"]:
+            score += 15
+        elif row["MACD"] < row["MACD_Signal"]:
+            score -= 15
+
+        if prev_row is not None:
+            if row["MACD"] > prev_row["MACD"]:
+                score += 5
+            elif row["MACD"] < prev_row["MACD"]:
+                score -= 5
+
+    # =========================
+    # 3. PRICE ACTION (FAST)
+    # =========================
+    body = abs(row["close"] - row["open"])
+    range_ = row["high"] - row["low"]
+
+    if range_ > 0:
+        body_ratio = body / range_
+
+        # Strong candle
+        if body_ratio > 0.6:
+            if row["close"] > row["open"]:
+                score += 10
+            elif row["close"] < row["open"]:
+                score -= 10
+
+    # =========================
+    # 4. CHOPPY MARKET FILTER
+    # =========================
+    # Reduce confidence instead of flipping direction
+    if pd.notna(row.get("ATR_7")) and pd.notna(row.get("ATR_MA_14")):
+        if row["ATR_7"] < row["ATR_MA_14"] * 0.8:
+            score *= 0.6  # chop → weaken signals
+
+    # =========================
+    # 5. FINAL DECISION
+    # =========================
+    if score >= 35:
+        return "BUY"
+    elif score <= -35:
+        return "SELL"
+    else:
+        return "HOLD"
+
+def trend_filter_1h(df_60m):
+    if df_60m is None or len(df_60m) < 200:
+        return None  # not enough data
+
+    df_60m["EMA200"] = df_60m["close"].ewm(span=200).mean()
+
+    last = df_60m.iloc[-1]
+
+    if last["close"] > last["EMA200"]:
+        return "BUY"
+    elif last["close"] < last["EMA200"]:
+        return "SELL"
+    else:
+        return None
+
+def detect_liquidity_sweep(df):
+    if df is None or len(df) < 3:
+        return None
+
+    prev = df.iloc[-2]
+    last = df.iloc[-1]
+
+    # 🔴 SELL sweep (grab buy-side liquidity)
+    if last["high"] > prev["high"] and last["close"] < prev["high"]:
+        return "SELL"
+
+    # 🟢 BUY sweep (grab sell-side liquidity)
+    if last["low"] < prev["low"] and last["close"] > prev["low"]:
+        return "BUY"
+
+    return None
+# -----------------------------
+# FINAL SIGNAL LOGIC (NEW, STABLE)
+# -----------------------------
+def final_signal_logic(
+    tech_5m,
+    tech_15m,
+    last_price,
+    support_low,
+    support_high,
+    resistance_low,
+    resistance_high,
+    df_15m,
+    df_60m=None,
+    liquidity_signal=None,     # ✅ ADD
+    log_callback=None          # ✅ ADD (optional)
+):
+    """
+    PRO FINAL SIGNAL LOGIC (UPGRADED)
+
+    + 1H trend filter (EMA 200)
+    """
+
+    # =========================
+    # SAFETY CHECK
+    # =========================
+    if df_15m is None or len(df_15m) < 10:
+        return "HOLD", 0
+
+    if tech_5m == "HOLD" or tech_15m == "HOLD":
+        return "HOLD", 0
+
+    if tech_5m != tech_15m:
+        return "HOLD", 0
+
+    # =========================
+    # 🔥 1H TREND FILTER
+    # =========================
+    if df_60m is not None and len(df_60m) >= 200:
+        df_60m["EMA200"] = df_60m["close"].ewm(span=200).mean()
+        last_1h = df_60m.iloc[-1]
+
+        trend_1h = None
+        if last_1h["close"] > last_1h["EMA200"]:
+            trend_1h = "BUY"
+        elif last_1h["close"] < last_1h["EMA200"]:
+            trend_1h = "SELL"
+
+        if trend_1h and tech_5m != trend_1h:
+            return "HOLD", 0
+    else:
+        return "HOLD", 0
+
+    # =========================
+    # MARKET DATA
+    # =========================
+    last = df_15m.iloc[-1]
+    prev = df_15m.iloc[-2]
+
+    prev_close = prev["close"]
+
+    atr = df_15m["ATR_7"].iloc[-1]
+    zone_buffer = atr * 0.2
+
+    # =========================
+    # BREAKOUT
+    # =========================
+    is_breakout_buy = (
+        tech_5m == "BUY"
+        and prev_close >= resistance_low
+        and last_price >= resistance_high * 0.999
+    )
+
+    is_breakout_sell = (
+        tech_5m == "SELL"
+        and prev_close <= support_high
+        and last_price <= support_low * 1.001
+    )
+
+    # =========================
+    # ZONE PROTECTION
+    # =========================
+    if tech_5m == "BUY":
+        if not is_breakout_buy and last_price >= (resistance_high - zone_buffer):
+            return "HOLD", 0
+
+    if tech_5m == "SELL":
+        if not is_breakout_sell and last_price <= (support_low + zone_buffer):
+            return "HOLD", 0
+
+    # =========================
+    # 🔥 CANDLE CONFIRMATION
+    # =========================
+    body = abs(last["close"] - last["open"])
+    range_candle = last["high"] - last["low"]
+
+    if range_candle == 0:
+        return "HOLD", 0
+
+    body_ratio = body / range_candle
+
+    bullish_strong = (
+        last["close"] > last["open"] and
+        body_ratio > 0.5 and
+        last["close"] > prev["high"]
+    )
+
+    bearish_strong = (
+        last["close"] < last["open"] and
+        body_ratio > 0.5 and
+        last["close"] < prev["low"]
+    )
+
+    # =========================
+    # APPLY CONFIRMATION
+    # =========================
+    if tech_5m == "BUY":
+        if not (bullish_strong or is_breakout_buy):
+            return "HOLD", 0
+
+    elif tech_5m == "SELL":
+        if not (bearish_strong or is_breakout_sell):
+            return "HOLD", 0
+
+    # =========================
+    # ✅ FIX: DEFINE STRONG_CANDLE
+    # =========================
+    strong_candle = (
+        bullish_strong if tech_5m == "BUY"
+        else bearish_strong if tech_5m == "SELL"
+        else False
+    )
+
+    # =========================
+    # PULLBACK / REJECTION
+    # =========================
+    if tech_5m == "BUY" and not is_breakout_buy:
+        pullback = prev["close"] > last["close"]
+        if not (pullback or strong_candle):
+            return "HOLD", 0
+
+    elif tech_5m == "SELL" and not is_breakout_sell:
+        pullback = prev["close"] < last["close"]
+        if not (pullback or strong_candle):
+            return "HOLD", 0
+
+    # =============================
+    # 🔥 LIQUIDITY SWEEP FILTER
+    # =============================
+    if liquidity_signal is not None:
+        if tech_5m != liquidity_signal:
+            if log_callback:
+                log_callback(
+                    f"🚫 Blocked {tech_5m} | Liquidity sweep says {liquidity_signal}"
+                )
+            return "HOLD", 0
+
+    # =========================
+    # POSITION FILTER
+    # =========================
+    range_total = resistance_high - support_low
+
+    if range_total > 0:
+        position = (last_price - support_low) / range_total
+        position = max(0, min(1, position))
+
+        if tech_5m == "BUY" and not is_breakout_buy and position > 0.7:
+            return "HOLD", 0
+
+        if tech_5m == "SELL" and not is_breakout_sell and position < 0.3:
+            return "HOLD", 0
+
+    # =========================
+    # STRENGTH
+    # =========================
+    strength = 70
+
+    if tech_5m == "BUY":
+        if is_breakout_buy:
+            strength = 85
+        else:
+            distance = resistance_high - last_price
+            if distance > atr:
+                strength += 10
+            if distance < atr * 0.5:
+                strength -= 20
+
+    elif tech_5m == "SELL":
+        if is_breakout_sell:
+            strength = 85
+        else:
+            distance = last_price - support_low
+            if distance > atr:
+                strength += 10
+            if distance < atr * 0.5:
+                strength -= 20
+
+    strength = max(0, min(100, strength))
+
+    if strength < 30:
+        return "HOLD", strength
+
+    return tech_5m, strength
+
+
+# -----------------------------
+# Price unit helpers
+# -----------------------------
+def pip_value_and_pip(MT5_symbol):
+    """
+    Returns the pip value and contract size for a given MT5 symbol.
+    Works for BTC, XAU, XAG, and standard Forex pairs.
+    """
+    pair = MT5_symbol.upper()
+
+    if "BTC" in pair:
+        pip = 0.01  # 1 pip = $0.01
+        contract_size = 1  # 1 lot = 1 BTC
+    elif "XAU" in pair:
+        pip = 0.01  # 1 pip = $0.01
+        contract_size = 1  # 1 lot = 1 oz
+    elif "XAG" in pair:
+        pip = 0.001  # 1 pip = $0.001
+        contract_size = 100  # 1 lot = 100 oz (adjust if your broker uses different contract size)
+    else:
+        pip = 0.0001  # standard Forex pip
+        contract_size = 100000.0
+
+    return pip, contract_size
+
+
+# -----------------------------
+# RISK FILTERS
+# -----------------------------
+# Old definition (likely)
+# def risk_filters_ok(tick, atr_15m):
+
+# Updated definition
+def risk_filters_ok(tick, atr_15m, MT5_symbol):
+    if tick is None or atr_15m is None:
+        return False
+
+    # -----------------------------
+    # ATR minimums (market sanity)
+    # -----------------------------
+    if "XAU" in MT5_symbol.upper():
+        atr_min = 3.5
+        spread_mult = 0.35
+        min_spread_cap = 0.15
+    elif "XAG" in MT5_symbol.upper():
+        atr_min = 0.2
+        spread_mult = 0.35
+        min_spread_cap = 0.03
+    elif "BTC" in MT5_symbol.upper() or "ETH" in MT5_symbol.upper():
+        atr_min = 40.0
+        spread_mult = 0.30
+        min_spread_cap = atr_15m * 0.20
+    else:
+        # Forex
+        atr_min = 0.0004
+        spread_mult = 0.7
+        min_spread_cap = 0.00025  # hard floor
+
+    # -----------------------------
+    # Spread filter (adaptive + floor)
+    # -----------------------------
+    spread = tick.ask - tick.bid
+    max_allowed_spread = max(atr_15m * spread_mult, min_spread_cap)
+
+    if spread > max_allowed_spread:
+        logger.warning(
+            f"Spread too high for {MT5_symbol}: "
+            f"{spread:.5f} > max({atr_15m:.5f} * {spread_mult}, {min_spread_cap})"
+        )
+        return False
+
+    # -----------------------------
+    # ATR filter
+    # -----------------------------
+    if atr_15m < atr_min:
+        logger.warning(
+            f"ATR too low for {MT5_symbol}: "
+            f"ATR={atr_15m:.5f}, min={atr_min:.5f}"
+        )
+        return False
+
+    return True
+
+
+# -----------------------------
+# Calculate lot size from risk %
+def calculate_lot_size_from_risk(sl_price, entry_price, balance, symbol, risk_percent=1.0):
+    """
+    Risk-based lot size calculation.
+    sl_price: stoploss price
+    entry_price: entry price
+    balance: account balance
+    symbol: MT5 symbol
+    risk_percent: % of balance to risk (default = 1%)
+
+    Special rule: USTEC trades use at least 0.05 lots.
+    """
+
+    import MetaTrader5 as mt5
+
+    # Amount to risk
+    risk_amount = balance * (risk_percent / 100)
+
+    # Distance from entry to SL in price units
+    sl_distance = abs(entry_price - sl_price)
+    if sl_distance <= 0:
+        return 0.01  # fallback minimum lot
+
+    # Get symbol info
+    info = mt5.symbol_info(symbol)
+    if info is None:
+        return 0.01
+
+    tick_size = info.trade_tick_size
+    tick_value = info.trade_tick_value
+    if tick_size == 0 or tick_value == 0:
+        return 0.01
+
+    # Value per 1 lot per 1 price move
+    value_per_point_per_lot = tick_value / tick_size
+
+    # Potential loss per 1 lot
+    loss_per_lot = sl_distance * value_per_point_per_lot
+    if loss_per_lot <= 0:
+        return 0.01
+
+    # Calculate lot size
+    lots = risk_amount / loss_per_lot
+
+    # Apply broker min/max
+    lots = max(info.volume_min, min(lots, info.volume_max))
+
+    # Normalize to broker step
+    step = info.volume_step
+    lots = round(lots / step) * step
+
+    MIN_LOT_OVERRIDES = {
+        # Crypto + Indices
+        "USTEC": 0.05,
+        "BTCUSD": 0.05,
+        "ETHUSD": 0.05,
+
+
+        # Forex
+        "EURUSD": 0.02,
+        "EURJPY": 0.02,
+        "GBPUSD": 0.02,
+        "GBPJPY": 0.02,
+        "USOIL": 0.02,
+    }
+
+    symbol_upper = symbol.upper()
+
+    for key, min_lot in MIN_LOT_OVERRIDES.items():
+        if key in symbol_upper and lots < min_lot:
+            lots = min_lot
+            break
+
+    return lots
+
+
+# -----------------------------
+def calculate_sl_tp(row_5m, df_15m, signal, symbol):
+    import MetaTrader5 as mt5
+
+    atr = df_15m["ATR_7"].iloc[-1]
+    entry = float(row_5m["close"])
+
+    info = mt5.symbol_info(symbol)
+    if info is None:
+        return None, None
+
+    digits = info.digits
+    point = info.point
+    stop_level = info.trade_stops_level * point  # broker minimum distance
+
+    # 🚫 Safety: invalid ATR
+    if atr is None or atr <= 0:
+        return None, None
+
+    # ✅ Ensure minimum SL size (avoid tiny forex ATR)
+    min_sl = 10 * point   # ~10 pips safety floor
+    SL_points = max(atr * 2.0, min_sl)
+
+    RR = 2.5
+
+    # -------------------------
+    # CALCULATE RAW SL/TP
+    # -------------------------
+    if signal == "BUY":
+        sl = entry - SL_points
+        tp = entry + SL_points * RR
+
+    elif signal == "SELL":
+        sl = entry + SL_points
+        tp = entry - SL_points * RR
+
+    else:
+        return None, None
+
+    # -------------------------
+    # ENFORCE BROKER STOP LEVEL
+    # -------------------------
+    if abs(entry - sl) < stop_level:
+        if signal == "BUY":
+            sl = entry - stop_level
+        else:
+            sl = entry + stop_level
+
+    if abs(entry - tp) < stop_level:
+        if signal == "BUY":
+            tp = entry + stop_level
+        else:
+            tp = entry - stop_level
+
+    # -------------------------
+    # FINAL ROUNDING (CORRECT)
+    # -------------------------
+    sl = round(sl, digits)
+    tp = round(tp, digits)
+
+    return sl, tp
+
+
+# -----------------------------
+# MT5 helpers
+# -----------------------------
+def mt5_init_and_login(login: int, password: str, server: str):
+    if mt5 is None:
+        raise RuntimeError("MetaTrader5 package not installed.")
+    if not mt5.initialize():
+        print("mt5.initialize() failed, error:", mt5.last_error())
+        return False
+    ok = mt5.login(login, password, server)
+    if not ok:
+        print("MT5 login failed:", mt5.last_error())
+        return False
+    print("MT5 logged in:", login, "server:", server)
+    return True
+
+
+def ensure_symbol_ready(symbol):
+    if mt5 is None:
+        return False, "mt5 not installed"
+    info = mt5.symbol_info(symbol)
+    if info is None:
+        return False, f"{symbol} not found in MT5"
+    if not info.visible:
+        mt5.symbol_select(symbol, True)
+    return True, None
+
+
+def get_account_snapshot():
+    if mt5 is None:
+        return {}
+    info = mt5.account_info()
+    if info is None:
+        return {}
+    return {
+        "balance": float(info.balance),
+        "equity": float(info.equity),
+        "margin": float(info.margin),
+        "free_margin": float(info.margin_free)
+    }
+
+
+def get_positions_for_symbol(symbol):
+    if mt5 is None:
+        return []
+    positions = mt5.positions_get(symbol=symbol)
+    return positions if positions is not None else []
+
+
+def close_position(position):
+    symbol = position.symbol
+    volume = position.volume
+    ticket = position.ticket
+
+    price = mt5.symbol_info_tick(symbol).bid if position.type == 0 else mt5.symbol_info_tick(symbol).ask
+    order_type = mt5.ORDER_TYPE_SELL if position.type == 0 else mt5.ORDER_TYPE_BUY  # opposite
+
+    request = {
+        "action": mt5.TRADE_ACTION_DEAL,
+        "symbol": symbol,
+        "volume": volume,
+        "type": order_type,
+        "position": ticket,  # THIS IS THE IMPORTANT PART
+        "price": price,
+        "deviation": 20,
+        "magic": 123456,
+        "comment": "CLOSE_BY_BOT"
+    }
+
+    result = mt5.order_send(request)
+    print("Close result:", result)
+
+
+def place_market_order_mt5(direction, symbol, volume, sl, tp, magic=123456):
+    if mt5 is None:
+        return {"error": "mt5 lib not available"}
+    ok, err = ensure_symbol_ready(symbol)
+    if not ok:
+        return {"error": err}
+    tick = mt5.symbol_info_tick(symbol)
+    if tick is None:
+        return {"error": "no tick info"}
+    price = tick.ask if direction == "BUY" else tick.bid
+    order_type = mt5.ORDER_TYPE_BUY if direction == "BUY" else mt5.ORDER_TYPE_SELL
+
+    request = {
+        "action": mt5.TRADE_ACTION_DEAL,
+        "symbol": symbol,
+        "volume": float(volume),
+        "type": order_type,
+        "price": price,
+        "sl": float(sl) if sl is not None else 0.0,
+        "tp": float(tp) if tp is not None else 0.0,
+        "deviation": 20,
+        "magic": magic,
+        "comment": "AI-BOT"
+    }
+    res = mt5.order_send(request)
+    return res._asdict() if hasattr(res, "_asdict") else res
+
+
+# -----------------------------
+# Position summary (print)
+# -----------------------------
+def print_positions_summary(symbol):
+    positions = get_positions_for_symbol(symbol)
+    if not positions:
+        print("No open positions for", symbol)
+        return
+    print("Open positions for", symbol)
+    for p in positions:
+        try:
+            print(
+                f" ticket={p.ticket} side={'BUY' if p.type == 0 else 'SELL'} volume={p.volume} price={p.price_open:.6f} profit={p.profit:.2f} sl={getattr(p, 'sl', 0):.6f} tp={getattr(p, 'tp', 0):.6f}")
+        except Exception:
+            print(" position summary print error for ticket", getattr(p, "ticket", "?"))
+
+import time
+import threading
+
+# ==============================
+# 🧠 HELPERS
+# ==============================
+
+def is_special_asset(symbol):
+    s = symbol.upper()
+    return any(x in s for x in ["XAU", "XAG", "BTC", "USOIL"])
+
+
+def compute_momentum(df):
+    if df is None or len(df) < 10:
+        return 0.0
+
+    close = df["close"]
+    momentum_raw = (close.iloc[-1] - close.iloc[-5]) / close.iloc[-5]
+    return abs(momentum_raw)
+
+
+def get_momentum_level(symbol, df):
+    m = compute_momentum(df)
+
+    s = symbol.upper()
+
+    if "BTC" in s:
+        return "high" if m > 0.003 else "low"
+    elif "XAU" in s or "XAG" in s:
+        return "high" if m > 0.002 else "low"
+    else:
+        return "high" if m > 0.0015 else "low"
+
+
+
+
+
+# ==============================
+# 🟡 COOLDOWN STORE
+# ==============================
+cooldown_until = {}
+
+
+# ==============================
+# 🚀 MAIN MONITOR
+# ==============================
+
+def monitor_positions(
+        symbol,
+        interval=0.2,
+        stop_flag=None,
+        log_callback=None,
+
+):
+    global cooldown_until
+
+    def log(msg):
+        if log_callback:
+            log_callback(msg)
+        else:
+            print(msg)
+
+    if symbol not in cooldown_until:
+        cooldown_until[symbol] = 0
+
+    while True:
+
+        if stop_flag and stop_flag.is_set():
+            log(f"🛑 Monitor stopped for {symbol}")
+            break
+
+        try:
+            positions = get_positions_for_symbol(symbol)
+
+            active_tickets = {p.ticket for p in positions}
+
+            # Remove closed positions for this symbol
+            for ticket in list(position_monitor_data.keys()):
+                trade = position_monitor_data[ticket]
+
+                if trade["symbol"] == symbol and ticket not in active_tickets:
+                    del position_monitor_data[ticket]
+
+            if not positions:
+                time.sleep(interval)
+                continue
+
+            tick = mt5.symbol_info_tick(symbol)
+            if tick is None:
+                time.sleep(interval)
+                continue
+
+            pip, pip_value = pip_value_and_pip(symbol)
+            now = time.time()
+
+            df_15m = fetch_ohlc_mt5(symbol, mt5.TIMEFRAME_M15, 50)
+            df_15m = add_indicators(df_15m) if df_15m is not None else None
+
+            momentum_level = get_momentum_level(symbol, df_15m)
+
+
+
+            for pos in positions:
+
+                try:
+                    pos_ref = mt5.positions_get(ticket=pos.ticket)
+                    if not pos_ref:
+                        continue
+                    pos = pos_ref[0]
+
+                    entry = float(pos.price_open)
+                    current_sl = float(pos.sl or 0.0)
+                    price = tick.bid if pos.type == 0 else tick.ask
+
+                    profit_usd = pos.profit
+                    loss_usd = max(0.0, -profit_usd)
+                    new_sl = None
+
+                    from datetime import datetime
+
+                    position_monitor_data[pos.ticket] = {
+                        "ticket": pos.ticket,
+                        "symbol": symbol,
+                        "side": "BUY" if pos.type == 0 else "SELL",
+                        "profit": round(profit_usd, 2),
+                        "entry": pos.price_open,
+                        "current_price": price,
+                        "sl": pos.sl,
+                        "tp": pos.tp,
+                        "time": datetime.now().strftime("%H:%M:%S")
+                    }
+
+                    # ======================================================
+                    # 🧠 SMART SL ENGINE (CLEAN VERSION)
+                    # ======================================================
+
+                    new_sl = None
+                    base_sl = current_sl if current_sl != 0 else None
+
+                    is_buy = (pos.type == 0)
+
+                    # ======================================================
+                    # 🧠 SMART SL ENGINE (FINAL STABLE VERSION)
+                    # ======================================================
+
+                    info = mt5.symbol_info(symbol)
+                    point = info.point
+                    digits = info.digits
+                    stop_level = info.trade_stops_level * point
+
+                    new_sl = None
+                    base_sl = current_sl if current_sl != 0 else None
+                    is_buy = (pos.type == 0)
+
+                    # ======================================================
+                    # 🟡 SPECIAL vs 🔵 NORMAL CONFIG
+                    # ======================================================
+                    if is_special_asset(symbol):
+
+                        BE_TRIGGER = 7
+                        TRAIL_TRIGGER = 9
+                        BE_BUFFER = 0.60
+                        TRAIL_STEP = 2.0
+
+                    else:
+                        BE_TRIGGER = 1
+                        TRAIL_TRIGGER = 2.0
+
+                        # ✅ Forex-safe buffers (in price, not USD)
+                        BE_BUFFER = 20 * point  # ~2 pips
+                        TRAIL_STEP = 100 * point  # ~10 pips
+
+                    # ======================================================
+                    # 🟢 STEP 1: BREAKEVEN (SAFE + SPREAD AWARE)
+                    # ======================================================
+                    if profit_usd >= BE_TRIGGER:
+
+                        spread = abs(tick.ask - tick.bid)
+
+                        if is_buy:
+                            be_sl = entry + BE_BUFFER + spread
+                            log(f"BE DEBUG | {symbol} profit={profit_usd:.2f} entry={entry} be_sl={be_sl} base_sl={base_sl}")
+
+                            if base_sl is None or be_sl > base_sl:
+                                base_sl = be_sl
+
+                        else:
+                            be_sl = entry - BE_BUFFER - spread
+                            log(f"BE DEBUG | {symbol} profit={profit_usd:.2f} entry={entry} be_sl={be_sl} base_sl={base_sl}")
+
+                            if base_sl is None or be_sl < base_sl:
+                                base_sl = be_sl
+
+                    # ======================================================
+                    # 🔵 STEP 2: TRAILING (CLEAN & EFFECTIVE)
+                    # ======================================================
+                    if profit_usd >= TRAIL_TRIGGER:
+
+                        if is_buy:
+                            candidate = price - TRAIL_STEP
+
+                            log(f"TRAIL DEBUG | {symbol} price={price} candidate={candidate} base_sl={base_sl}")
+
+                            if base_sl is None or candidate > base_sl:
+                                base_sl = candidate
+
+                        else:
+                            candidate = price + TRAIL_STEP
+
+                            log(f"TRAIL DEBUG | {symbol} price={price} candidate={candidate} base_sl={base_sl}")
+
+                            if base_sl is None or candidate < base_sl:
+                                base_sl = candidate
+
+                    # ======================================================
+                    # 🧱 FINAL SL DECISION
+                    # ======================================================
+                    new_sl = base_sl
+
+                    if new_sl is None:
+                        continue
+
+                    # ======================================================
+                    # 🚫 VALIDATION (STRICT)
+                    # ======================================================
+                    if is_buy and current_sl != 0 and new_sl <= current_sl:
+                        continue
+
+                    if not is_buy and current_sl != 0 and new_sl >= current_sl:
+                        continue
+
+                    # ======================================================
+                    # 🛡️ BROKER SAFETY CHECK
+                    # ======================================================
+                    if is_buy:
+                        if new_sl > price - stop_level:
+                            continue
+                    else:
+                        if new_sl < price + stop_level:
+                            continue
+
+                    # ======================================================
+                    # 🔁 AVOID DUPLICATE UPDATES
+                    # ======================================================
+                    if current_sl != 0 and round(new_sl, digits) == round(current_sl, digits):
+                        continue
+
+                    # ======================================================
+                    # 🚀 APPLY SL
+                    # ======================================================
+                    request = {
+                        "action": mt5.TRADE_ACTION_SLTP,
+                        "position": pos.ticket,
+                        "sl": round(new_sl, digits),
+                        "tp": pos.tp
+                    }
+
+                    res = mt5.order_send(request)
+
+                    # ======================================================
+                    # 📊 LOGGING
+                    # ======================================================
+                    if res is None:
+                        log(f"❌ {symbol} SL FAILED | ticket={pos.ticket}")
+                        continue
+
+                    if res.retcode != mt5.TRADE_RETCODE_DONE:
+                        log(f"⚠️ {symbol} SL REJECTED | {current_sl:.5f} → {new_sl:.5f} | {res.comment}")
+                        continue
+
+                    log(f"✅ {symbol} SL UPDATED | {'BUY' if is_buy else 'SELL'} "
+                        f"{current_sl:.5f} → {new_sl:.5f} | profit={profit_usd:.2f}")
+
+                except Exception as e:
+                    log(f"❌ error ticket={pos.ticket}: {e}")
+
+        except Exception as e:
+            log(f"❌ monitor error {symbol}: {e}")
+
+        time.sleep(interval)
+
+
+def calculate_sr_levels(df_15m, lookback=50):
+    """
+    Returns support and resistance ZONES (ranges)
+    """
+
+    if df_15m is None or len(df_15m) < lookback:
+        return None, None, None, None
+
+    highs = df_15m["high"].iloc[-lookback:]
+    lows = df_15m["low"].iloc[-lookback:]
+
+    # Resistance zone (top area where price rejects)
+    resistance_low = highs.quantile(0.85)
+    resistance_high = highs.quantile(0.95)
+
+    # Support zone (bottom area where price bounces)
+    support_low = lows.quantile(0.05)
+    support_high = lows.quantile(0.15)
+
+    return support_low, support_high, resistance_low, resistance_high
+
+
+def calculate_choppy_thresholds(df_5m, df_15m, atr_mult_pct=0.75, adx_mult_pct=0.6, atr_period=20, adx_period=14):
+    """
+    Calculate dynamic ATR and ADX thresholds for choppy market detection.
+    Returns:
+        atr_thresh_5m, atr_thresh_15m, adx_thresh_5m, adx_thresh_15m
+    """
+    df_5m = add_indicators(df_5m)
+    df_15m = add_indicators(df_15m)
+
+    # ATR thresholds
+    atr_avg_5m = df_5m["ATR_7"].rolling(atr_period).mean().iloc[-1]
+    atr_avg_15m = df_15m["ATR_7"].rolling(atr_period).mean().iloc[-1]
+    atr_thresh_5m = atr_mult_pct * atr_avg_5m
+    atr_thresh_15m = atr_mult_pct * atr_avg_15m
+
+    # ADX thresholds
+    def calc_adx(df, period=adx_period):
+        df = df.copy()
+        df['H-L'] = df['high'] - df['low']
+        df['H-PC'] = (df['high'] - df['close'].shift(1)).abs()
+        df['L-PC'] = (df['low'] - df['close'].shift(1)).abs()
+        df['TR'] = df[['H-L', 'H-PC', 'L-PC']].max(axis=1)
+        df['ATR'] = df['TR'].rolling(period).mean()
+
+        df['+DM'] = df['high'].diff()
+        df['-DM'] = -df['low'].diff()
+        df['+DM'] = df['+DM'].where((df['+DM'] > df['-DM']) & (df['+DM'] > 0), 0.0)
+        df['-DM'] = df['-DM'].where((df['-DM'] > df['+DM']) & (df['-DM'] > 0), 0.0)
+
+        df['+DI'] = 100 * df['+DM'].rolling(period).sum() / df['ATR']
+        df['-DI'] = 100 * df['-DM'].rolling(period).sum() / df['ATR']
+        df['DX'] = 100 * (df['+DI'] - df['-DI']).abs() / (df['+DI'] + df['-DI'])
+        adx = df['DX'].rolling(period).mean()
+        return adx.iloc[-1]
+
+    adx_thresh_5m = adx_mult_pct * calc_adx(df_5m)
+    adx_thresh_15m = adx_mult_pct * calc_adx(df_15m)
+
+    return atr_thresh_5m, atr_thresh_15m, adx_thresh_5m, adx_thresh_15m
+
+
+def is_choppy_market_simple(df_5m, df_15m):
+    """
+    Uses already-calculated indicators.
+    Returns True if market is choppy.
+    """
+
+    adx_5m = df_5m["ADX_14"].iloc[-1]
+    adx_15m = df_15m["ADX_14"].iloc[-1]
+
+    atr_5m = df_5m["ATR_7"].iloc[-1]
+    atr_15m = df_15m["ATR_7"].iloc[-1]
+
+    atr_compressed = atr_5m < df_5m["ATR_7"].rolling(20).mean().iloc[-1]
+    adx_weak = adx_5m < 20 and adx_15m < 20
+
+    return atr_compressed and adx_weak
+
+
+from datetime import datetime
+
+
+def get_market_state(df_5m, df_15m, symbol, now=None):
+
+    price = df_5m["close"].iloc[-1]
+    atr_15m = df_15m["ATR_7"].iloc[-1]
+    adx_5m = df_5m["ADX_14"].iloc[-1]
+    adx_15m = df_15m["ADX_14"].iloc[-1]
+
+    atr_pct = (atr_15m / price) * 100
+
+    # -------------------------
+    # VOLATILITY FILTER
+    # -------------------------
+    if "BTC" in symbol.upper() and atr_pct < 0.15:
+        return "NO_TRADE"
+    if "ETH" in symbol.upper() and atr_pct < 0.20:
+        return "NO_TRADE"
+
+    # -------------------------
+    # CONFIRMED TREND
+    # -------------------------
+    if adx_5m >= 25 and adx_15m >= 20:
+        return "TRENDING"
+
+    # -------------------------
+    # EARLY TREND DETECTION 🔥
+    # -------------------------
+    if adx_5m >= 20 and adx_15m >= 18:
+        return "TRENDING_EARLY"
+
+
+
+    # -------------------------
+    # SIDEWAYS
+    # -------------------------
+    if adx_5m < 18 and adx_15m < 18:
+        return "SIDEWAYS"
+
+    return "SIDEWAYS"
+
+
+# -----------------------------
+# Global variables
+# -----------------------------
+START_BALANCE: float = 0.0  # will be locked after MT5 login
+EQUITY_CACHE: float = 0.0
+MAX_DRAWDOWN_PCT = 50.0
+
+
+# -----------------------------
+# Initialize START_BALANCE
+# -----------------------------
+def init_start_balance():
+    global START_BALANCE, PEAK_EQUITY, DAILY_START_EQUITY, LAST_EQUITY_DAY
+
+    acc = mt5.account_info()
+    if acc is None:
+        raise RuntimeError("Cannot fetch account info")
+
+    START_BALANCE = float(acc.balance)
+    PEAK_EQUITY = float(acc.equity)
+    DAILY_START_EQUITY = float(acc.equity)
+    LAST_EQUITY_DAY = datetime.utcnow().date()
+
+    logger.info(f"🔐 START_BALANCE: {START_BALANCE:.2f}")
+    logger.info(f"🚀 PEAK_EQUITY initialized: {PEAK_EQUITY:.2f}")
+
+
+# -----------------------------
+# Drawdown check
+# -----------------------------
+def drawdown_ok() -> bool:
+    global PEAK_EQUITY, DAILY_START_EQUITY, LAST_EQUITY_DAY
+
+    acc = mt5.account_info()
+    if acc is None:
+        return True
+
+    equity = float(acc.equity)
+    today = datetime.utcnow().date()
+
+    # -----------------------------
+    # 🔹 DAILY RESET
+    # -----------------------------
+    if LAST_EQUITY_DAY != today:
+        DAILY_START_EQUITY = equity
+        LAST_EQUITY_DAY = today
+        logger.info(f"🌅 New trading day → Daily equity reset: {equity:.2f}")
+
+    # -----------------------------
+    # 🔹 UPDATE PEAK EQUITY
+    # -----------------------------
+    if equity > PEAK_EQUITY:
+        PEAK_EQUITY = equity
+
+    # -----------------------------
+    # 🔹 CALCULATIONS
+    # -----------------------------
+    total_dd = ((PEAK_EQUITY - equity) / PEAK_EQUITY) * 100
+    daily_dd = ((DAILY_START_EQUITY - equity) / DAILY_START_EQUITY) * 100
+
+    # -----------------------------
+    # 🔴 HARD STOP CONDITIONS
+    # -----------------------------
+    if total_dd >= MAX_TOTAL_DRAWDOWN_PCT:
+        logger.critical(f"⛔ TOTAL DD HIT: {total_dd:.2f}%")
+        close_all_positions()
+        cooldown_until_all = time.time() + 3600  # pause 1 hour
+
+    if daily_dd >= MAX_DAILY_DRAWDOWN_PCT:
+        logger.critical(f"⛔ DAILY DD HIT: {daily_dd:.2f}%")
+
+
+
+    # -----------------------------
+    # ✅ SAFE
+    # -----------------------------
+    logger.info(f"DD OK | Total: {total_dd:.2f}% | Daily: {daily_dd:.2f}%")
+    return True
+
+
+def close_all_positions():
+    positions = mt5.positions_get()
+    if not positions:
+        return
+
+    for pos in positions:
+        price = mt5.symbol_info_tick(pos.symbol).bid if pos.type == 0 else mt5.symbol_info_tick(pos.symbol).ask
+
+        request = {
+            "action": mt5.TRADE_ACTION_DEAL,
+            "position": pos.ticket,
+            "symbol": pos.symbol,
+            "volume": pos.volume,
+            "type": mt5.ORDER_TYPE_SELL if pos.type == 0 else mt5.ORDER_TYPE_BUY,
+            "price": price,
+            "deviation": 50,
+            "magic": pos.magic,
+            "comment": "HARD_DRAWDOWN_CLOSE"
+        }
+        mt5.order_send(request)
+
+
+def performance_metrics(trades: pd.DataFrame) -> dict:
+    """
+    Robust performance metrics.
+    Handles extra columns (order_action, order_result) safely.
+    """
+
+    if trades.empty:
+        return {}
+
+    # -------- REQUIRED COLUMNS CHECK --------
+    required_cols = {"time", "account_balance", "account_equity"}
+    if not required_cols.issubset(trades.columns):
+        return {"Error": "Missing required trade columns"}
+
+    # Sort chronologically
+    trades = trades.sort_values("time").reset_index(drop=True)
+
+    # -------- PROFIT ENGINE --------
+    trades["prev_balance"] = trades["account_balance"].shift(1)
+    trades["profit"] = (trades["account_balance"] - trades["prev_balance"]).round(2)
+    trades["profit"] = trades["profit"].fillna(0)
+
+    # Trade classification
+    trades["result"] = "breakeven"
+    trades.loc[trades["profit"] > 0, "result"] = "win"
+    trades.loc[trades["profit"] < 0, "result"] = "loss"
+
+    wins = trades[trades["result"] == "win"]
+    losses = trades[trades["result"] == "loss"]
+    breakeven = trades[trades["result"] == "breakeven"]
+
+    win_count = len(wins)
+    loss_count = len(losses)
+    be_count = len(breakeven)
+    total_trades = win_count + loss_count + be_count
+
+    win_rate = (win_count / (win_count + loss_count) * 100) if (win_count + loss_count) else 0
+
+    total_profit = round(wins["profit"].sum(), 2)
+    total_loss = round(abs(losses["profit"].sum()), 2)
+    profit_factor = round(total_profit / total_loss, 2) if total_loss else float("inf")
+
+    avg_win = round(wins["profit"].mean(), 2) if win_count else 0
+    avg_loss = round(losses["profit"].mean(), 2) if loss_count else 0
+
+    # -------- DRAWDOWN --------
+    trades["peak_equity"] = trades["account_equity"].cummax()
+    trades["drawdown"] = trades["account_equity"] - trades["peak_equity"]
+    max_drawdown = round(trades["drawdown"].min(), 2)
+
+    # -------- ORDER ACTION STATS (NEW) --------
+    action_stats = {}
+    if "order_action" in trades.columns:
+        action_counts = trades["order_action"].value_counts().to_dict()
+        action_stats = {
+            "Executed Trades": action_counts.get("BUY", 0) + action_counts.get("SELL", 0),
+            "Skipped Trades": action_counts.get("SKIPPED_MAX_POSITIONS", 0),
+            "No Trade": action_counts.get("NO_TRADE", 0)
+        }
+
+    return {
+        "Total Trades": total_trades,
+        "Wins": win_count,
+        "Losses": loss_count,
+        "Breakeven": be_count,
+        "Win Rate (%)": round(win_rate, 2),
+        "Balance": round(trades["account_balance"].iloc[-1], 2),
+        "Equity": round(trades["account_equity"].iloc[-1], 2),
+        "Net Profit": round(trades["profit"].sum(), 2),
+        "Avg Win": avg_win,
+        "Avg Loss": avg_loss,
+        "Profit Factor": profit_factor,
+        "Max Drawdown": max_drawdown,
+        **action_stats
+    }
+
+
+def load_trades():
+    if not os.path.exists(OUTPUT_CSV):
+        return pd.DataFrame()
+
+    try:
+        df = pd.read_csv(
+            OUTPUT_CSV,
+            engine="python",
+            on_bad_lines="skip"
+        )
+    except Exception as e:
+        print(f"❌ Failed to load trades CSV: {e}")
+        return pd.DataFrame()
+
+    if df.empty:
+        return df
+
+    # Normalize columns
+    df.columns = df.columns.str.strip()
+
+    # Parse time safely
+    if "time" in df.columns:
+        df["time"] = pd.to_datetime(df["time"], errors="coerce")
+
+    # ✅ KEEP ALL EXECUTED & CLOSED TRADES
+    valid_actions = ["BUY", "SELL", "CLOSE", "SL", "TP", "MAX_LOSS"]
+
+    if "order_action" in df.columns:
+        df = df[df["order_action"].isin(valid_actions)]
+
+    return df.reset_index(drop=True)
+
+
+import random
+from datetime import datetime, date, time as dtime, timedelta
+
+SIGNAL_WINDOW_START = dtime(16, 0)  # 4:00 PM
+SIGNAL_WINDOW_END = dtime(18, 0)  # 6:00 PM
+
+daily_signal_sent = {}
+next_signal_time = {}
+
+import requests
+import logging
+import sys
+
+# Create a custom logger
+logger = logging.getLogger("SignalHawkBot")
+logger.setLevel(logging.INFO)
+
+# ----- Console Handler -----
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setLevel(logging.INFO)
+
+# Use UTF-8 encoding for console (Python 3.7+)
+if hasattr(console_handler.stream, "reconfigure"):
+    console_handler.stream.reconfigure(encoding="utf-8")
+
+console_format = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
+console_handler.setFormatter(console_format)
+
+# ----- File Handler -----
+file_handler = logging.FileHandler("bot.log", encoding="utf-8")
+file_handler.setLevel(logging.INFO)
+file_format = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
+file_handler.setFormatter(file_format)
+
+# Add handlers to the logger
+logger.addHandler(console_handler)
+logger.addHandler(file_handler)
+
+# Example usage:
+logger.info("Logger initialized → ready to start bot!")
+from datetime import datetime
+
+now = datetime.utcnow()  # works directly
+
+
+def gui_log(log_callback, level, message):
+    """
+    Send a formatted log message to the GUI Text widget.
+    level: "info", "warning", or "error"
+    log_callback: function(msg) → sends the msg to GUI
+    message: string message
+    """
+    # Timestamp
+    ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Emoji based on level
+    emoji = {
+        "info": "✅",
+        "warning": "⚠️",
+        "error": "❌"
+    }.get(level, "ℹ️")  # default ℹ️ if level unknown
+
+    # Construct final message
+    final_msg = f"[{ts}] {emoji} {message}"
+
+    # Send to GUI callback
+    if callable(log_callback):
+        log_callback(final_msg)
+
+    # Optional: also print to console for debugging
+    print(final_msg)
+
+def is_good_trading_day():
+    day = datetime.utcnow().weekday()
+
+    if day == 0:
+        return "CAREFUL"   # Trade after London open only
+
+    elif day in [1, 2, 3]:
+        return "BEST"
+
+    elif day == 4:
+        return "PARTIAL"   # Trade only early sessions
+
+    else:
+        return "NO_TRADE"
+
+def is_trading_session():
+    now = datetime.utcnow()
+    hour = now.hour
+
+    # 🔥 Check overlap FIRST
+    if 13 <= hour < 16:
+        return "OVERLAP"
+
+    elif 8 <= hour < 16:
+        return "LONDON"
+
+    elif 13 <= hour < 20:
+        return "NEW_YORK"
+
+    return None
+
+def momentum_entry(price, resistance, support, signal, adx5, prev_close):
+    buffer = (resistance - support) * 0.05
+
+    if signal == "BUY":
+        return (
+            adx5 > 25 and
+            (
+                # breakout
+                (prev_close > resistance and price > resistance + buffer)
+
+                # pre-breakout
+                or (price >= resistance - buffer and prev_close < resistance)
+
+                # 🔥 continuation
+                or (price > prev_close and adx5 > 30)
+            )
+        )
+
+    elif signal == "SELL":
+        return (
+            adx5 > 25 and
+            (
+                (prev_close < support and price < support - buffer)
+                or (price <= support + buffer and prev_close > support)
+                or (price < prev_close and adx5 > 30)
+            )
+        )
+
+    return False
+
+def entry_model(
+    df_5m,
+    df_15m,
+    signal,
+    support_low,
+    support_high,
+    resistance_low,
+    resistance_high,
+    adx
+):
+    if df_5m is None or df_15m is None:
+        return False
+
+    if len(df_5m) < 10 or len(df_15m) < 10:
+        return False
+
+    # =========================
+    # GET DATA
+    # =========================
+    last5 = df_5m.iloc[-1]
+    prev5 = df_5m.iloc[-2]
+
+    last15 = df_15m.iloc[-1]
+
+    price = last5["close"]
+    prev_close = prev5["close"]
+
+    # EMAs
+    ema10_5 = last5["EMA_10"]
+    ema20_5 = last5["EMA_20"]
+
+    ema10_15 = last15["EMA_10"]
+    ema20_15 = last15["EMA_20"]
+
+    # =========================
+    # 🔒 1. HIGHER TIMEFRAME FILTER (15m)
+    # =========================
+    if signal == "BUY" and not (last15["close"] > ema10_15 > ema20_15):
+        return False
+
+    if signal == "SELL" and not (last15["close"] < ema10_15 < ema20_15):
+        return False
+
+    # =========================
+    # 🔒 2. LOWER TIMEFRAME CONFIRMATION (5m)
+    # =========================
+    if signal == "BUY" and not (price > ema10_5 > ema20_5):
+        return False
+
+    if signal == "SELL" and not (price < ema10_5 < ema20_5):
+        return False
+
+    # =========================
+    # 🔒 3. ADX (STRONGER FILTER)
+    # =========================
+    if adx < 20:
+        return False
+
+    # =========================
+    # 🔒 4. MOMENTUM + DIRECTION
+    # =========================
+    body = abs(last5["close"] - last5["open"])
+    candle_range = last5["high"] - last5["low"]
+
+    if candle_range == 0:
+        return False
+
+    body_ratio = body / candle_range
+
+    bullish = last5["close"] > last5["open"]
+    bearish = last5["close"] < last5["open"]
+
+    if body_ratio < 0.6:
+        return False
+
+    if signal == "BUY" and not bullish:
+        return False
+
+    if signal == "SELL" and not bearish:
+        return False
+
+    # =========================
+    # 🔒 5. POSITION FILTER (CRITICAL)
+    # =========================
+    range_ = resistance_high - support_low
+    if range_ <= 0:
+        return False
+
+    position = (price - support_low) / range_
+    position = max(0, min(1, position))
+
+    # ❗ Avoid trading into extremes
+    if signal == "BUY" and position > 0.85:
+        return False
+
+    if signal == "SELL" and position < 0.15:
+        return False
+
+    # =========================
+    # 🔒 6. STRUCTURE CONFIRMATION
+    # =========================
+    higher_low = last5["low"] > prev5["low"]
+    lower_high = last5["high"] < prev5["high"]
+
+    # =========================
+    # 🔥 7. ENTRY LOGIC
+    # =========================
+
+    if signal == "BUY":
+
+        # ✔ Pullback (safe zone + structure)
+        pullback = (
+            position < 0.5 and
+            higher_low and
+            price > prev_close
+        )
+
+        # ✔ Breakout + retest (REAL breakout)
+        breakout = (
+            prev5["close"] > resistance_high and
+            last5["low"] <= resistance_high and
+            price > resistance_high
+        )
+
+        if not (pullback or breakout):
+            return False
+
+    elif signal == "SELL":
+
+        pullback = (
+            position > 0.5 and
+            lower_high and
+            price < prev_close
+        )
+
+        breakout = (
+            prev5["close"] < support_low and
+            last5["high"] >= support_low and
+            price < support_low
+        )
+
+        if not (pullback or breakout):
+            return False
+
+    # =========================
+    # 🔒 8. ANTI-FAKEOUT FILTER
+    # =========================
+    wick = candle_range - body
+
+    # large wick = rejection / trap
+    if wick > body:
+        return False
+
+    return True
+
+def delete_old_logs(log_callback=None):
+    today = datetime.now().date()
+
+    deleted_files = []
+
+    for file in os.listdir():
+        # only target bot CSV logs
+        if file.startswith("logs_") and file.endswith(".csv"):
+            try:
+                date_str = file.replace("logs_", "").replace(".csv", "")
+                file_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+
+                if file_date < today:
+                    os.remove(file)
+                    deleted_files.append(file)
+
+            except Exception as e:
+                if log_callback:
+                    log_callback(f"⚠️ Log cleanup skip {file}: {e}")
+
+    if log_callback and deleted_files:
+        log_callback(f"🧹 Deleted old logs: {deleted_files}")
+
+# -----------------------------
+# MAIN (pro trading) - MT5 candles integrated
+# -----------------------------
+def main(stop_flag, log_callback, symbol_count=None, selected_symbols=None, max_same_direction=1,lot_mode="Auto Risk",fixed_lot=0.01,scan_interval="5m"):
+    """
+    Main bot loop controlled by GUI.
+    stop_flag: threading.Event() → set() stops the bot
+    log_callback: function(msg) → sends log to GUI Text widget
+    symbol_count: int or None → how many symbols to trade (default all)
+    """
+    last_cleanup_day = datetime.now().date()
+
+
+    last_trade_time = 0
+
+    log_callback("✅ Starting bot...")
+
+    # -----------------------------
+    # SCAN INTERVAL
+    # -----------------------------
+    INTERVAL_MAP = {
+        "1m": 60,
+        "2m": 120,
+        "3m": 180,
+        "5m": 300,
+        "10m": 600,
+        "15m": 900,
+        "30m": 1800,
+        "1h": 3600
+    }
+
+    fetch_delay = INTERVAL_MAP.get(scan_interval, 300)
+
+    log_callback(
+        f"⏱ Scan interval set to "
+        f"{scan_interval} ({fetch_delay}s)"
+    )
+
+    # --------------------------------
+    # DETERMINE SYMBOLS TO TRADE (GUI OR DEFAULT)
+    # --------------------------------
+    if selected_symbols:
+        active_symbols = []
+        active_mt5_symbols = []
+
+        for s in selected_symbols:
+            if s in symbols:
+                idx = symbols.index(s)
+                active_symbols.append(symbols[idx])
+                active_mt5_symbols.append(mt5_symbols[idx])
+
+        log_callback(f"🎯 GUI selected symbols: {active_mt5_symbols}")
+
+    else:
+        # fallback to old behavior
+        if symbol_count is None or symbol_count > len(symbols):
+            symbol_count = len(symbols)
+
+        active_symbols = symbols[:symbol_count]
+        active_mt5_symbols = mt5_symbols[:symbol_count]
+
+        log_callback(f"📌 Default symbols used: {active_mt5_symbols}")
+
+    # -----------------------------
+    # START POSITION MONITOR
+    # -----------------------------
+    for MT5_SYMBOL in active_mt5_symbols:
+        if not mt5.symbol_select(MT5_SYMBOL, True):
+            log_callback(f"⚠️ Could not select {MT5_SYMBOL} in Market Watch. Skipping.")
+            continue
+
+        monitor_thread = threading.Thread(
+            target=monitor_positions,
+            args=(MT5_SYMBOL,),
+            kwargs={
+                "interval": 0.2,
+                "stop_flag": stop_flag,
+                "log_callback": log_callback,
+
+
+            },
+            daemon=True
+        )
+        monitor_thread.start()
+        log_callback(f"🟢 Monitoring thread started for {MT5_SYMBOL}")
+
+    # =============================
+    # MAIN TRADING LOOP
+    # =============================
+    while not stop_flag.is_set():
+        try:
+            now = datetime.now()
+
+            # run cleanup once per new day
+            if now.date() != last_cleanup_day:
+                last_cleanup_day = now.date()
+                delete_old_logs(log_callback)
+                print("old logs deleted")
+
+            for i in range(len(active_symbols)):
+                SYMBOL = active_symbols[i]
+                MT5_SYMBOL = active_mt5_symbols[i]
+
+                # -----------------------------
+                # Initialize balance & equity
+                # -----------------------------
+                acc = mt5.account_info()
+                if not acc:
+                    log_callback(f"❌ MT5 account info unavailable for {MT5_SYMBOL}. Skipping iteration.")
+                    continue
+                balance = float(acc.balance)
+                equity = float(acc.equity)
+
+                # =============================
+                # GLOBAL DRAWDOWN GUARD
+                # =============================
+                try:
+                    if not drawdown_ok():
+                        log_callback("⛔ GLOBAL DRAWDOWN LIMIT HIT — closing positions & freezing bot")
+                        close_all_positions()
+                        for _ in range(int(1800 / fetch_delay)):
+                            if stop_flag.is_set():
+                                log_callback("🛑 Stop requested during freeze. Exiting main loop.")
+                                return
+                            time.sleep(fetch_delay)
+                        continue
+                except Exception as e:
+                    log_callback(f"❌ Error checking drawdown: {e}")
+                    continue
+
+                log_callback(f"----- NEW CANDLE for {SYMBOL} ({MT5_SYMBOL}) -----")
+
+                #if not is_trading_session():
+                 #   log_callback(f"⏰ Outside trading session for {MT5_SYMBOL}")
+                  #  continue
+
+                # -----------------------------
+                # DAY FILTER
+                # -----------------------------
+
+                day_state = is_good_trading_day()
+
+
+
+                if day_state == "AVOID":
+                    log_callback(f"⚠️ Friday risk - skipping {MT5_SYMBOL}")
+                    continue
+
+                # --- 1. Fetch OHLC data ---
+                df_5m = fetch_ohlc_mt5(MT5_SYMBOL, mt5.TIMEFRAME_M5, FETCH_COUNT)
+                df_15m = fetch_ohlc_mt5(MT5_SYMBOL, mt5.TIMEFRAME_M15, FETCH_COUNT)
+                df_60m = fetch_ohlc_mt5(MT5_SYMBOL, mt5.TIMEFRAME_H1, FETCH_COUNT) if REQUIRE_60M_CONFIRM else None
+                # =============================
+                # 🔥 LIQUIDITY SWEEP DETECTION
+                # =============================
+                liquidity_signal = detect_liquidity_sweep(df_5m)
+
+                # =============================
+                # 1H TREND FILTER
+                # =============================
+                trend_1h = trend_filter_1h(df_60m)
+
+                if trend_1h is None:
+                    log_callback(f"⚠️ No 1H trend for {MT5_SYMBOL}")
+                    continue
+
+                if df_5m is None or df_15m is None or df_5m.empty or df_15m.empty:
+                    log_callback(f"❌ No OHLC data for {MT5_SYMBOL}. Skipping this iteration.")
+                    continue
+
+                # --- 2. Indicators ---
+                df_5m = add_indicators(df_5m)
+                df_15m = add_indicators(df_15m)
+                # ✅ ADX TREND FILTER
+                if df_15m["ADX_14"].iloc[-1] < 15:
+                    log_callback(f"⛔ Weak trend  for {MT5_SYMBOL}")
+                    continue
+
+                if df_60m is not None:
+                    df_60m = add_indicators(df_60m)
+
+                last_5m = df_5m.iloc[-1]
+                prev_5m = df_5m.iloc[-2]
+                last_15m = df_15m.iloc[-1]
+                prev_15m = df_15m.iloc[-2]
+
+                tech_5m = technical_signal(last_5m, prev_5m)
+                tech_15m = technical_signal(last_15m, prev_15m)
+                last_price = float(last_5m["close"])
+
+
+
+                log_callback(f"Technical signals | 5M={tech_5m} | 15M={tech_15m} | price={last_price:.2f}")
+
+                # --- 3. Market state ---
+                market_state = get_market_state(df_5m, df_15m, MT5_SYMBOL)
+                log_callback(f"Market state | {MT5_SYMBOL} "
+                             f"ADX5={df_5m['ADX_14'].iloc[-1]:.1f} "
+                             f"ADX15={df_15m['ADX_14'].iloc[-1]:.1f} "
+                             f"ATR15={df_15m['ATR_7'].iloc[-1]:.2f} → {market_state}")
+
+                # --- 4. Support / Resistance ---
+                support_low, support_high, resistance_low, resistance_high = calculate_sr_levels(df_15m)
+
+                # 🔥 BREAKOUT DETECTION (CORRECT PLACE)
+                is_breakout_buy = last_price > resistance_high
+                is_breakout_sell = last_price < support_low
+
+                # --- MARKET STATE FILTER (FIXED)
+                if market_state not in ["TRENDING", "TRENDING_EARLY"]:
+                    if not is_breakout_buy and not is_breakout_sell:
+                        log_callback(f"⛔ Not trending & no breakout → skip {MT5_SYMBOL}")
+                        continue
+
+
+
+                if is_choppy_market_simple(df_5m, df_15m):
+                    log_callback("⛔ Choppy override inside TRENDING → skip")
+                    continue
+
+                # --- 4. Support / Resistance ---
+                support_low, support_high, resistance_low, resistance_high = calculate_sr_levels(df_15m)
+
+                # Safety check
+                if None in [support_low, support_high, resistance_low, resistance_high]:
+                    log_callback(f"⚠️ Invalid S/R zones for {MT5_SYMBOL}")
+                    continue
+
+                log_callback(
+                    f"S/R ZONES | "
+                    f"support=({support_low:.2f}-{support_high:.2f}) | "
+                    f"resistance=({resistance_low:.2f}-{resistance_high:.2f})"
+                )
+                # 🔥 BREAKOUT DETECTION (MOVE HERE)
+                is_breakout_buy = last_price > resistance_high
+                is_breakout_sell = last_price < support_low
+
+                # --- 5. Final signal ---
+                # --- 5. Final signal ---
+                final_signal, strength = final_signal_logic(
+                    tech_5m,
+                    tech_15m,
+                    last_price,
+                    support_low,
+                    support_high,
+                    resistance_low,
+                    resistance_high,
+                    df_15m,
+                    df_60m, # 👈 NEW (pass 1H data)
+                    liquidity_signal = None,  # ✅ ADD
+                    log_callback = None
+                )
+
+                log_callback(
+                    f"Final decision | signal={final_signal} | strength={strength}"
+                )
+
+                if is_choppy_market_simple(df_5m, df_15m):
+                    log_callback(f"⛔ Choppy market for {MT5_SYMBOL}")
+                    continue
+
+                if df_15m["ADX_14"].iloc[-1] < 20:
+                    log_callback(f"⛔ Weak ADX for {MT5_SYMBOL}")
+                    continue
+
+                if market_state == "TRENDING_EARLY":
+                    strength += 5
+
+                # =============================
+                # ENTRY MODEL FILTER (NEW 🔥)
+                # =============================
+                adx5 = df_5m["ADX_14"].iloc[-1]
+                if final_signal in ["BUY", "SELL"]:
+                    entry_ok = entry_model(
+                        df_5m=df_5m,
+                        df_15m=df_15m,  # ✅ NEW (important)
+                        signal=final_signal,
+                        support_low=support_low,
+                        support_high=support_high,
+                        resistance_low=resistance_low,
+                        resistance_high=resistance_high,
+                        adx=adx5
+                    )
+
+                    if not entry_ok and not (is_breakout_buy or is_breakout_sell):
+                        log_callback(f"⛔ Entry model rejected trade for {MT5_SYMBOL}")
+                        final_signal = "HOLD"
+                        strength = 0
+
+                # =============================
+                # RANGE POSITION FILTER 🔥
+                # =============================
+                # 🔥 BREAKOUT DETECTION
+                is_breakout_buy = last_price > resistance_high
+                is_breakout_sell = last_price < support_low
+
+                # =============================
+                # RANGE POSITION FILTER 🔥 (FIXED)
+                # =============================
+                if market_state != "TRENDING":
+
+                    range_size = resistance_high - support_low
+
+                    if range_size > 0:
+                        position_in_range = (last_price - support_low) / range_size
+
+                        log_callback(
+                            f"📊 Range filter | last_price={last_price:.2f} "
+                            f"| support_low={support_low:.2f} | resistance_high={resistance_high:.2f} "
+                            f"| range_size={range_size:.2f} | position_in_range={position_in_range:.2f}"
+                        )
+
+                        # 🚫 APPLY ONLY IF NOT BREAKOUT
+                        if not is_breakout_buy and not is_breakout_sell:
+
+                            if final_signal == "BUY" and position_in_range > 0.75:
+                                log_callback(
+                                    f"⛔ Skipping BUY — price too high in range ({position_in_range:.2f} > 0.75)"
+                                )
+                                final_signal = "HOLD"
+                                strength = 0
+
+                            if final_signal == "SELL" and position_in_range < 0.25:
+                                log_callback(
+                                    f"⛔ Skipping SELL — price too low in range ({position_in_range:.2f} < 0.25)"
+                                )
+                                final_signal = "HOLD"
+                                strength = 0
+
+                # ✅ HARD FILTER
+                if final_signal == "HOLD":
+                    continue
+
+                if strength < MIN_STRENGTH_TO_TRADE:
+                    log_callback(f"⛔ Skipped weak signal: {strength}")
+                    continue
+
+                # --- 6. Risk filters ---
+                tick = mt5.symbol_info_tick(MT5_SYMBOL)
+                atr_15m = df_15m["ATR_7"].iloc[-1]
+
+                if not risk_filters_ok(tick, atr_15m, MT5_SYMBOL):
+                    log_callback(f"⛔ Risk filter blocked trade for {MT5_SYMBOL}")
+                    final_signal = "HOLD"
+                    strength = 0
+
+                from trade_state import is_in_cooldown
+
+                if is_in_cooldown(MT5_SYMBOL):
+                    log_callback(
+                        f"⏱ {MT5_SYMBOL} is in cooldown. Skipping trade."
+                    )
+
+                    continue
+
+                # --- 7. SL / TP ---
+                sl, tp = calculate_sl_tp(last_5m, df_15m, final_signal, MT5_SYMBOL)
+
+
+
+                # --- 9. Trade execution ---
+                do_trade = final_signal in ["BUY", "SELL"] and strength >= MIN_STRENGTH_TO_TRADE
+                positions = get_positions_for_symbol(MT5_SYMBOL)
+
+                # ✅ GLOBAL POSITION LIMIT
+               # all_positions = mt5.positions_get()
+                #if all_positions and len(all_positions) >= 3:
+                 #   log_callback("⛔ Max total positions reached")
+                  #  continue
+
+                output_action = "NO_TRADE"
+                output_result = None
+
+                if do_trade and ALLOW_TRADES:
+                    same_dir = [
+                        p for p in positions
+                        if (p.type == 0 and final_signal == "BUY") or
+                           (p.type == 1 and final_signal == "SELL")
+                    ]
+
+                    if max_same_direction is not None and len(same_dir) >= max_same_direction:
+                        log_callback(f"⛔ Max same-direction positions reached for {MT5_SYMBOL}. Skipping trade.")
+                        output_action = "SKIPPED_MAX_POSITIONS"
+                    else:
+                        if lot_mode == "Fixed Lot":
+
+                            lots = float(fixed_lot)
+
+                            log_callback(
+                                f"📦 Fixed lot mode active | "
+                                f"Using {lots} lots for {MT5_SYMBOL}"
+                            )
+
+                        else:
+
+                            lots = calculate_lot_size_from_risk(
+                                sl,
+                                last_price,
+                                balance,
+                                MT5_SYMBOL,
+
+                            )
+
+                            log_callback(
+                                f"📊 Auto risk mode | "
+                                f"Calculated lots={lots}"
+                            )
+                        log_callback(
+                            f"Placing {final_signal} for {MT5_SYMBOL} | "
+                            f"price={last_price:.2f} SL={sl:.2f} TP={tp:.2f} lots={lots}"
+                        )
+                        res = place_market_order_mt5(final_signal, MT5_SYMBOL, lots, sl, tp)
+                        log_callback(f"Order result: {res}")
+                        output_action = final_signal
+                        output_result = str(res)
+                        last_trade_time = time.time()
+
+                # --- 10. CSV logging ---
+                try:
+                    out_row = {
+                        "time": last_5m.name,
+                        "symbol": MT5_SYMBOL,
+                        "close": last_5m["close"],
+                        "technical_5m": tech_5m,
+                        "technical_15m": tech_15m,
+                        "final_signal": final_signal,
+                        "strength": strength,
+                        "SL": sl,
+                        "TP": tp,
+                        "lots": locals().get("lots", LOT_SIZE_MIN),
+                        "order_action": output_action,
+                        "order_result": output_result,
+                        "account_balance": balance,
+                        "account_equity": equity
+                    }
+                    pd.DataFrame([out_row]).to_csv(OUTPUT_CSV, mode="a", header=False, index=False)
+                except Exception as ex:
+                    log_callback(f"❌ CSV logging error for {MT5_SYMBOL}: {ex}")
+
+                # --- 11. Position summary ---
+                print_positions_summary(MT5_SYMBOL)
+                try:
+                    trades = load_trades()
+                    if not trades.empty:
+                        metrics = performance_metrics(trades)
+
+                        log_callback(
+                            f"📊 PERF | Trades={metrics.get('Total Trades', 0)} | "
+                            f"Wins={metrics.get('Wins', 0)} | Losses={metrics.get('Losses', 0)} | "
+                            f"WR={metrics.get('Win Rate (%)', 0)}% | "
+                            f"Balance={metrics.get('Balance', 0)} | Equity={metrics.get('Equity', 0)} | "
+                            f"NetP/L={metrics.get('Net Profit', 0)} | "
+                            f"PF={metrics.get('Profit Factor', 0)} | "
+                            f"DD={metrics.get('Max Drawdown', 0)} | "
+                            f"Exec={metrics.get('Executed Trades', 0)} | "
+                            f"Skip={metrics.get('Skipped Trades', 0)}"
+                        )
+                except Exception as e:
+                    log_callback(f"❌ Performance metrics error: {e}")
+
+                if stop_flag.is_set():
+                    log_callback("🛑 Stop requested. Exiting main loop.")
+                    return
+
+            time.sleep(fetch_delay)
+
+        except Exception as e:
+            log_callback(f"❌ Main loop error: {e}")
+            time.sleep(fetch_delay)
+
+    log_callback("✅ Bot stopped cleanly")
