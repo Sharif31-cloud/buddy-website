@@ -4,326 +4,650 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Buddy Products</title>
-
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="icon.png">
-  
   <link rel="apple-touch-icon" href="icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 
-  <!-- Styles -->
   <style>
-    /* Body & Typography */
+    /* ═══════════════════════════════════════════════════
+       DESIGN SYSTEM — Buddy Products
+       Warm, grounded palette. No generic tech-blue.
+       ═══════════════════════════════════════════════════ */
+
+    :root {
+      --bg: #F4F1EB;
+      --surface: #FFFFFF;
+      --surface-raised: #FAFAF7;
+      --primary: #C45D3E;
+      --primary-hover: #A84830;
+      --secondary: #2B4A3E;
+      --secondary-hover: #1D3629;
+      --accent: #E8A838;
+      --accent-hover: #D4952E;
+      --text-primary: #1C1C1C;
+      --text-secondary: #5A5A5A;
+      --text-muted: #8A8A8A;
+      --border: #E0DDD5;
+      --border-strong: #C8C4BB;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 30px rgba(0,0,0,0.10);
+      --font-display: 'Space Grotesk', sans-serif;
+      --font-body: 'Inter', -apple-system, sans-serif;
+      --cat-comm: #00B4D8;
+      --cat-finance: #E8A838;
+      --cat-auto: #2B4A3E;
+      --cat-gaming: #C45D3E;
+      --cat-business: #6366F1;
+      --cat-strategy: #8B5CF6;
+      --whatsapp: #25D366;
+      --facebook: #1877F2;
+      --twitter: #1DA1F2;
+      --telegram: #0088CC;
+    }
+
+    /* ═══════════ DARK MODE ═══════════ */
+    body.dark-mode {
+      --bg: #0D0D0D;
+      --surface: #171717;
+      --surface-raised: #1E1E1E;
+      --primary: #D4684A;
+      --primary-hover: #E07A5E;
+      --secondary: #3D6B5A;
+      --secondary-hover: #4A8068;
+      --accent: #F0B848;
+      --accent-hover: #E8A838;
+      --text-primary: #E8E8E8;
+      --text-secondary: #A0A0A0;
+      --text-muted: #666;
+      --border: #2A2A2A;
+      --border-strong: #333;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+      --shadow-lg: 0 8px 30px rgba(0,0,0,0.4);
+    }
+    body.dark-mode .site-header { background: #0A1F16; }
+    body.dark-mode::before { opacity: 0.15; mix-blend-mode: overlay; }
+    body.dark-mode .screenshot-images img { border-color: var(--border); }
+    body.dark-mode .category-badge.communication { background: rgba(0,180,216,0.15); }
+    body.dark-mode .category-badge.finance { background: rgba(232,168,56,0.15); }
+    body.dark-mode .category-badge.automation { background: rgba(43,74,62,0.2); }
+    body.dark-mode .category-badge.gaming { background: rgba(196,93,62,0.15); }
+    body.dark-mode .category-badge.business { background: rgba(99,102,241,0.15); }
+    body.dark-mode .category-badge.strategy { background: rgba(139,92,246,0.15); }
+    body.dark-mode .vip-note,
+    body.dark-mode .offline-note { background: rgba(232,168,56,0.12); }
+    body.dark-mode #admin-contact { background: var(--surface-raised); }
+    body.dark-mode .progress-fill { background: var(--accent); }
+    body.dark-mode .bot-widget { border-color: var(--border); }
+
+    /* ═══════════ BASE & RESET ═══════════ */
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
     body {
-      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
-      background: linear-gradient(135deg, #eef2f7, #f9f9f9);
-      padding: 30px;
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text-primary);
+      line-height: 1.6;
       margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      animation: pageIn 0.4s ease-out;
+    }
+    @keyframes pageIn { from { opacity: 0 } to { opacity: 1 } }
+
+    /* Grain texture — tactile, not sterile */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      opacity: 0.3;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 200px 200px;
+      mix-blend-mode: multiply;
     }
 
-    h1 {
-      color: #2c6bed;
+    ::selection { background: var(--accent); color: white; }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+    body > * { position: relative; z-index: 1; }
+
+    /* ═══════════ TYPOGRAPHY ═══════════ */
+    h1, h2, h3, h4 {
+      font-family: var(--font-display);
+      line-height: 1.2;
+      color: var(--text-primary);
+    }
+    h1 { font-weight: 700; }
+    h2 { font-weight: 600; }
+    h3 { font-weight: 500; }
+    p { color: var(--text-secondary); }
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { color: var(--primary-hover); }
+
+    /* ═══════════ HEADER / HERO ═══════════ */
+    .site-header {
+      background: var(--secondary);
+      color: white;
+      padding: 60px 30px 50px;
       text-align: center;
-      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
     }
-
-    /* Visit Counters */
-    #visit-counter, #global-counter {
-      text-align: center;
-      margin-bottom: 15px;
-      font-size: 14px;
-      color: #555;
+    .site-header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 50%, rgba(255,255,255,0.04) 1px, transparent 1px),
+        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 30px 30px, 45px 45px;
+      pointer-events: none;
     }
-
-    /* Products Container */
-    .products {
+    .brand-title {
+      font-size: clamp(2.8rem, 6vw, 4.5rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 8px;
+      line-height: 1;
+    }
+    .brand-sub {
+      font-weight: 400;
+      color: var(--accent);
+      display: block;
+      font-size: 0.5em;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+    .tagline {
+      color: rgba(255,255,255,0.7);
+      font-size: 1.1rem;
+      margin: 16px 0 0;
+      font-weight: 300;
+      letter-spacing: 0.02em;
+    }
+    .visit-stats {
       display: flex;
-      flex-wrap: wrap;
       justify-content: center;
-      gap: 25px;
+      gap: 20px;
+      margin-top: 24px;
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.5);
     }
+    .visit-stats strong { color: var(--accent); }
 
-    /* Product Card */
-    .product {
-      background: #ffffff;
-      padding: 25px;
-      width: 320px;
-      border-radius: 14px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    /* ═══════════ MAIN CONTENT ═══════════ */
+    .main-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+    .section { margin-bottom: 48px; }
+    .section-title {
+      font-size: 1.6rem;
+      margin-bottom: 24px;
       text-align: center;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      color: var(--text-primary);
+    }
+    .section-title::after {
+      content: '';
+      display: block;
+      width: 40px;
+      height: 3px;
+      background: var(--primary);
+      margin: 12px auto 0;
+      border-radius: 2px;
     }
 
-    .product:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 14px 30px rgba(0,0,0,0.12);
+    /* ═══════════ SHARE SECTION ═══════════ */
+    .share-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px 28px;
+      margin-bottom: 40px;
+      box-shadow: var(--shadow-sm);
     }
-
-    .product h2 {
-      margin-top: 0;
-      color: #333;
+    .share-header { text-align: center; margin-bottom: 16px; }
+    .share-header h3 { font-size: 1.1rem; margin: 0 0 4px; }
+    .share-header p { font-size: 0.85rem; margin: 0; }
+    .share-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
     }
-
-    .product p {
-      color: #666;
-      font-size: 15px;
-      margin-bottom: 10px;
-    }
-
-    .download-count {
-      font-size: 13px;
-      color: #888;
-      margin-bottom: 12px;
-    }
-
-    .security-note {
-      background: #f1f5ff;
-      border-left: 4px solid #2c6bed;
-      padding: 12px;
-      font-size: 13px;
-      color: #333;
-      text-align: left;
-      border-radius: 6px;
-      margin-bottom: 18px;
-    }
-
-    /* Buttons */
-    .btn {
-      display: inline-block;
-      margin: 6px 4px;
-      padding: 12px 22px;
-      background: #2c6bed;
-      color: #ffffff;
-      text-decoration: none;
-      border-radius: 8px;
+    .share-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
       font-weight: 500;
-      transition: background 0.2s ease;
+      font-family: var(--font-body);
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+      color: white;
+    }
+    .share-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+    .share-btn.whatsapp { background: var(--whatsapp); }
+    .share-btn.facebook { background: var(--facebook); }
+    .share-btn.twitter { background: var(--twitter); }
+    .share-btn.telegram { background: var(--telegram); }
+    .share-btn.copy-link { background: var(--secondary); }
+    .share-btn.whatsapp:hover { background: #1EB954; }
+    .share-btn.facebook:hover { background: #1565D8; }
+    .share-btn.twitter:hover { background: #0D8ED9; }
+    .share-btn.telegram:hover { background: #007AB8; }
+    .share-btn.copy-link:hover { background: var(--secondary-hover); }
+    .share-progress {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    .share-progress-text { font-size: 0.85rem; font-weight: 500; white-space: nowrap; }
+    .progress-track {
+      flex: 1;
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+      width: 0%;
     }
 
-    .btn:hover {
-      background: #1f55c7;
-    }
-
-    .btn.secondary {
-      background: #6c757d;
-    }
-
-    .btn.secondary:hover {
-      background: #545b62;
-    }
-
-    /* Screenshots */
-    .screenshots {
-      margin-top: 15px;
+    /* ═══════════ ADMIN CONTACT ═══════════ */
+    #admin-contact {
+      display: none;
       text-align: center;
+      margin: 20px 0 40px;
+      background: var(--surface-raised);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius-md);
+      padding: 24px;
+    }
+    #admin-contact h3 { color: var(--accent); margin: 0 0 8px; }
+    #admin-contact p { margin: 0 0 16px; }
+
+    /* ═══════════ CONTACT SECTION ═══════════ */
+    .contact-section { text-align: center; margin: 40px 0; }
+    .contact-section h2 { font-size: 1.4rem; margin: 0 0 8px; }
+    .contact-section p { margin: 0 0 16px; }
+
+    /* ═══════════ PRODUCT GRID ═══════════ */
+    .products {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 28px;
     }
 
-    .screenshots h3 {
-      color: #2c6bed;
+    /* ═══════════ PRODUCT CARD ═══════════ */
+    .product {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow 0.25s ease, transform 0.25s ease;
+    }
+    .product:hover { box-shadow: var(--shadow-lg); transform: translateY(-3px); }
+    .card-accent { height: 4px; width: 100%; }
+    .card-accent.communication { background: var(--cat-comm); }
+    .card-accent.finance { background: var(--cat-finance); }
+    .card-accent.automation { background: var(--cat-auto); }
+    .card-accent.gaming { background: var(--cat-gaming); }
+    .card-accent.business { background: var(--cat-business); }
+    .card-accent.strategy { background: var(--cat-strategy); }
+    .card-body { padding: 24px 24px 20px; }
+    .category-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
       margin-bottom: 10px;
     }
+    .category-badge.communication { background: rgba(0,180,216,0.1); color: var(--cat-comm); }
+    .category-badge.finance { background: rgba(232,168,56,0.1); color: var(--cat-finance); }
+    .category-badge.automation { background: rgba(43,74,62,0.1); color: var(--cat-auto); }
+    .category-badge.gaming { background: rgba(196,93,62,0.1); color: var(--cat-gaming); }
+    .category-badge.business { background: rgba(99,102,241,0.1); color: var(--cat-business); }
+    .category-badge.strategy { background: rgba(139,92,246,0.1); color: var(--cat-strategy); }
+    .product h2 { font-size: 1.25rem; margin: 0 0 8px; color: var(--text-primary); }
+    .card-description {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin: 0 0 16px;
+      line-height: 1.5;
+    }
+    .download-count {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
 
+    /* ═══════════ BUTTONS ═══════════ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 500;
+      font-family: var(--font-body);
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+      line-height: 1.4;
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+    .btn.primary { background: var(--primary); color: white; }
+    .btn.primary:hover { background: var(--primary-hover); }
+    .btn.secondary { background: var(--secondary); color: white; }
+    .btn.secondary:hover { background: var(--secondary-hover); }
+    .card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+
+    /* VIP / Offline notices */
+    .vip-note, .offline-note {
+      text-align: center;
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin: 12px 0;
+      padding: 8px 12px;
+      background: rgba(232,168,56,0.08);
+      border-radius: var(--radius-sm);
+    }
+
+    /* Security Note */
+    .security-note {
+      background: var(--surface-raised);
+      border-left: 3px solid var(--secondary);
+      padding: 12px 14px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      text-align: left;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+    .security-note strong { color: var(--text-primary); }
+
+    /* ═══════════ SCREENSHOTS ═══════════ */
+    .screenshots { margin: 16px 0; }
+    .screenshots h3 { font-size: 0.95rem; margin: 0 0 10px; color: var(--text-secondary); }
     .screenshot-images {
       display: flex;
-      flex-wrap: nowrap;
+      gap: 8px;
       overflow-x: auto;
-      gap: 10px;
-      padding-bottom: 10px;
+      padding-bottom: 8px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
     }
-
+    .screenshot-images::-webkit-scrollbar { height: 4px; }
+    .screenshot-images::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
     .screenshot-images img {
-      height: 150px;
-      border-radius: 8px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      height: 140px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
       cursor: pointer;
-      transition: transform 0.2s;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+      scroll-snap-align: start;
+      object-fit: cover;
     }
+    .screenshot-images img:hover { transform: scale(1.03); border-color: var(--primary); }
 
-    .screenshot-images img:hover {
-      transform: scale(1.05);
+    /* ═══════════ FEATURES LIST ═══════════ */
+    .features { margin: 16px 0; }
+    .features h3 { font-size: 0.95rem; margin: 0 0 8px; color: var(--text-secondary); }
+    .features ul { list-style: none; padding: 0; margin: 0; }
+    .features li {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+      line-height: 1.5;
     }
+    .features li:last-child { border-bottom: none; }
 
-    /* Lightbox */
+    /* ═══════════ REVIEWS & RATINGS ═══════════ */
+    .reviews { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .reviews h3 { font-size: 0.95rem; margin: 0 0 8px; color: var(--text-primary); }
+    .average-rating { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px; }
+    .avg-stars { color: var(--accent); }
+    .avg-value { font-weight: 600; color: var(--text-primary); }
+    .rating-form, .review-form { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .rating-form label { font-size: 0.8rem; color: var(--text-muted); }
+    .rating-select {
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      font-size: 0.85rem;
+      font-family: var(--font-body);
+      background: var(--surface);
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+    .rating-select:focus,
+    .review-name:focus,
+    .review-text:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+      border-color: var(--primary);
+    }
+    .review-name {
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      font-size: 0.85rem;
+      font-family: var(--font-body);
+      background: var(--surface);
+      color: var(--text-primary);
+      width: 100%;
+    }
+    .review-text {
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      font-size: 0.85rem;
+      font-family: var(--font-body);
+      background: var(--surface);
+      color: var(--text-primary);
+      width: 100%;
+      resize: vertical;
+      min-height: 48px;
+    }
+    .rating-form button, .review-form button {
+      padding: 8px 16px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 500;
+      font-family: var(--font-body);
+      cursor: pointer;
+      transition: background 0.15s ease;
+      align-self: flex-start;
+    }
+    .rating-form button:hover, .review-form button:hover { background: var(--primary-hover); }
+    .reviews-list { margin-top: 8px; }
+    .review-item {
+      background: var(--surface-raised);
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 6px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+    .review-item strong { color: var(--text-primary); }
+
+    /* ═══════════ FAQ ═══════════ */
+    .faq { max-width: 720px; margin: 48px auto 0; }
+    .faq-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 18px 20px;
+      border-radius: var(--radius-md);
+      margin-bottom: 10px;
+      box-shadow: var(--shadow-sm);
+    }
+    .faq-item strong { color: var(--text-primary); font-family: var(--font-display); font-size: 0.95rem; }
+    .faq-item p { font-size: 0.85rem; margin: 8px 0 0; line-height: 1.5; }
+
+    /* ═══════════ LIGHTBOX ═══════════ */
     #lightbox {
       display: none;
       position: fixed;
       z-index: 999;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.8);
+      inset: 0;
+      background: rgba(0,0,0,0.85);
       justify-content: center;
       align-items: center;
+      cursor: pointer;
     }
-
     #lightbox img {
       max-width: 90%;
       max-height: 90%;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      border-radius: var(--radius-md);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4);
     }
 
-    /* FAQ Section */
-    .faq {
-      max-width: 700px;
-      margin: 50px auto 0 auto;
+    /* ═══════════ BOT WIDGET ═══════════ */
+    .bot-widget {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 320px;
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      z-index: 9999;
+      border: 1px solid var(--border);
+      overflow: hidden;
     }
-
-    .faq h2 {
-      text-align: center;
-      color: #2c6bed;
-    }
-
-    .faq div {
-      background: #f9f9f9;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-    }
-
-    /* Reviews */
-    .reviews {
-      max-width: 700px;
-      margin: 20px auto;
-      background: #ffffff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.07);
-    }
-
-    .reviews h3 {
-      text-align: center;
-      color: #2c6bed;
-      margin-bottom: 10px;
-    }
-
-    .reviews .average-rating {
-      margin-bottom: 10px;
-      font-size: 14px;
-    }
-
-    .reviews form {
+    .bot-header {
+      background: var(--secondary);
+      color: white;
+      padding: 12px 16px;
       display: flex;
-      flex-direction: column;
-      gap: 8px;
+      align-items: center;
+      gap: 10px;
     }
-
-    .reviews input, 
-    .reviews textarea, 
-    .reviews select {
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-      width: 100%;
-      box-sizing: border-box;
+    .bot-avatar {
+      width: 32px;
+      height: 32px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--secondary);
     }
-
-    .reviews button {
-      padding: 10px;
-      background: #2c6bed;
-      color: #fff;
+    .bot-info { flex: 1; }
+    .bot-name { font-weight: 500; font-size: 0.9rem; display: block; }
+    .bot-status { font-size: 0.75rem; color: rgba(255,255,255,0.6); }
+    .bot-close {
+      background: transparent;
       border: none;
-      border-radius: 8px;
-      font-size: 14px;
+      color: rgba(255,255,255,0.7);
+      font-size: 1.2rem;
       cursor: pointer;
-      transition: background 0.2s;
+      padding: 4px;
+      transition: color 0.15s;
+      font-family: var(--font-body);
     }
-
-    .reviews button:hover {
-      background: #1f55c7;
+    .bot-close:hover { color: white; }
+    .bot-messages {
+      height: 240px;
+      overflow-y: auto;
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      line-height: 1.5;
     }
-
-    .reviews-list {
-      margin-top: 15px;
+    .bot-messages::-webkit-scrollbar { width: 4px; }
+    .bot-messages::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
+    .bot-input-area { display: flex; border-top: 1px solid var(--border); }
+    .bot-input {
+      flex: 1;
+      border: none;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      font-family: var(--font-body);
+      background: var(--surface);
+      color: var(--text-primary);
     }
-
-    .review-item {
-      background: #f1f5ff;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 8px;
-      font-size: 14px;
-      color: #333;
+    .bot-input:focus { outline: 2px solid var(--primary); outline-offset: -2px; }
+    .bot-send {
+      border: none;
+      background: var(--primary);
+      color: white;
+      padding: 10px 16px;
+      font-family: var(--font-body);
+      font-weight: 500;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.15s;
     }
+    .bot-send:hover { background: var(--primary-hover); }
 
-    /* Footer */
-    footer {
+    /* ═══════════ FOOTER ═══════════ */
+    .site-footer {
       text-align: center;
-      margin-top: 50px;
-      color: #888;
-      font-size: 14px;
+      padding: 32px 24px;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+      margin-top: 48px;
     }
 
-    .share-bar {
-  text-align: center;
-  margin: 25px 0;
-}
-
-.share-label {
-  display: block;
-  margin-bottom: 10px;
-  font-weight: 500;
-  color: #555;
-}
-
-.share-btn {
-  font-size: 13px;
-  padding: 10px 16px;
-}
-
-/* Dark mode overrides */
-body.dark-mode {
-  background: #121212;
-  color: #e0e0e0;
-}
-
-body.dark-mode h1,
-body.dark-mode h2,
-body.dark-mode h3,
-body.dark-mode p {
-  color: #e0e0e0;
-}
-
-body.dark-mode .product {
-  background: #1e1e1e;
-  box-shadow: 0 10px 25px rgba(255,255,255,0.05);
-}
-
-body.dark-mode .reviews .review-item,
-body.dark-mode .reviews,
-body.dark-mode .faq div,
-body.dark-mode .security-note {
-  background: #2a2a2a;
-  color: #e0e0e0;
-}
-
-body.dark-mode .btn {
-  background: #4a90e2;
-}
-
-body.dark-mode .btn.secondary {
-  background: #666;
-}
-
-body.dark-mode .btn:hover {
-  background: #3572c1;
-}
-
-body.dark-mode .btn.secondary:hover {
-  background: #4b4b4b;
-}
-
-body.dark-mode #share-progress-bar {
-  background: #81c784;
-}
-
-body.dark-mode .screenshot-images img {
-  box-shadow: 0 4px 8px rgba(255,255,255,0.1);
-}
-
-
+    /* ═══════════ RESPONSIVE ═══════════ */
+    @media (max-width: 768px) {
+      .site-header { padding: 40px 20px 36px; }
+      .main-content { padding: 24px 16px; }
+      .products { grid-template-columns: 1fr; }
+      .share-actions { gap: 6px; }
+      .share-btn { padding: 6px 12px; font-size: 0.8rem; }
+      .bot-widget { width: calc(100% - 32px); right: 16px; bottom: 16px; }
+      .visit-stats { flex-direction: column; gap: 8px; }
+    }
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .products { grid-template-columns: repeat(2, 1fr); }
+    }
   </style>
 
   <!-- Firebase SDK -->
@@ -332,417 +656,355 @@ body.dark-mode .screenshot-images img {
 </head>
 <body>
 
-  <!-- Header -->
-  <h1>🚀 Buddy Products</h1>
-  <h1>Smart security • Powerful automation • Fun AI experiences</h1>
-
-  <!-- Visit Counters -->
-  <div id="visit-counter">Loading your visit count...</div>
-  <div id="global-counter">Loading total site visits...</div>
- 
-  <!-- Share Bar -->
-<div class="share-bar">
-  <span class="share-label">🌍 Share this website:</span>
-
-  <!-- Copy Link -->
-  <button class="btn secondary share-btn" onclick="copyWebsiteLink()">
-    🔗 Copy Link
-  </button>
-
-  <!-- WhatsApp -->
-  <a class="btn secondary share-btn" href="https://wa.me/?text=" target="_blank">
-    💬 WhatsApp
-  </a>
-
-  <!-- Facebook -->
-  <a class="btn secondary share-btn" href="https://www.facebook.com/sharer/sharer.php?u=" target="_blank">
-    📘 Facebook
-  </a>
-
-  <!-- X / Twitter -->
-  <a class="btn secondary share-btn" href="https://twitter.com/intent/tweet?text=Check%20out%20Buddy%20Products!&url=" target="_blank">
-    🐦 X
-  </a>
-
-  <!-- Telegram -->
-  <a class="btn secondary share-btn" href="https://t.me/share/url?text=Check%20out%20Buddy%20Products!&url=" target="_blank">
-    ✈️ Telegram
-  </a>
-</div>
-
-<!-- ======================== -->
-<!-- Share Progress Bar -->
-<!-- ======================== -->
-<div id="share-container" style="margin: 15px 0; max-width: 400px;">
-  <div style="margin-bottom:5px;">Share Progress: <span id="share-count">0/5</span></div>
-  <div style="width:100%; background:#ddd; border-radius:8px; overflow:hidden; height:20px;">
-    <div id="share-progress-bar" style="width:0%; height:100%; background:#4CAF50; transition: width 0.3s;"></div>
-  </div>
-</div>
-<!-- ======================== -->
-<!-- Admin Contact (Hidden) -->
-<!-- ======================== -->
-<div id="admin-contact" style="display:none; text-align:center; margin:20px 0;">
-  <h3>🎁 Reward Redeemed!</h3>
-  <p>Send your reward key to the admin to activate your free day:</p>
-
-  <a id="telegram-admin" class="btn secondary" target="_blank">
-    ✈️ Contact on Telegram
-  </a>
-
-  <a id="whatsapp-admin" class="btn secondary" target="_blank">
-    💬 Contact on WhatsApp
-  </a>
-</div>
-
-    <!-- ======================== -->
-<!-- Contact Us Section -->
-<!-- ======================== -->
-<div id="contact-section" style="text-align:center; margin:40px 0;">
-
-  <h2>📞 Contact Us</h2>
-  <p>Need help or have questions? Reach our support team anytime.</p>
- 
-  <button class="btn" onclick="openSupportBot()">
-    Contact Support
-  </button>
-
-<!-- Products Section -->
-<div class="products">
-
-  <!-- CHLOE -->
-<div class="product" data-app="chloe">
-  <div class="icon">💬📱</div>
-  <h2>Chloe Chat App</h2>
-  <p>A fast, modern real-time messaging app with smart features.</p>
-
-  <!-- Downloads -->
-  <div class="download-count" id="chloe-count">Downloads: 0</div>
-  <a href="Chloe.apk" class="btn" id="chloe-download" target="_blank">Download APK</a>
-
-  <!-- Reviews -->
-  <div class="reviews">
-    <h3>User Reviews</h3>
-    
-    <div class="average-rating">
-      Average Rating: 
-      <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
-      (<span class="avg-value">0</span>/5)
+  <!-- ══════ HEADER / HERO ══════ -->
+  <header class="site-header">
+    <h1 class="brand-title">Buddy<span class="brand-sub">Products</span></h1>
+    <p class="tagline">Smart security · Powerful automation · Fun AI experiences</p>
+    <div class="visit-stats">
+      <div id="visit-counter">Loading your visit count...</div>
+      <div id="global-counter">Loading total site visits...</div>
     </div>
+  </header>
 
-    <!-- Rating -->
-    <form class="rating-form">
-      <label>Rate this app:</label>
-      <select class="rating-select">
-        <option value="1">1 ⭐️</option>
-        <option value="2">2 ⭐️</option>
-        <option value="3" selected>3 ⭐️</option>
-        <option value="4">4 ⭐️</option>
-        <option value="5">5 ⭐️</option>
-      </select>
-      <button type="submit">Submit Rating</button>
-    </form>
+  <!-- ══════ MAIN CONTENT ══════ -->
+  <main class="main-content">
 
-    <!-- Review -->
-    <form class="review-form">
-      <input type="text" placeholder="Your name" class="review-name" required>
-      <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
-      <button type="submit">Submit Review</button>
-    </form>
-
-    <!-- Reviews List -->
-    <div class="reviews-list"></div>
-  </div>
-</div>
-
-  <!-- AI Signal Dashboard -->
-  <div class="product" data-app="aiSignalDashboard">
-    <div class="icon">📊🤖</div>
-    <h2>AI Signal Dashboard (Any Device)</h2>
-    <p>View real-time trading signals for Forex, crypto, and commodities with VIP access for full features.</p>
-
-    <!-- Visits -->
-    <div class="download-count" id="aiSignalDashboard-count">Visits: 0</div>
-    <a href="index2.html" id="dashboard-link" class="btn">🔗 Open Dashboard</a>
-
-    <!-- VIP Notice -->
-    <p style="text-align:center; color:#fbbf24;">
-      Some signals are VIP-only; login to access full features.
-    </p>
-
-    <!-- Screenshots -->
-    <div class="screenshots">
-      <h3>Screenshots</h3>
-      <div class="screenshot-images">
-        <img src="bot4.png" alt="AI Dashboard Screenshot 1">
-        <img src="bot5.png" alt="AI Dashboard Screenshot 2">
-        <img src="bot6.png" alt="AI Dashboard Screenshot 3">
-        <img src="bot7.png" alt="AI Dashboard Screenshot 4">
+    <!-- SHARE SECTION -->
+    <section class="share-section">
+      <div class="share-header">
+        <h3>Share this site</h3>
+        <p>Share 5 times to earn a reward key</p>
       </div>
-    </div>
-
-    <!-- Reviews -->
-    <div class="reviews">
-      <h3>User Reviews</h3>
-      <div class="average-rating">
-        Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
-        (<span class="avg-value">0</span>/5)
+      <div class="share-actions">
+        <button class="share-btn copy-link" onclick="copyWebsiteLink()">Copy Link</button>
+        <a class="share-btn whatsapp" href="https://wa.me/?text=" target="_blank">WhatsApp</a>
+        <a class="share-btn facebook" href="https://www.facebook.com/sharer/sharer.php?u=" target="_blank">Facebook</a>
+        <a class="share-btn twitter" href="https://twitter.com/intent/tweet?text=Check%20out%20Buddy%20Products!&url=" target="_blank">X</a>
+        <a class="share-btn telegram" href="https://t.me/share/url?text=Check%20out%20Buddy%20Products!&url=" target="_blank">Telegram</a>
       </div>
-      <form class="rating-form">
-        <label>Rate this dashboard:</label>
-        <select class="rating-select">
-          <option value="1">1 ⭐️</option>
-          <option value="2">2 ⭐️</option>
-          <option value="3" selected>3 ⭐️</option>
-          <option value="4">4 ⭐️</option>
-          <option value="5">5 ⭐️</option>
-        </select>
-        <button type="submit">Submit Rating</button>
-      </form>
-      <form class="review-form">
-        <input type="text" placeholder="Your name" class="review-name" required>
-        <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
-        <button type="submit">Submit Review</button>
-      </form>
-      <div class="reviews-list"></div>
-    </div>
-  </div>
-
-  <!-- Buddy Bot (Windows) -->
-  <div class="product" data-app="buddyExe">
-    <div class="icon">🤖💻</div>
-    <h2>Buddy Bot (Windows)</h2>
-    <p>Powerful automation and monitoring bot for Windows systems. Easy to use, reliable, and secure.</p>
-
-    <!-- Downloads -->
-    <div class="download-count" id="exe-count">Downloads: 0</div>
-    <a href="SH.BOT_4_RENT2.zip" class="btn" id="exe-download" target="_blank">Download EXE</a>
-    <a href="SignalHawkBot_User_Guide.pdf" class="btn secondary" download>Download Bot User Guide</a>
-
-    <!-- Screenshots -->
-    <div class="screenshots">
-      <h3>Screenshots</h3>
-      <div class="screenshot-images">
-        <img src="bot1.png" alt="Screenshot 1">
-        <img src="bot2.png" alt="Screenshot 2">
-        <img src="bot3.png" alt="Screenshot 3">
-        <img src="bot8.png" alt="Screenshot 4">
+      <div class="share-progress">
+        <span class="share-progress-text">Progress: <span id="share-count">0/5</span></span>
+        <div class="progress-track">
+          <div id="share-progress-bar" class="progress-fill"></div>
+        </div>
       </div>
+    </section>
+
+    <!-- ADMIN CONTACT (Hidden) -->
+    <div id="admin-contact">
+      <h3>Reward Redeemed</h3>
+      <p>Send your reward key to the admin to activate your free day:</p>
+      <a id="telegram-admin" class="btn secondary" target="_blank">Contact on Telegram</a>
+      <a id="whatsapp-admin" class="btn secondary" target="_blank">Contact on WhatsApp</a>
     </div>
 
-    <!-- Reviews -->
-    <div class="reviews">
-      <h3>User Reviews</h3>
-      <div class="average-rating">
-        Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
-        (<span class="avg-value">0</span>/5)
+    <!-- CONTACT SECTION -->
+    <section class="contact-section">
+      <h2>Contact Us</h2>
+      <p>Need help or have questions? Reach our support team anytime.</p>
+      <button class="btn primary" onclick="openSupportBot()">Contact Support</button>
+    </section>
+
+    <!-- ══════ PRODUCTS ══════ -->
+    <section class="section">
+      <h2 class="section-title">Our Products</h2>
+      <div class="products">
+
+        <!-- CHLOE CHAT APP -->
+        <article class="product" data-app="chloe">
+          <div class="card-accent communication"></div>
+          <div class="card-body">
+            <span class="category-badge communication">Communication</span>
+            <h2>Chloe Chat App</h2>
+            <p class="card-description">A fast, modern real-time messaging app with smart features.</p>
+            <div class="download-count" id="chloe-count">Downloads: 0</div>
+            <div class="card-actions">
+              <a href="Chloe.apk" class="btn primary" id="chloe-download" target="_blank">Download APK</a>
+            </div>
+            <div class="reviews">
+              <h3>User Reviews</h3>
+              <div class="average-rating">Average Rating: <span class="avg-stars">⭐⭐⭐⭐⭐</span> (<span class="avg-value">0</span>/5)</div>
+              <form class="rating-form">
+                <label>Rate this app:</label>
+                <select class="rating-select">
+                  <option value="1">1 ⭐</option>
+                  <option value="2">2 ⭐</option>
+                  <option value="3" selected>3 ⭐</option>
+                  <option value="4">4 ⭐</option>
+                  <option value="5">5 ⭐</option>
+                </select>
+                <button type="submit">Submit Rating</button>
+              </form>
+              <form class="review-form">
+                <input type="text" placeholder="Your name" class="review-name" required>
+                <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+                <button type="submit">Submit Review</button>
+              </form>
+              <div class="reviews-list"></div>
+            </div>
+          </div>
+        </article>
+
+        <!-- AI SIGNAL DASHBOARD -->
+        <article class="product" data-app="aiSignalDashboard">
+          <div class="card-accent finance"></div>
+          <div class="card-body">
+            <span class="category-badge finance">Finance</span>
+            <h2>AI Signal Dashboard</h2>
+            <p class="card-description">View real-time trading signals for Forex, crypto, and commodities with VIP access for full features.</p>
+            <div class="download-count" id="aiSignalDashboard-count">Visits: 0</div>
+            <div class="card-actions">
+              <a href="index2.html" id="dashboard-link" class="btn primary">Open Dashboard</a>
+            </div>
+            <div class="vip-note">Some signals are VIP-only — login to access full features.</div>
+            <div class="screenshots">
+              <h3>Screenshots</h3>
+              <div class="screenshot-images">
+                <img src="bot4.png" alt="AI Dashboard Screenshot 1">
+                <img src="bot5.png" alt="AI Dashboard Screenshot 2">
+                <img src="bot6.png" alt="AI Dashboard Screenshot 3">
+                <img src="bot7.png" alt="AI Dashboard Screenshot 4">
+              </div>
+            </div>
+            <div class="reviews">
+              <h3>User Reviews</h3>
+              <div class="average-rating">Average Rating: <span class="avg-stars">⭐⭐⭐⭐⭐</span> (<span class="avg-value">0</span>/5)</div>
+              <form class="rating-form">
+                <label>Rate this dashboard:</label>
+                <select class="rating-select">
+                  <option value="1">1 ⭐</option>
+                  <option value="2">2 ⭐</option>
+                  <option value="3" selected>3 ⭐</option>
+                  <option value="4">4 ⭐</option>
+                  <option value="5">5 ⭐</option>
+                </select>
+                <button type="submit">Submit Rating</button>
+              </form>
+              <form class="review-form">
+                <input type="text" placeholder="Your name" class="review-name" required>
+                <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+                <button type="submit">Submit Review</button>
+              </form>
+              <div class="reviews-list"></div>
+            </div>
+          </div>
+        </article>
+
+        <!-- BUDDY BOT (Windows) -->
+        <article class="product" data-app="buddyExe">
+          <div class="card-accent automation"></div>
+          <div class="card-body">
+            <span class="category-badge automation">Automation</span>
+            <h2>Buddy Bot (Windows)</h2>
+            <p class="card-description">Powerful automation and monitoring bot for Windows systems. Easy to use, reliable, and secure.</p>
+            <div class="download-count" id="exe-count">Downloads: 0</div>
+            <div class="card-actions">
+              <a href="SH.BOT_4_RENT2.zip" class="btn primary" id="exe-download" target="_blank">Download EXE</a>
+              <a href="SignalHawkBot_User_Guide.pdf" class="btn secondary" download>User Guide</a>
+            </div>
+            <div class="screenshots">
+              <h3>Screenshots</h3>
+              <div class="screenshot-images">
+                <img src="bot1.png" alt="Screenshot 1">
+                <img src="bot2.png" alt="Screenshot 2">
+                <img src="bot3.png" alt="Screenshot 3">
+                <img src="bot8.png" alt="Screenshot 4">
+              </div>
+            </div>
+            <div class="reviews">
+              <h3>User Reviews</h3>
+              <div class="average-rating">Average Rating: <span class="avg-stars">⭐⭐⭐⭐⭐</span> (<span class="avg-value">0</span>/5)</div>
+              <form class="rating-form">
+                <label>Rate this app:</label>
+                <select class="rating-select">
+                  <option value="1">1 ⭐</option>
+                  <option value="2">2 ⭐</option>
+                  <option value="3" selected>3 ⭐</option>
+                  <option value="4">4 ⭐</option>
+                  <option value="5">5 ⭐</option>
+                </select>
+                <button type="submit">Submit Rating</button>
+              </form>
+              <form class="review-form">
+                <input type="text" placeholder="Your name" class="review-name" required>
+                <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+                <button type="submit">Submit Review</button>
+              </form>
+              <div class="reviews-list"></div>
+            </div>
+          </div>
+        </article>
+
+        <!-- AI STREET RACER -->
+        <article class="product" data-app="aiStreetRacer">
+          <div class="card-accent gaming"></div>
+          <div class="card-body">
+            <span class="category-badge gaming">Gaming</span>
+            <h2>AI Street Racer (Windows)</h2>
+            <p class="card-description">Race through neon-lit streets against intelligent AI drivers. High-speed action, smooth controls, and adrenaline-packed gameplay.</p>
+            <div class="download-count" id="aiStreetRacer-count">Downloads: 0</div>
+            <div class="card-actions">
+              <a href="AI_Street_racer.zip" class="btn primary" id="aiStreetRacer-download" target="_blank">Download Game</a>
+            </div>
+            <div class="reviews">
+              <h3>User Reviews</h3>
+              <div class="average-rating">Average Rating: <span class="avg-stars">⭐⭐⭐⭐⭐</span> (<span class="avg-value">0</span>/5)</div>
+              <form class="rating-form">
+                <label>Rate this game:</label>
+                <select class="rating-select">
+                  <option value="1">1 ⭐</option>
+                  <option value="2">2 ⭐</option>
+                  <option value="3" selected>3 ⭐</option>
+                  <option value="4">4 ⭐</option>
+                  <option value="5">5 ⭐</option>
+                </select>
+                <button type="submit">Submit Rating</button>
+              </form>
+              <form class="review-form">
+                <input type="text" placeholder="Your name" class="review-name" required>
+                <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+                <button type="submit">Submit Review</button>
+              </form>
+              <div class="reviews-list"></div>
+            </div>
+          </div>
+        </article>
+
+        <!-- JOBCONNECTADMIN -->
+        <article class="product" data-app="jobConnectAdmin">
+          <div class="card-accent business"></div>
+          <div class="card-body">
+            <span class="category-badge business">Business</span>
+            <h2>JobConnectAdmin</h2>
+            <p class="card-description">Discover jobs, apply with ease, and connect with top employers — all in one place. Job searching and hiring made smooth and fast.</p>
+            <div class="download-count" id="admin-count">Downloads: 0</div>
+            <div class="card-actions">
+              <a href="JobConnectAdmin.apk" class="btn primary" id="admin-download" target="_blank">Download APK</a>
+            </div>
+            <div class="security-note">
+              <strong>Security Notice</strong><br>
+              JobConnectAdmin handles user data securely. Since it is installed outside Google Play, Google Drive may show a warning — this is normal. Only install if you trust the source.
+            </div>
+            <div class="reviews">
+              <h3>User Reviews</h3>
+              <div class="average-rating">Average Rating: <span class="avg-stars">⭐⭐⭐⭐⭐</span> (<span class="avg-value">0</span>/5)</div>
+              <form class="rating-form">
+                <label>Rate this app:</label>
+                <select class="rating-select">
+                  <option value="1">1 ⭐</option>
+                  <option value="2">2 ⭐</option>
+                  <option value="3" selected>3 ⭐</option>
+                  <option value="4">4 ⭐</option>
+                  <option value="5">5 ⭐</option>
+                </select>
+                <button type="submit">Submit Rating</button>
+              </form>
+              <form class="review-form">
+                <input type="text" placeholder="Your name" class="review-name" required>
+                <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
+                <button type="submit">Submit Review</button>
+              </form>
+              <div class="reviews-list"></div>
+            </div>
+          </div>
+        </article>
+
+        <!-- TIC TAC MIND WAR -->
+        <article class="product" data-app="tictacMindWar">
+          <div class="card-accent strategy"></div>
+          <div class="card-body">
+            <span class="category-badge strategy">Strategy</span>
+            <h2>Tic Tac Mind War</h2>
+            <p class="card-description">Next-level Tic Tac Toe with AI-powered difficulty modes and real-time online multiplayer. Outsmart opponents with logic, timing challenges, and strategic moves.</p>
+            <div class="download-count" id="tictacMindWar-count">Visits: 0</div>
+            <div class="card-actions">
+              <a href="tictac_main_menu.apk" id="tictacMindWar-link" class="btn primary">Download APK</a>
+            </div>
+            <div class="offline-note">Online mode requires internet. AI mode works offline.</div>
+            <div class="features">
+              <h3>Game Features</h3>
+              <ul>
+                <li>Smart AI — Easy, Medium, and Hard Minimax</li>
+                <li>Real-time Online Multiplayer</li>
+                <li>Mind challenge system — riddles, math, color tests</li>
+                <li>General knowledge — Animals, Science, Geography, Myth</li>
+                <li>Win tracking and score system</li>
+                <li>Sound effects and animations</li>
+              </ul>
+            </div>
+            <div class="reviews">
+              <h3>User Reviews</h3>
+              <div class="average-rating">Average Rating: <span class="avg-stars">⭐⭐⭐⭐⭐</span> (<span class="avg-value">0</span>/5)</div>
+              <form class="rating-form">
+                <label>Rate this game:</label>
+                <select class="rating-select">
+                  <option value="1">1 ⭐</option>
+                  <option value="2">2 ⭐</option>
+                  <option value="3" selected>3 ⭐</option>
+                  <option value="4">4 ⭐</option>
+                  <option value="5">5 ⭐</option>
+                </select>
+                <button type="submit">Submit Rating</button>
+              </form>
+              <form class="review-form">
+                <input type="text" placeholder="Your name" class="review-name" required>
+                <textarea placeholder="Your feedback about the game..." class="review-text" rows="2" required></textarea>
+                <button type="submit">Submit Review</button>
+              </form>
+              <div class="reviews-list"></div>
+            </div>
+          </div>
+        </article>
+
       </div>
-      <form class="rating-form">
-        <label>Rate this app:</label>
-        <select class="rating-select">
-          <option value="1">1 ⭐️</option>
-          <option value="2">2 ⭐️</option>
-          <option value="3" selected>3 ⭐️</option>
-          <option value="4">4 ⭐️</option>
-          <option value="5">5 ⭐️</option>
-        </select>
-        <button type="submit">Submit Rating</button>
-      </form>
-      <form class="review-form">
-        <input type="text" placeholder="Your name" class="review-name" required>
-        <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
-        <button type="submit">Submit Review</button>
-      </form>
-      <div class="reviews-list"></div>
-    </div>
-  </div>
+    </section>
 
-  <!-- AI Street Racer (Windows) -->
-  <div class="product" data-app="aiStreetRacer">
-    <div class="icon">🏎️🔥</div>
-    <h2>AI Street Racer (Windows)</h2>
-    <p>Race through neon-lit streets against intelligent AI drivers. High-speed action, smooth controls, and adrenaline-packed gameplay designed for Windows PCs.</p>
-
-    <!-- Downloads -->
-    <div class="download-count" id="aiStreetRacer-count">Downloads: 0</div>
-    <a href="AI_Street_racer.zip" class="btn" id="aiStreetRacer-download" target="_blank">🎮 Download Game</a>
-
-    <!-- Reviews -->
-    <div class="reviews">
-      <h3>User Reviews</h3>
-      <div class="average-rating">
-        Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
-        (<span class="avg-value">0</span>/5)
+    <!-- FAQ -->
+    <section class="faq section">
+      <h2 class="section-title">FAQ</h2>
+      <div class="faq-item">
+        <strong>Is Buddy Anti-Theft and SignalHawkBot safe?</strong>
+        <p>Buddy Anti-Theft only collects device info necessary for security alerts. SignalHawkBot only communicates with Firebase for subscription verification. No personal or trading credentials are transmitted.</p>
       </div>
-      <form class="rating-form">
-        <label>Rate this game:</label>
-        <select class="rating-select">
-          <option value="1">1 ⭐️</option>
-          <option value="2">2 ⭐️</option>
-          <option value="3" selected>3 ⭐️</option>
-          <option value="4">4 ⭐️</option>
-          <option value="5">5 ⭐️</option>
-        </select>
-        <button type="submit">Submit Rating</button>
-      </form>
-      <form class="review-form">
-        <input type="text" placeholder="Your name" class="review-name" required>
-        <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
-        <button type="submit">Submit Review</button>
-      </form>
-      <div class="reviews-list"></div>
-    </div>
-  </div>
-
-  <!-- JobConnectAdmin -->
-  <div class="product" data-app="jobConnectAdmin">
-    <div class="icon">💼📊</div>
-    <h2>JobConnectAdmin</h2>
-    <p>Discover jobs, apply with ease, and connect with top employers—all in one place! JobConnect makes job searching and hiring smooth, fast, and stress-free for users everywhere.</p>
-
-    <!-- Downloads -->
-    <div class="download-count" id="admin-count">Downloads: 0</div>
-    <a href="JobConnectAdmin.apk" class="btn" id="admin-download" target="_blank">Download APK</a>
-
-    <!-- Security Notice -->
-    <div class="security-note">
-      <strong>Security Notice</strong><br>
-      JobConnectAdmin is a trusted app that handles user data securely. 
-      Since it is installed outside Google Play, Google Drive may show a warning.
-      This is normal. Only install if you trust the source.
-    </div>
-
-    <!-- Reviews -->
-    <div class="reviews">
-      <h3>User Reviews</h3>
-      <div class="average-rating">
-        Average Rating: <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span> 
-        (<span class="avg-value">0</span>/5)
+      <div class="faq-item">
+        <strong>Why do I see a warning when downloading the Buddy Anti-Theft app?</strong>
+        <p>Because the app is not downloaded directly from the Google Play Store, Google may show a standard warning before installation. This is a normal security precaution for all apps distributed outside the Play Store. The app is safe to install and does not contain any viruses or harmful software.</p>
       </div>
-      <form class="rating-form">
-        <label>Rate this app:</label>
-        <select class="rating-select">
-          <option value="1">1 ⭐️</option>
-          <option value="2">2 ⭐️</option>
-          <option value="3" selected>3 ⭐️</option>
-          <option value="4">4 ⭐️</option>
-          <option value="5">5 ⭐️</option>
-        </select>
-        <button type="submit">Submit Rating</button>
-      </form>
-      <form class="review-form">
-        <input type="text" placeholder="Your name" class="review-name" required>
-        <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
-        <button type="submit">Submit Review</button>
-      </form>
-      <div class="reviews-list"></div>
-    </div>
-  </div>
+      <div class="faq-item">
+        <strong>Can I trust this bot with my trading account?</strong>
+        <p>The bot only reads credentials locally to connect with MetaTrader 5. Credentials are encrypted and never sent to any server other than subscription verification via Firebase.</p>
+      </div>
+    </section>
 
-  <<!-- Tic Tac Mind War Game -->
-<div class="product" data-app="tictacMindWar">
-  <div class="icon">❌🧠⭕</div>
+  </main>
 
-  <h2>Tic Tac Mind War (AI + Online Multiplayer)</h2>
-
-  <p>
-    Play a next-level Tic Tac Toe experience with AI-powered difficulty modes (Easy, Medium, Hard) 
-    and real-time online multiplayer .
-    Outsmart your opponent with logic, timing challenges, and strategic moves.
-  </p>
-
-  <!-- Visits -->
-  <div class="download-count" id="tictacMindWar-count">Visits: 0</div>
-
-  <a href="tictac_main_menu.apk" id="tictacMindWar-link" class="btn">
-    🎮 Download APK
-  </a>
-
-  <!-- Notice -->
-  <p style="text-align:center; color:#fbbf24;">
-    ⚠ Online mode requires internet connection. AI mode works offline.
-  </p>
-
-  <!-- Features -->
-  <div class="features">
-    <h3>Game Features</h3>
-    <ul>
-      <li>🤖 Smart AI (Easy, Medium, Hard Minimax AI)</li>
-      <li>🌍 Real-time Online Multiplayer </li>
-      <li>⏱ Mind challenge system (riddles, math, color tests,)</li>
-      <li>🧠General knowledge qtns (Animal, Science, Geography, Myth)<li>
-      <li>🏆 Win tracking & score system</li>
-      <li>🔊 Sound effects & animations</li>
-    </ul>
-  </div>
-
-  <!-- Reviews -->
-  <div class="reviews">
-    <h3>User Reviews</h3>
-
-    <div class="average-rating">
-      Average Rating:
-      <span class="avg-stars">⭐️⭐️⭐️⭐️⭐️</span>
-      (<span class="avg-value">0</span>/5)
-    </div>
-
-    <form class="rating-form">
-      <label>Rate this game:</label>
-      <select class="rating-select">
-        <option value="1">1 ⭐️</option>
-        <option value="2">2 ⭐️</option>
-        <option value="3" selected>3 ⭐️</option>
-        <option value="4">4 ⭐️</option>
-        <option value="5">5 ⭐️</option>
-      </select>
-      <button type="submit">Submit Rating</button>
-    </form>
-
-    <form class="review-form">
-      <input type="text" placeholder="Your name" class="review-name" required>
-      <textarea placeholder="Your feedback about the game..." class="review-text" rows="2" required></textarea>
-      <button type="submit">Submit Review</button>
-    </form>
-
-    <div class="reviews-list"></div>
-  </div>
-</div>
-</div>
-
-  <!-- Lightbox -->
+  <!-- LIGHTBOX -->
   <div id="lightbox" onclick="this.style.display='none'">
     <img id="lightbox-img" src="">
   </div>
 
-  <!-- FAQ Section -->
-  <div class="faq">
-    <h2>FAQ</h2>
-    <div>
-      <strong>Q: Is Buddy Anti-Theft and SignalHawkBot safe?</strong>
-      <p>A: Buddy Anti-Theft only collects device info necessary for security alerts. SignalHawkBot only communicates with Firebase for subscription verification. No personal or trading credentials are transmitted.</p>
+  <!-- FOOTER -->
+  <footer class="site-footer">© 2026 Buddy Security · All rights reserved</footer>
+
+  <!-- BOT WIDGET -->
+  <div id="support-bot" class="bot-widget">
+    <div class="bot-header">
+      <div class="bot-avatar">B</div>
+      <div class="bot-info">
+        <span class="bot-name">Buddy Support</span>
+        <span class="bot-status">Online</span>
+      </div>
+      <button class="bot-close" onclick="closeSupportBot()">×</button>
     </div>
-    <div>
-  <strong>Q: Why do I see a warning when downloading the Buddy Anti-Theft app?</strong>
-  <p>
-    A: Because the app is not downloaded directly  from the Google Play Store,
-    Google may show a standard warning before the Installation. This is a normal security precaution
-    for all apps distributed outside the Play Store. The app is safe to install and does not
-    contain any viruses or harmful software.
-  </p>
-</div>
-    <div>
-      <strong>Q: Can I trust this bot with my trading account?</strong>
-      <p>A: The bot only reads credentials locally to connect with MetaTrader 5. Credentials are encrypted and never sent to any server other than subscription verification via Firebase.</p>
+    <div id="bot-messages" class="bot-messages"></div>
+    <div class="bot-input-area">
+      <input id="bot-input" class="bot-input" placeholder="Ask something...">
+      <button onclick="sendBotMessage()" class="bot-send">Send</button>
     </div>
   </div>
 
-</div>
-
-  <!-- Footer -->
-  <footer>© 2026 Buddy Security • All rights reserved</footer>
-
-  <!-- Scripts -->
-<script>
+  <!-- ══════ ALL SCRIPTS PRESERVED ══════ -->
+  <script>
 // ================================
 // PRO DEVTOOLS PROTECTION (IP + ADVANCED)
 // ================================
@@ -758,15 +1020,10 @@ body.dark-mode .screenshot-images img {
     console.log("IP fetch failed");
   }
 
-  // YOUR DEVICE IP
   const OWNER_IP = "154.227.130.223";
 
-  // If NOT your device
   if(!userIP || userIP !== OWNER_IP){
 
-    // ================================
-    // Disable console
-    // ================================
     (function(){
       const noop = function(){};
       ["log","warn","error","info","debug"].forEach(m => console[m] = noop);
@@ -774,36 +1031,23 @@ body.dark-mode .screenshot-images img {
 
     console.log("Protected mode active");
 
-    // ================================
-    // Block right click
-    // ================================
     document.addEventListener("contextmenu", e => e.preventDefault());
 
-    // ================================
-    // Block devtools keys
-    // ================================
     document.addEventListener("keydown", function(e){
-
       if(
-        e.keyCode === 123 || // F12
-        (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
-        (e.ctrlKey && e.shiftKey && e.keyCode === 74) || // Ctrl+Shift+J
-        (e.ctrlKey && e.keyCode === 85) || // Ctrl+U
-        (e.ctrlKey && e.keyCode === 83) // Ctrl+S
+        e.keyCode === 123 ||
+        (e.ctrlKey && e.shiftKey && e.keyCode === 73) ||
+        (e.ctrlKey && e.shiftKey && e.keyCode === 74) ||
+        (e.ctrlKey && e.keyCode === 85) ||
+        (e.ctrlKey && e.keyCode === 83)
       ){
         e.preventDefault();
         return false;
       }
-
     });
 
-    // ================================
-    // Detect DevTools open
-    // ================================
     setInterval(function(){
-
       const threshold = 160;
-
       if(
         window.outerWidth - window.innerWidth > threshold ||
         window.outerHeight - window.innerHeight > threshold
@@ -811,31 +1055,22 @@ body.dark-mode .screenshot-images img {
         document.body.innerHTML =
         "<h1 style='text-align:center;margin-top:100px;font-family:sans-serif;'>⚠ Access Restricted</h1>";
       }
-
     },1000);
 
-    // ================================
-    // Debugger detection
-    // ================================
     setInterval(function(){
-
       const start = Date.now();
       debugger;
       const end = Date.now();
-
       if(end - start > 100){
         document.body.innerHTML = "⚠ Debugging not allowed";
       }
-
     },2000);
 
   }else{
-
     console.log("Owner detected → DevTools allowed");
-
   }
+})();
 
-})();  
   // ========================
   // Firebase Initialization
   // ========================
@@ -847,163 +1082,120 @@ body.dark-mode .screenshot-images img {
     storageBucket: "buddydownloads-72e3b.appspot.com",
     messagingSenderId: "782621240629",
     appId: "1:782621240629:web:4678fac59caad0f3ac707c"
-};
+  };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
- // ========================
-// Admin Contact Links
-// ========================
-const ADMIN_TELEGRAM = "https://t.me/+qXOGtxbORnkzM2Q0";
-const ADMIN_WHATSAPP = "https://wa.me/256748244415"; 
+  // ========================
+  // Admin Contact Links
+  // ========================
+  const ADMIN_TELEGRAM = "https://t.me/+qXOGtxbORnkzM2Q0";
+  const ADMIN_WHATSAPP = "https://wa.me/256748244415";
 
   // ========================
-// Contact Support Section
-// ========================
-function toggleContactOptions() {
-
-  const contactBox = document.getElementById("contact-options");
-
-  if (contactBox.style.display === "none") {
-    contactBox.style.display = "block";
-  } else {
-    contactBox.style.display = "none";
+  // Contact Support Section
+  // ========================
+  function toggleContactOptions() {
+    const contactBox = document.getElementById("contact-options");
+    if (contactBox.style.display === "none") {
+      contactBox.style.display = "block";
+    } else {
+      contactBox.style.display = "none";
+    }
   }
 
-}
+  // ========================
+  // Support Bot State
+  // ========================
+  let waitingForAdminConfirm = false;
 
-function openSupportBot(){
-
-const bot = document.getElementById("support-bot");
-const box = document.getElementById("bot-messages");
-
-bot.style.display = "block";
-
-if(box.innerHTML === ""){
-botReply("Hello 👋 I am Buddy Support Bot. Ask me about downloads, rewards, apps or troubleshooting.");
-}
-
-}
-
-function botReply(text){
-  const box = document.getElementById("bot-messages");
-  box.innerHTML += "<div style='margin-bottom:8px;color:#2c6bed'><b>Bot:</b> "+text+"</div>";
-  box.scrollTop = box.scrollHeight;
-}
-
-// ============================================
-// SUPPORT BOT FUNCTIONS
-// ============================================
-
-
-// ========================
-// Support Bot State
-// ========================
-let waitingForAdminConfirm = false;
-
-// ========================
-// Open / Close Support Bot
-// ========================
-function openSupportBot() {
-  const bot = document.getElementById("support-bot");
-  const box = document.getElementById("bot-messages");
-
-  bot.style.display = "block";
-
-  if (box.innerHTML.trim() === "") {
-    botReply("Hello 👋 I am Buddy Support Bot. Ask me about downloads, rewards, apps, or troubleshooting.");
+  // ========================
+  // Open / Close Support Bot
+  // ========================
+  function openSupportBot() {
+    const bot = document.getElementById("support-bot");
+    const box = document.getElementById("bot-messages");
+    bot.style.display = "block";
+    if (box.innerHTML.trim() === "") {
+      botReply("Hello 👋 I am Buddy Support Bot. Ask me about downloads, rewards, apps, or troubleshooting.");
+    }
   }
-}
 
-function closeSupportBot() {
-  document.getElementById("support-bot").style.display = "none";
-}
+  function closeSupportBot() {
+    document.getElementById("support-bot").style.display = "none";
+  }
 
-// ========================
-// Display Bot Messages
-// ========================
-function botReply(text) {
-  const box = document.getElementById("bot-messages");
-  box.innerHTML += `<div style='margin-bottom:8px;color:#2c6bed'><b>Bot:</b> ${text}</div>`;
-  box.scrollTop = box.scrollHeight;
-}
+  // ========================
+  // Display Bot Messages
+  // ========================
+  function botReply(text) {
+    const box = document.getElementById("bot-messages");
+    box.innerHTML += `<div style='margin-bottom:8px;color:var(--primary)'><b>Bot:</b> ${text}</div>`;
+    box.scrollTop = box.scrollHeight;
+  }
 
-// ========================
-// Send User Message
-// ========================
-function sendBotMessage() {
-  const input = document.getElementById("bot-input");
-  const msg = input.value.trim();
+  // ========================
+  // Send User Message
+  // ========================
+  function sendBotMessage() {
+    const input = document.getElementById("bot-input");
+    const msg = input.value.trim();
+    if (!msg) return;
+    const box = document.getElementById("bot-messages");
+    box.innerHTML += `<div style='margin-bottom:8px'><b>You:</b> ${msg}</div>`;
+    input.value = "";
+    handleMessage(msg);
+  }
 
-  if (!msg) return;
+  // ========================
+  // Handle Incoming Message Logic
+  // ========================
+  function handleMessage(msg) {
+    msg = msg.toLowerCase().trim();
 
-  const box = document.getElementById("bot-messages");
-  box.innerHTML += `<div style='margin-bottom:8px'><b>You:</b> ${msg}</div>`;
-  input.value = "";
+    if (/hi|hello|hey/.test(msg)) {
+      botReply("Hello! 👋 I'm Buddy, your assistant. How can I help you today?");
+    }
+    else if (/share|reward/.test(msg)) {
+      botReply("🎁 Want a reward? Share the website 5 times using the share buttons, and you'll get a reward key! Ready to try?");
+    }
+    else if (/download/.test(msg)) {
+      botReply("📥 You can download apps directly from the product cards. Just click the 'Download' button under the app you want!");
+    }
+    else if (/anti[\s-]?theft/.test(msg)) {
+      botReply("🛡️ Buddy Anti-Theft protects your phone with SIM change alerts, silent security, and tracking. Stay safe!");
+    }
+    else if (/signal/.test(msg)) {
+      botReply("📊 The AI Signal Dashboard provides intelligent trading signals for Forex, Crypto, and Commodities. Some features require VIP access.");
+    }
+    else if (/bot/.test(msg)) {
+      botReply("🤖 Buddy Bot is a Windows-based automation and monitoring tool. Connects with platforms like MetaTrader 5. Download the ZIP package and follow the user guide.");
+    }
+    else if (/football|dashboard/.test(msg)) {
+      botReply("⚽ The Football Intelligence Dashboard predicts match outcomes using statistical models and real match data. Analyze team strength, top scorers, league standings, and more.");
+    }
+    else if (/problem|admin|help/.test(msg)) {
+      botReply("😕 Oh no! It seems you need serious assistance.");
+      setTimeout(() => {
+        botReply(`You can contact the admin directly for help: <a href='${ADMIN_TELEGRAM}' target='_blank'>Telegram</a> | <a href='${ADMIN_WHATSAPP}' target='_blank'>WhatsApp</a>`);
+      }, 500);
+    }
+    else if (waitingForAdminConfirm && /yes|yah|ok/.test(msg)) {
+      botReply("😕 Oh no! It seems you need serious assistance.");
+      setTimeout(() => {
+        botReply(`You can contact the admin directly for help: <a href='${ADMIN_TELEGRAM}' target='_blank'>Telegram</a> | <a href='${ADMIN_WHATSAPP}' target='_blank'>WhatsApp</a>`);
+      }, 500);
+      waitingForAdminConfirm = false;
+    }
+    else if (/how are you/.test(msg)) {
+      botReply("I'm doing great! 😎 Thanks for asking. How about you?");
+    }
+    else {
+      botReply("🤔 I didn't quite catch that. If it's important, I can connect you with the admin.");
+      waitingForAdminConfirm = true;
+    }
+  }
 
-  handleMessage(msg);
-}
-
-// ========================
-// Handle Incoming Message Logic
-// ========================
-function handleMessage(msg) {
-  msg = msg.toLowerCase().trim();
-
-  // Greet the user
-  if (/hi|hello|hey/.test(msg)) {
-    botReply("Hello! 👋 I'm Buddy, your assistant. How can I help you today?");
-  }
-  // Share / reward
-  else if (/share|reward/.test(msg)) {
-    botReply("🎁 Want a reward? Share the website 5 times using the share buttons, and you'll get a reward key! Ready to try?");
-  }
-  // Download instructions
-  else if (/download/.test(msg)) {
-    botReply("📥 You can download apps directly from the product cards. Just click the 'Download' button under the app you want!");
-  }
-  // Anti-theft
-  else if (/anti[\s-]?theft/.test(msg)) {
-    botReply("🛡️ Buddy Anti-Theft protects your phone with SIM change alerts, silent security, and tracking. Stay safe!");
-  }
-  // AI Signal Dashboard
-  else if (/signal/.test(msg)) {
-    botReply("📊 The AI Signal Dashboard provides intelligent trading signals for Forex, Crypto, and Commodities. Some features require VIP access.");
-  }
-  // Buddy Bot
-  else if (/bot/.test(msg)) {
-    botReply("🤖 Buddy Bot is a Windows-based automation and monitoring tool. Connects with platforms like MetaTrader 5. Download the ZIP package and follow the user guide.");
-  }
-  // Football Dashboard
-  else if (/football|dashboard/.test(msg)) {
-    botReply("⚽ The Football Intelligence Dashboard predicts match outcomes using statistical models and real match data. Analyze team strength, top scorers, league standings, and more.");
-  }
-  // Help / admin request
-  else if (/problem|admin|help/.test(msg)) {
-    botReply("😕 Oh no! It seems you need serious assistance.");
-    setTimeout(() => {
-      botReply(`You can contact the admin directly for help: <a href='${ADMIN_TELEGRAM}' target='_blank'>✈️ Telegram</a> | <a href='${ADMIN_WHATSAPP}' target='_blank'>💬 WhatsApp</a>`);
-    }, 500);
-  }
-  // Admin confirmation prompt
-  else if (waitingForAdminConfirm && /yes|yah|ok/.test(msg)) {
-    botReply("😕 Oh no! It seems you need serious assistance.");
-    setTimeout(() => {
-      botReply(`You can contact the admin directly for help: <a href='${ADMIN_TELEGRAM}' target='_blank'>✈️ Telegram</a> | <a href='${ADMIN_WHATSAPP}' target='_blank'>💬 WhatsApp</a>`);
-    }, 500);
-    waitingForAdminConfirm = false;
-  }
-  // How are you
-  else if (/how are you/.test(msg)) {
-    botReply("I'm doing great! 😎 Thanks for asking. How about you?");
-  }
-  // Fallback
-  else {
-    botReply("🤔 I didn't quite catch that. If it's important, I can connect you with the admin.");
-    waitingForAdminConfirm = true;
-  }
-}
-  
   // ========================
   // User ID for Share Tracking
   // ========================
@@ -1016,178 +1208,118 @@ function handleMessage(msg) {
     return id;
   }
 
-function sendKeyToTelegram(key, userId) {
-  fetch("https://buddy-website-git-main-sharif31-clouds-projects.vercel.app/api/send-telegram", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      key,
-      userId
+  function sendKeyToTelegram(key, userId) {
+    fetch("https://buddy-website-git-main-sharif31-clouds-projects.vercel.app/api/send-telegram", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, userId })
     })
-  })
-  .then(res => res.json())
-  .then(data => console.log("Telegram notified", data))
-  .catch(err => console.error("Telegram error:", err));
-}
-  // ========================
-// Share Reward System with Progress Bar
-// ========================
-function generateShareKey() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let key = '';
-  for (let i = 0; i < 8; i++) {
-    key += chars.charAt(Math.floor(Math.random() * chars.length));
+    .then(res => res.json())
+    .then(data => console.log("Telegram notified", data))
+    .catch(err => console.error("Telegram error:", err));
   }
-  return key;
-}
 
-function updateShareProgressDisplay(userId) {
-  const shareRef = db.ref(`buddyShares/${userId}`);
-  const progressBar = document.getElementById('share-progress-bar');
-  const shareCount = document.getElementById('share-count');
+  // ========================
+  // Share Reward System with Progress Bar
+  // ========================
+  function generateShareKey() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let key = '';
+    for (let i = 0; i < 8; i++) {
+      key += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return key;
+  }
 
-  shareRef.on('value', snapshot => {
-    const data = snapshot.val() || { count: 0 };
-    const count = data.count || 0;
-    const percent = Math.min((count / 5) * 100, 100);
+  function updateShareProgressDisplay(userId) {
+    const shareRef = db.ref(`buddyShares/${userId}`);
+    const progressBar = document.getElementById('share-progress-bar');
+    const shareCount = document.getElementById('share-count');
+    shareRef.on('value', snapshot => {
+      const data = snapshot.val() || { count: 0 };
+      const count = data.count || 0;
+      const percent = Math.min((count / 5) * 100, 100);
+      progressBar.style.width = percent + '%';
+      shareCount.textContent = `${count}/5`;
+    });
+  }
 
-    progressBar.style.width = percent + '%';
-    shareCount.textContent = `${count}/5`;
-  });
-}
+  function recordShare(platform) {
+    const userId = getUserId();
+    if (!userId) return;
+    const shareRef = db.ref(`buddyShares/${userId}`);
+    shareRef.transaction(current => {
+      current = current || { count: 0, key: null };
+      if (current.key) return current;
+      current.count += 1;
+      updateShareProgressDisplay(userId);
+      if (current.count >= 5 && !current.key) {
+        current.key = generateShareKey();
+        sendKeyToTelegram(current.key, userId);
+        alert(`🎉 You have shared to 5 people!\nYour reward key is:\n${current.key}\n\nSend this key to the admin to redeem your free day.`);
+        document.getElementById("admin-contact").style.display = "block";
+        document.getElementById("telegram-admin").href =
+          ADMIN_TELEGRAM + "?text=" + encodeURIComponent("Hello Admin, here is my reward key: " + current.key);
+        document.getElementById("whatsapp-admin").href =
+          ADMIN_WHATSAPP + "?text=" + encodeURIComponent("Hello Admin, here is my reward key: " + current.key);
+      } else if (current.count < 5) {
+        alert(`✅ Thanks for sharing!\nYou have shared ${current.count} times.\nShare ${5 - current.count} more times to earn a reward.`);
+      }
+      return current;
+    });
+  }
 
-function recordShare(platform) {
-  const userId = getUserId();
-  if (!userId) return;
-
-  const shareRef = db.ref(`buddyShares/${userId}`);
-  shareRef.transaction(current => {
-    current = current || { count: 0, key: null };
-    if (current.key) return current; // already rewarded
-
-    current.count += 1;
-
-    // Update progress display
-    updateShareProgressDisplay(userId);
-
-    if (current.count >= 5 && !current.key) {
-  
-  current.key = generateShareKey();
-
-  // Send to Telegram
-  sendKeyToTelegram(current.key, userId);
-
-  alert(`🎉 You have shared to 5 people!
-Your reward key is:
-${current.key}
-
-Send this key to the admin to redeem your free day of using the bot or jobconnect.`);
-
-  // ==============================
-  // Show Admin Contact Section
-  // ==============================
-  document.getElementById("admin-contact").style.display = "block";
-
-  // Attach Telegram link
-  document.getElementById("telegram-admin").href =
-    ADMIN_TELEGRAM + "?text=" +
-    encodeURIComponent("Hello Admin, here is my reward key: " + current.key);
-
-  // Attach WhatsApp link
-  document.getElementById("whatsapp-admin").href =
-    ADMIN_WHATSAPP + "?text=" +
-    encodeURIComponent("Hello Admin, here is my reward key: " + current.key);
-
-} else if (current.count < 5) {
-
-  alert(`✅ Thanks for sharing!
-You have shared ${current.count} times.
-Share ${5 - current.count} more times to earn a free day of using the bot or jobconnect.`);
-
-}
-
-    return current;
-  });
-}
-
-// Initialize progress for current user
-updateShareProgressDisplay(getUserId());
-
+  updateShareProgressDisplay(getUserId());
 
   // ========================
   // Copy Link Function
   // ========================
+  function copyWebsiteLink() {
+    const shareText = "Check out Buddy Products – a trading bot, signal-generating dashboard, and more:";
+    const fullText = `${shareText} ${window.location.href}`;
+    navigator.clipboard.writeText(fullText).then(() => {
+      alert("✅ Website link copied to clipboard!");
+      recordShare('copy');
+    });
+  }
+
   // ========================
-// Copy Link Function (updated)
-// ========================
-function copyWebsiteLink() {
-  const shareText = "Check out Buddy Products – a trading bot, signal-generating dashboard, and more:";
-  const fullText = `${shareText} ${window.location.href}`;
-
-  navigator.clipboard.writeText(fullText).then(() => {
-    alert("✅ Website link copied to clipboard!");
-    recordShare('copy'); // Increment share count
-  });
-}
-
-// ========================
-// Share Buttons Setup (updated)
-// ========================
-function setupShareButtons() {
-  const shareButtons = document.querySelectorAll('.share-btn');
-  const userId = getUserId();
-  updateShareProgressDisplay(userId); // Initialize progress display
-
-  const shareText = "Check out Buddy Products – a trading bot, signal-generating dashboard, and more:";
-
-  shareButtons.forEach(btn => {
-    const platform = btn.textContent.trim().toLowerCase();
-
-    if (btn.tagName === 'A') {
-      // WhatsApp
-      if (btn.href.includes('wa.me')) {
-        btn.href = `https://wa.me/?text=${encodeURIComponent(shareText + " " + window.location.href)}`;
+  // Share Buttons Setup
+  // ========================
+  function setupShareButtons() {
+    const shareButtons = document.querySelectorAll('.share-btn');
+    const userId = getUserId();
+    updateShareProgressDisplay(userId);
+    const shareText = "Check out Buddy Products – a trading bot, signal-generating dashboard, and more:";
+    shareButtons.forEach(btn => {
+      const platform = btn.textContent.trim().toLowerCase();
+      if (btn.tagName === 'A') {
+        if (btn.href.includes('wa.me')) {
+          btn.href = `https://wa.me/?text=${encodeURIComponent(shareText + " " + window.location.href)}`;
+        }
+        else if (btn.href.includes('facebook.com')) {
+          btn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${encodeURIComponent(shareText)}`;
+        }
+        else if (btn.href.includes('twitter.com')) {
+          btn.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(window.location.href)}`;
+        }
+        else if (btn.href.includes('t.me')) {
+          btn.href = `https://t.me/share/url?text=${encodeURIComponent(shareText + " " + window.location.href)}&url=${encodeURIComponent(window.location.href)}`;
+        }
+        btn.addEventListener('click', () => { recordShare(platform); });
+      } else if (btn.tagName === 'BUTTON' && btn.onclick === null) {
+        btn.addEventListener('click', () => { copyWebsiteLink(); });
       }
-      // Facebook
-      else if (btn.href.includes('facebook.com')) {
-        btn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${encodeURIComponent(shareText)}`;
-      }
-      // Twitter/X
-      else if (btn.href.includes('twitter.com')) {
-        btn.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(window.location.href)}`;
-      }
-      // Telegram
-      else if (btn.href.includes('t.me')) {
-        btn.href = `https://t.me/share/url?text=${encodeURIComponent(shareText + " " + window.location.href)}&url=${encodeURIComponent(window.location.href)}`;
-      }
-
-      // Record share when social link is clicked
-      btn.addEventListener('click', () => {
-        recordShare(platform);
-      });
-
-    } else if (btn.tagName === 'BUTTON' && btn.onclick === null) {
-      // Copy link button
-      btn.addEventListener('click', () => {
-        copyWebsiteLink(); // Already calls recordShare('copy')
-      });
-    }
-  });
-}
-
+    });
+  }
 
   // ========================
   // Visit Counters
   // ========================
-  // Local
   let visits = parseInt(localStorage.getItem("buddySiteVisits") || "0") + 1;
   localStorage.setItem("buddySiteVisits", visits);
   document.getElementById("visit-counter").innerHTML =
     `You have visited this site <strong>${visits}</strong> time(s).`;
-
-  // Global
   const globalVisitRef = db.ref("buddyGlobalVisits");
   globalVisitRef.transaction(current => (current || 0) + 1);
   globalVisitRef.on("value", snapshot => {
@@ -1202,20 +1334,13 @@ function setupShareButtons() {
     const button = document.getElementById(buttonId);
     const countDisplay = document.getElementById(countId);
     if (!button || !countDisplay) return;
-
     const ref = db.ref("buddyDownloads/" + dbKey);
-
-    // Live count
     ref.on("value", snapshot => {
       countDisplay.textContent = `Downloads: ${snapshot.val() || 0}`;
     });
-
     const localKey = "downloaded_" + dbKey;
     button.addEventListener("click", () => {
-      if (localStorage.getItem(localKey)) {
-        console.log("Download already counted for this browser.");
-        return;
-      }
+      if (localStorage.getItem(localKey)) return;
       ref.transaction(current => (current || 0) + 1);
       localStorage.setItem(localKey, "true");
     });
@@ -1226,41 +1351,28 @@ function setupShareButtons() {
   setupGlobalDownloadCounter("chloe-download", "chloe-count", "chloe");
   setupGlobalDownloadCounter("aiStreetRacer-download", "aiStreetRacer-count", "aiStreetRacer");
 
-// ========================
-// Dashboard Visit Counter
-// ========================
-function setupDashboardCounter(buttonSelector, countId, dbKey) {
-  const button = document.querySelector(buttonSelector);
-  const countDisplay = document.getElementById(countId);
-  if (!button || !countDisplay) return;
+  // ========================
+  // Dashboard Visit Counter
+  // ========================
+  function setupDashboardCounter(buttonSelector, countId, dbKey) {
+    const button = document.querySelector(buttonSelector);
+    const countDisplay = document.getElementById(countId);
+    if (!button || !countDisplay) return;
+    const ref = db.ref("buddyDashboardVisits/" + dbKey);
+    ref.on("value", snapshot => {
+      countDisplay.textContent = `Visits: ${snapshot.val() || 0}`;
+    });
+    const localKey = "visited_" + dbKey;
+    button.addEventListener("click", () => {
+      if (localStorage.getItem(localKey)) return;
+      ref.transaction(current => (current || 0) + 1);
+      localStorage.setItem(localKey, "true");
+    });
+  }
 
-  const ref = db.ref("buddyDashboardVisits/" + dbKey);
-
-  // Live count
-  ref.on("value", snapshot => {
-    countDisplay.textContent = `Visits: ${snapshot.val() || 0}`;
-  });
-
-  const localKey = "visited_" + dbKey;
-  button.addEventListener("click", () => {
-    if (localStorage.getItem(localKey)) {
-      console.log("Visit already counted for this browser.");
-      return;
-    }
-    ref.transaction(current => (current || 0) + 1);
-    localStorage.setItem(localKey, "true");
-  });
-}
-
-// Call this for your dashboard
-// AI Signal Dashboard
-setupDashboardCounter("#dashboard-link", "aiSignalDashboard-count", "aiSignalDashboard");
-
-// Football Dashboard
-setupDashboardCounter("#footballDashboard-link", "footballDashboard-count", "footballDashboard");
-
-setupDashboardCounter("#tictacMindWar-link", "tictacMindWar-count", "tictacMindWar");
-
+  setupDashboardCounter("#dashboard-link", "aiSignalDashboard-count", "aiSignalDashboard");
+  setupDashboardCounter("#footballDashboard-link", "footballDashboard-count", "footballDashboard");
+  setupDashboardCounter("#tictacMindWar-link", "tictacMindWar-count", "tictacMindWar");
 
   // ========================
   // Lightbox for Screenshots
@@ -1282,18 +1394,15 @@ setupDashboardCounter("#tictacMindWar-link", "tictacMindWar-count", "tictacMindW
     const appKey = productDiv.dataset.app;
     const reviewsRef = db.ref('buddyReviews/' + appKey);
     const ratingsRef = db.ref('buddyRatings/' + appKey);
-
     const reviewsList = productDiv.querySelector('.reviews-list');
     const reviewForm = productDiv.querySelector('.review-form');
     const reviewName = productDiv.querySelector('.review-name');
     const reviewText = productDiv.querySelector('.review-text');
-
     const avgStars = productDiv.querySelector('.avg-stars');
     const avgValue = productDiv.querySelector('.avg-value');
     const ratingForm = productDiv.querySelector('.rating-form');
     const ratingSelect = productDiv.querySelector('.rating-select');
 
-    // Load reviews
     reviewsRef.on('value', snapshot => {
       reviewsList.innerHTML = '';
       const reviews = snapshot.val() || {};
@@ -1307,7 +1416,6 @@ setupDashboardCounter("#tictacMindWar-link", "tictacMindWar-count", "tictacMindW
         });
     });
 
-    // Submit review
     reviewForm.addEventListener('submit', e => {
       e.preventDefault();
       const name = reviewName.value.trim();
@@ -1318,17 +1426,15 @@ setupDashboardCounter("#tictacMindWar-link", "tictacMindWar-count", "tictacMindW
       }
     });
 
-    // Load ratings & update average
     ratingsRef.on('value', snapshot => {
       const ratings = snapshot.val() || {};
       const values = Object.values(ratings).map(r => parseInt(r.value,10));
       const avg = values.length ? (values.reduce((a,b)=>a+b,0)/values.length).toFixed(1) : 0;
       avgValue.textContent = avg;
       const starsCount = Math.round(avg);
-      avgStars.textContent = '⭐️'.repeat(starsCount) + '☆'.repeat(5-starsCount);
+      avgStars.textContent = '⭐'.repeat(starsCount) + '☆'.repeat(5-starsCount);
     });
 
-    // Submit rating
     ratingForm.addEventListener('submit', e => {
       e.preventDefault();
       const value = ratingSelect.value;
@@ -1341,71 +1447,20 @@ setupDashboardCounter("#tictacMindWar-link", "tictacMindWar-count", "tictacMindW
   // ========================
   setupShareButtons();
 
- // ========================
-// Auto Dark Mode Toggle (7 PM - 6 AM)
-// ========================
-function applyAutoTheme() {
-  const hour = new Date().getHours();
-  if (hour >= 19 || hour < 6) {
-    document.body.classList.add('dark-mode');
-  } else {
-    document.body.classList.remove('dark-mode');
+  // ========================
+  // Auto Dark Mode Toggle (7 PM - 6 AM)
+  // ========================
+  function applyAutoTheme() {
+    const hour = new Date().getHours();
+    if (hour >= 19 || hour < 6) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
   }
-}
+  applyAutoTheme();
+  setInterval(applyAutoTheme, 15 * 60 * 1000);
+  </script>
 
-// Run on page load
-applyAutoTheme();
-
-// Optional: Re-check every 15 minutes in case user leaves page open
-setInterval(applyAutoTheme, 15 * 60 * 1000);
-
-</script>
-<div id="support-bot" style="
-display:none;
-position:fixed;
-bottom:20px;
-right:20px;
-width:320px;
-background:white;
-border-radius:10px;
-box-shadow:0 10px 30px rgba(0,0,0,0.2);
-z-index:9999;
-">
-
-<div style="
-background:#2c6bed;
-color:white;
-padding:10px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-">
-
-<span>🤖 Buddy Support Bot</span>
-
-<button onclick="closeSupportBot()" style="
-background:transparent;
-border:none;
-color:white;
-font-size:18px;
-cursor:pointer;
-">
-✖
-</button>
-
-</div>
-
-<div id="bot-messages" style="height:250px;overflow-y:auto;padding:10px;font-size:14px;"></div>
-
-<div style="display:flex;border-top:1px solid #ddd;">
-<input id="bot-input" placeholder="Ask something..."
-style="flex:1;border:none;padding:10px;">
-<button onclick="sendBotMessage()" style="border:none;background:#2c6bed;color:white;padding:10px;">Send</button>
-</div>
-
-</div>
 </body>
 </html>
-
-
-
