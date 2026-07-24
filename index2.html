@@ -4,47 +4,682 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Signal Dashboard</title>
-
-<!-- Favicon -->
 <link rel="icon" type="image/png" href="logo_icon.png">
 <link rel="shortcut icon" href="favicon.ico">
-
 <meta name="description" content="AI Signal Dashboard for Forex, Crypto, and Commodities with EMA, RSI, and MACD indicators. Free symbols available. VIP access for premium signals.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 
 <style>
-body { margin:0; font-family:Arial,sans-serif; background:#0f172a; color:#e5e7eb; }
-header { background:#020617; padding:15px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; }
-select, button, input { padding:8px; border-radius:6px; border:none; }
-button { background:#2563eb; color:white; cursor:pointer; }
-button.secondary { background:#334155; }
-#signals { padding:20px; }
-.signal { background:#020617; padding:20px; border-radius:12px; max-width:420px; margin:auto; position:relative; transition: filter 0.3s ease; }
-.vip-badge { position:absolute; top:10px; right:10px; background:#22c55e; color:#fff; padding:4px 8px; border-radius:8px; font-weight:bold; font-size:0.9rem; }
-.buy { color:#22c55e; } 
-.sell { color:#ef4444; } 
-.hold { color:#9ca3af; }
-.vip-lock { filter:blur(7px); pointer-events:none; }
-#authBox { display:flex; gap:6px; flex-wrap:wrap; align-items:flex-end; }
-#tidBox { display:none; flex-direction:column; gap:6px; margin-top:10px; background:#1e293b; padding:12px; border-radius:10px; max-width:420px; }
-#chart {
+/* ═══════════════════════════════════════════════════
+   DESIGN SYSTEM — Buddy Signal Dashboard
+   Deep warm dark. Brand-consistent across all pages.
+   ═══════════════════════════════════════════════════ */
+
+:root {
+  --bg: #0C0C0C;
+  --surface: #161616;
+  --surface-raised: #1E1E1E;
+  --primary: #C45D3E;
+  --primary-hover: #A84830;
+  --secondary: #2B4A3E;
+  --secondary-hover: #1D3629;
+  --accent: #E8A838;
+  --accent-hover: #D4952E;
+  --buy: #22C55E;
+  --buy-bg: rgba(34,197,94,0.12);
+  --sell: #E5533A;
+  --sell-bg: rgba(229,83,58,0.12);
+  --hold: #A0A0A0;
+  --hold-bg: rgba(160,160,160,0.1);
+  --text-primary: #E8E8E8;
+  --text-secondary: #A0A0A0;
+  --text-muted: #666666;
+  --border: #2A2A2A;
+  --border-strong: #333333;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.5);
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
+}
+
+/* ═══════════ BASE ═══════════ */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  line-height: 1.5;
+  min-height: 100vh;
+  animation: pageIn 0.3s ease-out;
+}
+
+@keyframes pageIn { from { opacity: 0 } to { opacity: 1 } }
+
+/* Grain texture — consistent with other Buddy pages */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.15;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.06'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+}
+
+::selection { background: var(--accent); color: white; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+body > * { position: relative; z-index: 1; }
+
+h1, h2, h3, h4 { font-family: var(--font-display); line-height: 1.2; color: var(--text-primary); }
+
+/* ═══════════ TOOLBAR ═══════════ */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  background: var(--secondary);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  position: relative;
+  overflow: hidden;
+  flex-wrap: wrap;
+}
+
+.toolbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 50%, rgba(255,255,255,0.03) 1px, transparent 1px),
+    radial-gradient(circle at 80% 20%, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 30px 30px, 45px 45px;
+  pointer-events: none;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.brand-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--secondary);
+}
+
+.brand-text {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  color: white;
+}
+
+.toolbar select {
+  padding: 6px 28px 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255,255,255,0.15);
+  font-size: 0.85rem;
+  font-family: var(--font-display);
+  font-weight: 500;
+  background: rgba(255,255,255,0.08);
+  color: white;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A0A0A0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+.toolbar select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.toolbar select option { background: var(--surface); color: var(--text-primary); }
+.toolbar select option.free-symbol { color: var(--buy); font-weight: bold; }
+
+.toolbar-btn {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: var(--font-body);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: white;
+}
+
+.toolbar-btn.secondary {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+.toolbar-btn.secondary:hover {
+  background: rgba(255,255,255,0.12);
+  transform: translateY(-1px);
+}
+
+/* ═══════════ AUTH SECTION ═══════════ */
+.auth-section {
+  padding: 16px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.auth-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.auth-input {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  min-width: 160px;
+}
+
+.auth-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.auth-input::placeholder { color: var(--text-muted); }
+
+.auth-btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: var(--font-body);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: white;
+}
+
+.auth-btn:hover { transform: translateY(-1px); }
+
+.auth-btn.primary { background: var(--primary); }
+.auth-btn.primary:hover { background: var(--primary-hover); }
+.auth-btn.secondary { background: var(--secondary); }
+.auth-btn.secondary:hover { background: var(--secondary-hover); }
+.auth-btn.upgrade { background: var(--accent); color: var(--bg); font-weight: 600; }
+.auth-btn.upgrade:hover { background: var(--accent-hover); }
+
+#vipTimer {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--buy);
+  white-space: nowrap;
+}
+
+/* TID Box */
+#tidBox {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  background: var(--surface-raised);
+  border: 1px solid rgba(232,168,56,0.2);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  max-width: 420px;
+}
+
+#tidBox p {
+  color: var(--accent);
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.tid-input {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text-primary);
+}
+
+.tid-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.activate-btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: var(--font-body);
+  border: none;
+  cursor: pointer;
+  background: var(--buy);
+  color: white;
+  transition: background 0.15s ease;
+}
+.activate-btn:hover { background: #1EB954; }
+
+/* ═══════════ CHART ═══════════ */
+.chart-container {
   width: 100%;
   max-width: 900px;
   height: 450px;
   margin: 20px auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--surface);
 }
 
-#explain { background:#020617; margin:30px auto; padding:20px; max-width:900px; border-radius:12px; line-height:1.6; }
-.lock { color:#fbbf24; }
-.signal button { margin-top:8px; padding:6px 12px; border:none; border-radius:6px; cursor:pointer; background:#2563eb; color:white; }
-select option.free-symbol { color: #22c55e; font-weight: bold; }
-#vipTimer { margin-left:10px; font-weight:bold; color:#22c55e; }
+/* ═══════════ SIGNALS CONTAINER ═══════════ */
+#signals {
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ═══════════ SIGNAL CARD ═══════════ */
+.signal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0;
+  max-width: 520px;
+  margin: 0 auto;
+  overflow: hidden;
+  position: relative;
+  transition: border-color 0.2s ease;
+}
+
+.signal:hover { border-color: var(--border-strong); }
+
+/* VIP Badge */
+.vip-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.vip-badge.vip-active {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.vip-badge.free-badge {
+  background: var(--buy);
+  color: white;
+}
+
+/* VIP Lock overlay */
+.vip-lock {
+  filter: blur(6px);
+  pointer-events: none;
+  user-select: none;
+}
+
+.signal.vip-lock::after {
+  content: 'VIP Required';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  filter: none;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--accent);
+  pointer-events: none;
+  background: rgba(12,12,12,0.7);
+  padding: 8px 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(232,168,56,0.3);
+}
+
+.vip-unlock-msg {
+  max-width: 520px;
+  margin: 16px auto;
+  padding: 14px;
+  background: rgba(232,168,56,0.06);
+  border: 1px solid rgba(232,168,56,0.15);
+  border-radius: var(--radius-md);
+  text-align: center;
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+
+/* Signal Header */
+.signal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px 10px;
+}
+
+.signal-symbol-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.signal-type-badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+}
+
+.signal-type-badge.buy { background: var(--buy-bg); color: var(--buy); }
+.signal-type-badge.sell { background: var(--sell-bg); color: var(--sell); }
+.signal-type-badge.hold { background: var(--hold-bg); color: var(--hold); }
+
+/* Hold warning */
+.hold-warning {
+  margin: 0 18px 10px;
+  padding: 8px 12px;
+  background: rgba(232,168,56,0.08);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+
+.hold-warning strong { color: var(--accent); }
+
+/* Signal Prices */
+.signal-prices {
+  display: flex;
+  gap: 0;
+  padding: 0 18px 12px;
+}
+
+.price-item {
+  flex: 1;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.price-item:not(:last-child) {
+  border-right: 1px solid var(--border);
+  padding-right: 10px;
+}
+
+.price-item:not(:first-child) {
+  padding-left: 10px;
+}
+
+.price-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.price-value {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.copy-btn {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  font-weight: 500;
+  font-family: var(--font-body);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 4px;
+}
+
+.copy-btn:hover {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+/* Signal Strength Bar */
+.signal-strength {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-top: 1px solid var(--border);
+}
+
+.strength-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.strength-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.strength-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.strength-value {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+/* Signal Analysis */
+.signal-analysis {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--border);
+}
+
+.analysis-column h4 {
+  font-size: 0.8rem;
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.analysis-column ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.analysis-column.agree h4 { color: var(--buy); }
+.analysis-column.disagree h4 { color: var(--sell); }
+
+.analysis-column.agree li {
+  color: rgba(34,197,94,0.85);
+  padding: 2px 0;
+  padding-left: 14px;
+  position: relative;
+}
+
+.analysis-column.agree li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--buy);
+}
+
+.analysis-column.disagree li {
+  color: rgba(229,83,58,0.85);
+  padding: 2px 0;
+  padding-left: 14px;
+  position: relative;
+}
+
+.analysis-column.disagree li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sell);
+}
+
+/* Signal Footer */
+.signal-footer {
+  padding: 10px 18px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.copy-btn.copy-full {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.copy-btn.copy-full:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* ═══════════ LOADING & ERROR STATES ═══════════ */
+.signal-loading {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.signal-error {
+  text-align: center;
+  padding: 30px 20px;
+  color: var(--sell);
+  font-size: 0.9rem;
+  max-width: 520px;
+  margin: 0 auto;
+  background: var(--sell-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(229,83,58,0.2);
+}
+
+.signal-no-data {
+  text-align: center;
+  padding: 30px 20px;
+  color: var(--accent);
+  font-size: 0.9rem;
+  max-width: 520px;
+  margin: 0 auto;
+  background: rgba(232,168,56,0.06);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(232,168,56,0.15);
+}
+
+/* ═══════════ INFO SECTION ═══════════ */
+.info-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin: 30px auto;
+  padding: 18px 20px;
+  max-width: 900px;
+  border-radius: var(--radius-md);
+  line-height: 1.6;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+/* ═══════════ RESPONSIVE ═══════════ */
+@media (max-width: 768px) {
+  .toolbar { padding: 12px 14px; gap: 10px; }
+  .toolbar-left { flex-wrap: wrap; }
+  .auth-controls { flex-direction: column; align-items: stretch; }
+  .auth-input { min-width: 100%; }
+  .auth-section { padding: 12px 14px; }
+  .chart-container { height: 350px; margin: 12px auto; }
+  #signals { padding: 14px; }
+  .signal-prices { flex-direction: column; gap: 0; }
+  .price-item:not(:last-child) { border-right: none; border-bottom: 1px solid var(--border); padding-right: 0; }
+  .price-item:not(:first-child) { padding-left: 0; }
+  .signal-analysis { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 
 <body>
-<header>
-  <div>
-    <h3>📊 AI Signal Dashboard</h3>
+
+<!-- ══════ TOOLBAR ══════ -->
+<header class="toolbar">
+  <div class="toolbar-left">
+    <div class="brand-icon">B</div>
+    <span class="brand-text">Signal Dashboard</span>
     <select id="symbol">
       <option value="XAU/USD">XAU/USD</option>
       <option value="EUR/USD" class="free-symbol">EUR/USD (Free)</option>
@@ -52,40 +687,39 @@ select option.free-symbol { color: #22c55e; font-weight: bold; }
       <option value="USD/JPY">USD/JPY</option>
       <option value="BTC/USD">BTC/USD</option>
     </select>
-   
-   <button id="openTVBtn" class="secondary" style="margin-left:8px;">
-  📈 Full History signals
-</button>
-
-   
-  </div>
-
-  <div id="authBox">
-    <input id="email" placeholder="Email">
-    <input id="password" type="password" placeholder="Password">
-    <button id="loginBtn">Login</button>
-    <button id="registerBtn" class="secondary">Register</button>
-    <button id="upgradeBtn" class="secondary" style="display:none;">Request VIP</button>
-
-    <div id="tidBox">
-      <p style="color:#fbbf24; margin:0;">
-        For VIP, send 5k UGX to 0748244415 (Semakula Sharif) and enter your TID below:
-      </p>
-      <input id="tidInput" placeholder="TID 123456789012">
-      <button id="activateVipBtn" style="background:#22c55e; color:white; cursor:pointer;">Activate VIP</button>
-    </div>
-
-    <div id="vipTimer"></div>
+    <button id="openTVBtn" class="toolbar-btn secondary">Full History</button>
   </div>
 </header>
 
-<div id="chart"></div>
-<div id="signals">Loading…</div>
+<!-- ══════ AUTH SECTION ══════ -->
+<section class="auth-section">
+  <div id="authBox" class="auth-controls">
+    <input id="email" class="auth-input" placeholder="Email">
+    <input id="password" class="auth-input" type="password" placeholder="Password">
+    <button id="loginBtn" class="auth-btn primary">Login</button>
+    <button id="registerBtn" class="auth-btn secondary">Register</button>
+    <button id="upgradeBtn" class="auth-btn upgrade" style="display:none;">Request VIP</button>
+  </div>
+  <div id="tidBox">
+    <p>For VIP access, send 5k UGX to <strong>0748244415</strong> (Semakula Sharif) and enter your TID below:</p>
+    <input id="tidInput" class="tid-input" placeholder="TID 123456789012">
+    <button id="activateVipBtn" class="activate-btn">Activate VIP</button>
+  </div>
+  <div id="vipTimer"></div>
+</section>
 
-<div id="explain">
-  <p>AI Signal Dashboard powered by EMA, RSI, MACD indicators. Some symbols are free for everyone.</p>
-</div>
+<!-- ══════ CHART ══════ -->
+<div id="chart" class="chart-container"></div>
 
+<!-- ══════ SIGNALS ══════ -->
+<div id="signals"><div class="signal-loading">Loading market data...</div></div>
+
+<!-- ══════ INFO ══════ -->
+<section id="explain" class="info-section">
+  <p>AI Signal Dashboard powered by EMA, RSI, MACD, and ADX indicators. Higher-timeframe trend filtering and candle-pattern confirmation are applied. Some symbols are free for everyone — VIP unlocks all signals with full analysis.</p>
+</section>
+
+<!-- ══════ SCRIPTS ══════ -->
 <script type="module">
 // ================================
 // PRO DEVTOOLS PROTECTION (IP + ADVANCED)
@@ -98,56 +732,34 @@ select option.free-symbol { color: #22c55e; font-weight: bold; }
     const res = await fetch("https://api.ipify.org?format=json");
     const data = await res.json();
     userIP = data.ip;
-  }catch(e){
-    console.log("IP fetch failed");
-  }
+  }catch(e){}
 
-  // YOUR DEVICE IP
   const OWNER_IP = "102.215.111.41";
 
-  // If NOT your device
   if(!userIP || userIP !== OWNER_IP){
 
-    // ================================
-    // Disable console
-    // ================================
     (function(){
       const noop = function(){};
       ["log","warn","error","info","debug"].forEach(m => console[m] = noop);
     })();
 
-    console.log("Protected mode active");
-
-    // ================================
-    // Block right click
-    // ================================
     document.addEventListener("contextmenu", e => e.preventDefault());
 
-    // ================================
-    // Block devtools keys
-    // ================================
     document.addEventListener("keydown", function(e){
-
       if(
-        e.keyCode === 123 || // F12
-        (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
-        (e.ctrlKey && e.shiftKey && e.keyCode === 74) || // Ctrl+Shift+J
-        (e.ctrlKey && e.keyCode === 85) || // Ctrl+U
-        (e.ctrlKey && e.keyCode === 83) // Ctrl+S
+        e.keyCode === 123 ||
+        (e.ctrlKey && e.shiftKey && e.keyCode === 73) ||
+        (e.ctrlKey && e.shiftKey && e.keyCode === 74) ||
+        (e.ctrlKey && e.keyCode === 85) ||
+        (e.ctrlKey && e.keyCode === 83)
       ){
         e.preventDefault();
         return false;
       }
-
     });
 
-    // ================================
-    // Detect DevTools open
-    // ================================
     setInterval(function(){
-
       const threshold = 160;
-
       if(
         window.outerWidth - window.innerWidth > threshold ||
         window.outerHeight - window.innerHeight > threshold
@@ -155,30 +767,20 @@ select option.free-symbol { color: #22c55e; font-weight: bold; }
         document.body.innerHTML =
         "<h1 style='text-align:center;margin-top:100px;font-family:sans-serif;'>⚠ Access Restricted</h1>";
       }
-
     },1000);
 
-    // ================================
-    // Debugger detection
-    // ================================
     setInterval(function(){
-
       const start = Date.now();
       debugger;
       const end = Date.now();
-
       if(end - start > 100){
         document.body.innerHTML = "⚠ Debugging not allowed";
       }
-
     },2000);
 
   }else{
-
     console.log("Owner detected → DevTools allowed");
-
   }
-
 })();
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -221,10 +823,9 @@ let isVIP = false;
 let vipCountdownInterval = null;
 const freeSymbols = ["EUR/USD", "GBP/USD"];
 
-let chartLoaded = null;          // track current chart symbol
-let cachedSignals = {};          // store cached signals per symbol
-const cacheTime = 2 * 60 * 1000; // 2 minutes cache
-
+let chartLoaded = null;
+let cachedSignals = {};
+const cacheTime = 2 * 60 * 1000;
 
 // =============== INDICATORS =================
 function EMA(v,p){
@@ -256,47 +857,34 @@ function ATR(h,l,c,p=14){
 }
 
 function MACD(values){
-
   const ema = (data, period) => {
     const k = 2 / (period + 1);
     let emaArr = [data[0]];
-
     for (let i = 1; i < data.length; i++) {
       emaArr.push(data[i] * k + emaArr[i - 1] * (1 - k));
     }
-
     return emaArr;
   };
-
-  // Calculate EMA arrays
   let ema12 = ema(values, 12);
   let ema26 = ema(values, 26);
-
-  // MACD line
   let macdLine = ema12.map((v, i) => v - ema26[i]);
-
-  // Signal line
   let signalLine = ema(macdLine.slice(26), 9);
-
   return {
     macd: macdLine.at(-1),
     signal: signalLine.at(-1)
   };
 }
 
-// ================= TREND STRENGTH =================
 function trendStrength(ema10,ema20){
   return Math.abs(ema10-ema20);
 }
 
-// ================= SUPPORT RESISTANCE =================
 function supportResistance(highs,lows){
   let resistance=Math.max(...highs.slice(-50));
   let support=Math.min(...lows.slice(-50));
   return {resistance,support};
 }
 
-// ================= VOLUME STRENGTH =================
 function volumeStrength(data){
   let volumes=data.map(x=>+x.volume||0);
   let avg=volumes.slice(-20).reduce((a,b)=>a+b,0)/20;
@@ -304,11 +892,9 @@ function volumeStrength(data){
   return current>avg;
 }
 
-// ================= CANDLE PATTERNS =================
 function bullishEngulfing(data){
   let a=data.at(-2);
   let b=data.at(-1);
-
   return (+b.close > +b.open) &&
          (+a.close < +a.open) &&
          (+b.close > +a.open) &&
@@ -318,7 +904,6 @@ function bullishEngulfing(data){
 function bearishEngulfing(data){
   let a=data.at(-2);
   let b=data.at(-1);
-
   return (+b.close < +b.open) &&
          (+a.close > +a.open) &&
          (+b.open > +a.close) &&
@@ -327,89 +912,62 @@ function bearishEngulfing(data){
 
 function ADX(high, low, close, period = 14) {
   let tr = [], plusDM = [], minusDM = [];
-
   for (let i = 1; i < close.length; i++) {
     let highDiff = high[i] - high[i-1];
     let lowDiff = low[i-1] - low[i];
-
     plusDM.push(highDiff > lowDiff && highDiff > 0 ? highDiff : 0);
     minusDM.push(lowDiff > highDiff && lowDiff > 0 ? lowDiff : 0);
-
     tr.push(Math.max(
       high[i] - low[i],
       Math.abs(high[i] - close[i-1]),
       Math.abs(low[i] - close[i-1])
     ));
   }
-
   let atr = EMA(tr.slice(-period), period);
   let plusDI = 100 * (EMA(plusDM.slice(-period), period) / atr);
   let minusDI = 100 * (EMA(minusDM.slice(-period), period) / atr);
-
   let dx = (Math.abs(plusDI - minusDI) / (plusDI + minusDI)) * 100;
-
   return dx;
 }
 
-// ================= HIGHER TIMEFRAME TREND =================
 async function getHigherTimeframeTrend(symbol){
-
   let url=`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1h&outputsize=200&apikey=${TWELVE_KEY}`;
   let r=await fetch(url);
   let j=await r.json();
-
   if(!j.values) return "SIDEWAYS";
-
   let data=j.values.reverse();
   let closes=data.map(x=>+x.close);
-
   let ema50=EMA(closes.slice(-100),50);
   let ema200=EMA(closes.slice(-200),200);
-
   if(ema50>ema200) return "BULL";
   if(ema50<ema200) return "BEAR";
   return "SIDEWAYS";
 }
 
-// ================= PROFESSIONAL SIGNAL ENGINE =================
 function generateProfessionalSignal(d){
-
   let score=0;
-
-  // EMA TREND
   if(d.ema10>d.ema20) score+=25;
   else score-=25;
-
-  // RSI MOMENTUM
   if(d.rsi>60) score+=20;
   else if(d.rsi<40) score-=20;
-
-  // MACD MOMENTUM
   if(d.macd>d.macdSignal) score+=25;
   else score-=25;
-
-  // EXTREME MOMENTUM BONUS
   if(d.rsi>70) score+=10;
   if(d.rsi<30) score-=10;
-
-  // TREND STRENGTH BONUS
   if(d.trendStrength> d.price*0.0005) score+=10;
-
   if(score>=50) return {signal:"BUY",strength:score};
   if(score<=-50) return {signal:"SELL",strength:Math.abs(score)};
-
   return {signal:"HOLD",strength:Math.abs(score)};
 }
 
 function SLTP(e,a,s){
   let r=a*1.2;
   let t=r*1.5;
-
   if(s==="BUY") return {sl:e-r,tp:e+t};
   if(s==="SELL") return {sl:e+r,tp:e-t};
-
   return {sl:e,tp:e};
 }
+
 // =============== FETCH MARKET DATA =================
 async function fetchData(symbol){
   let url=`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${INTERVAL}&outputsize=200&apikey=${TWELVE_KEY}`;
@@ -419,41 +977,34 @@ async function fetchData(symbol){
 }
 
 // ================= CHART =================
-let chartWidget = null; // store widget instance for plotting
-let chartSymbolsHistory = {}; // keep history per symbol
+let chartWidget = null;
+let chartSymbolsHistory = {};
 
 function loadChart(symbolVal){
   if(chartLoaded === symbolVal) return;
   chartContainer.innerHTML = "";
 
- chartWidget = new TradingView.widget({
-  container_id:"chart",
-  symbol:symbolVal.replace("/",""),
-  interval:"15",
-  theme:"dark",
-  autosize:true,  // keep this
-  studies: []
-});
-
+  chartWidget = new TradingView.widget({
+    container_id:"chart",
+    symbol:symbolVal.replace("/",""),
+    interval:"15",
+    theme:"dark",
+    autosize:true,
+    studies: []
+  });
 
   chartLoaded = symbolVal;
-
-  // initialize history if doesn't exist
   if(!chartSymbolsHistory[symbolVal]) chartSymbolsHistory[symbolVal] = [];
 }
 
-// ================= PLOT SIGNALS ON CHART WITH TIMESTAMPS =================
 function plotSignalOnChart(sigData){
   if(!chartWidget || !chartWidget.chart) return;
-  const { sig, entry, sltp, symbolVal, candleTime } = sigData; // candleTime in ms
+  const { sig, entry, sltp, symbolVal, candleTime } = sigData;
   const chart = chartWidget.chart();
 
-  if(sig.signal === "HOLD") return; // skip HOLD
+  if(sig.signal === "HOLD") return;
 
-  // store current signal in history
   chartSymbolsHistory[symbolVal].push({sig, entry, sltp, candleTime});
-
-  // clear previous shapes to redraw full history
   chart.removeAllShapes();
 
   chartSymbolsHistory[symbolVal].forEach(s => {
@@ -461,9 +1012,8 @@ function plotSignalOnChart(sigData){
     const sArrowShape = sIsBuy ? 'arrow_up' : 'arrow_down';
     const sArrowColor = sIsBuy ? '#22c55e' : '#ef4444';
 
-    // Entry marker with timestamp
     chart.createShape({
-      time: s.candleTime / 1000, // TradingView expects seconds
+      time: s.candleTime / 1000,
       price: s.entry,
       shape: sArrowShape,
       text: `${s.sig.signal}\nEntry:${s.entry.toFixed(2)}\n${new Date(s.candleTime).toLocaleString()}`,
@@ -471,7 +1021,6 @@ function plotSignalOnChart(sigData){
       size: 2,
     });
 
-    // SL line
     chart.createShape({
       time: s.candleTime / 1000,
       price: s.sltp.sl,
@@ -481,7 +1030,6 @@ function plotSignalOnChart(sigData){
       linewidth: 1
     });
 
-    // TP line
     chart.createShape({
       time: s.candleTime / 1000,
       price: s.sltp.tp,
@@ -493,35 +1041,24 @@ function plotSignalOnChart(sigData){
   });
 }
 
-
 async function sendSignalIfNotExists(signalData) {
   const { symbolVal, sig, entry, sltp, candleTime } = signalData;
-
   if (sig.signal !== "BUY" && sig.signal !== "SELL") return;
-
   const signalsRefDb = ref(db, 'signals');
-
   try {
-    // Fetch existing signals
     const snapshot = await get(signalsRefDb);
     const existing = snapshot.val() || {};
-
-    // Check if a signal for the same symbol + type + candleTime exists
-    const duplicate = Object.values(existing).some(s => 
+    const duplicate = Object.values(existing).some(s =>
       s.symbol === symbolVal &&
       s.type === sig.signal &&
       s.time === candleTime
     );
-
     if (duplicate) {
       console.log("Signal already exists in Firebase. Skipping:", sig.signal, symbolVal);
-      return; // don’t send again
+      return;
     }
-
-    // If not duplicate, push new signal
     const now = Date.now();
     const newRef = ref(db, 'signals/' + now);
-
     await set(newRef, {
       symbol: symbolVal,
       type: sig.signal,
@@ -532,14 +1069,11 @@ async function sendSignalIfNotExists(signalData) {
       time: candleTime,
       sentTime: now
     });
-
     console.log("Signal sent to Firebase:", sig.signal, symbolVal);
-
   } catch(err) {
     console.error("Error checking/sending signal:", err);
   }
 }
-
 
 // ================= SIGNALS =================
 async function runSignals() {
@@ -560,7 +1094,7 @@ async function runSignals() {
     let data = await fetchData(symbolVal);
 
     if (!data || data.length < 50) {
-      signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>Not enough market data.</p>";
+      signals.innerHTML = `<div class="signal-no-data">Not enough market data available for this symbol.</div>`;
       return;
     }
 
@@ -568,7 +1102,6 @@ async function runSignals() {
     let h = data.map(x => +x.high);
     let l = data.map(x => +x.low);
 
-    // ================= INDICATORS =================
     let ema10 = EMA(cl.slice(-20), 10);
     let ema20 = EMA(cl.slice(-30), 20);
     let rsi = RSI(cl);
@@ -578,11 +1111,8 @@ async function runSignals() {
     let sr = supportResistance(h, l);
     let entry = cl.at(-1);
 
-    // ================= PROFESSIONAL SIGNAL =================
     let sig = generateProfessionalSignal({
-      ema10,
-      ema20,
-      rsi,
+      ema10, ema20, rsi,
       macd: macdObj.macd,
       macdSignal: macdObj.signal,
       trendStrength: trend,
@@ -591,79 +1121,62 @@ async function runSignals() {
 
     let blockedBy = null;
 
-// ================= HIGHER TIMEFRAME FILTER =================
-let higherTrend = await getHigherTimeframeTrend(symbolVal);
+    let higherTrend = await getHigherTimeframeTrend(symbolVal);
+    let higherTFFlag = false;
+    let higherTFInfluence = 0;
 
-let higherTFFlag = false;
-let higherTFInfluence = 0;
+    if (sig.signal === "BUY" && higherTrend === "BULL") {
+      higherTFFlag = true;
+      higherTFInfluence = 1;
+    }
+    if (sig.signal === "SELL" && higherTrend === "BEAR") {
+      higherTFFlag = true;
+      higherTFInfluence = 1;
+    }
+    if ((sig.signal === "BUY" && higherTrend !== "BULL") || (sig.signal === "SELL" && higherTrend !== "BEAR")) {
+      higherTFInfluence = -1;
+    }
 
-if (sig.signal === "BUY" && higherTrend === "BULL") {
-  higherTFFlag = true;
-  higherTFInfluence = 1;
-}
+    sig.higherTFTrend = higherTrend;
+    sig.higherTFFlag = higherTFFlag;
+    sig.higherTFInfluence = higherTFInfluence;
 
-if (sig.signal === "SELL" && higherTrend === "BEAR") {
-  higherTFFlag = true;
-  higherTFInfluence = 1;
-}
-
-if ((sig.signal === "BUY" && higherTrend !== "BULL") || (sig.signal === "SELL" && higherTrend !== "BEAR")) {
-  higherTFInfluence = -1;
-}
-
-// Attach influence instead of blocking
-sig.higherTFTrend = higherTrend;
-sig.higherTFFlag = higherTFFlag;
-sig.higherTFInfluence = higherTFInfluence;
-
-    // ================= ADX FILTER =================
     let adxFlag = adx >= 20;
     if (!adxFlag) {
-  sig.signal = "HOLD";
-  blockedBy = "Weak Trend (ADX)";
-}
+      sig.signal = "HOLD";
+      blockedBy = "Weak Trend (ADX)";
+    }
 
-    // ================= SUPPORT / RESISTANCE FILTER =================
     let srFlag = true;
     if (sig.signal === "BUY" && entry > sr.resistance * 0.995) {
-  sig.signal = "HOLD";
-  srFlag = false;
-  blockedBy = "Near Resistance";
-}
+      sig.signal = "HOLD";
+      srFlag = false;
+      blockedBy = "Near Resistance";
+    }
+    if (sig.signal === "SELL" && entry < sr.support * 1.005) {
+      sig.signal = "HOLD";
+      srFlag = false;
+      blockedBy = "Near Support";
+    }
 
-if (sig.signal === "SELL" && entry < sr.support * 1.005) {
-  sig.signal = "HOLD";
-  srFlag = false;
-  blockedBy = "Near Support";
-}
+    let volumeFlag = volumeStrength(data);
+    if (volumeFlag && sig.signal !== "HOLD") {
+      sig.strength += 5;
+    }
 
-    // ================= VOLUME CONFIRMATION =================
-let volumeFlag = volumeStrength(data);
+    let candleFlag = false;
+    if (sig.signal === "BUY" && bullishEngulfing(data)) {
+      candleFlag = true;
+    }
+    if (sig.signal === "SELL" && bearishEngulfing(data)) {
+      candleFlag = true;
+    }
+    if (candleFlag && sig.signal !== "HOLD") {
+      sig.strength += 10;
+    }
 
-// Volume increases confidence but never cancels trade
-if (volumeFlag && sig.signal !== "HOLD") {
-  sig.strength += 5;
-}
-
-// ================= CANDLE CONFIRMATION =================
-let candleFlag = false;
-
-if (sig.signal === "BUY" && bullishEngulfing(data)) {
-  candleFlag = true;
-}
-
-if (sig.signal === "SELL" && bearishEngulfing(data)) {
-  candleFlag = true;
-}
-
-// Candle pattern increases confidence but never cancels trade
-if (candleFlag && sig.signal !== "HOLD") {
-  sig.strength += 10;
-}
-    // ================= STOPLOSS / TAKEPROFIT =================
     let sltp = SLTP(entry, ATR(h, l, cl), sig.signal);
 
-    // ================= ADD FEATURES =================
     sig.features = {
       emaTrend: ema10 > ema20,
       rsiMomentum: rsi > 60,
@@ -679,34 +1192,25 @@ if (candleFlag && sig.signal !== "HOLD") {
     let lastCandleTime = new Date(data.at(-1).datetime).getTime();
 
     const signalData = {
-      symbolVal,
-      sig,
-      entry,
-      sltp,
+      symbolVal, sig, entry, sltp,
       candleTime: lastCandleTime
     };
 
-    // ================= CACHE =================
     cachedSignals[symbolVal] = {
       data: signalData,
       time: now
     };
 
-    // ================= DISPLAY =================
     displaySignals(signalData);
-
-    
-
-    // ================= FIREBASE SEND =================
     sendSignalIfNotExists(signalData);
 
   } catch (e) {
     console.error(e);
-    signals.innerHTML = "<p style='color:#fbbf24;text-align:center;'>❌ Error fetching data from Twelvedata. Check API key or symbol.</p>";
+    signals.innerHTML = `<div class="signal-error">Error fetching market data. Check API key or symbol.</div>`;
   }
 }
 
-
+// ================= DISPLAY SIGNALS (REDESIGNED) =================
 function displaySignals({symbolVal, sig, entry, sltp}) {
 
   const isFree = freeSymbols.includes(symbolVal);
@@ -714,145 +1218,125 @@ function displaySignals({symbolVal, sig, entry, sltp}) {
   let blurClass = "";
 
   if (isVIP) {
-    vipBadgeHtml = `<div class="vip-badge">VIP Active</div>`;
+    vipBadgeHtml = `<div class="vip-badge vip-active">VIP Active</div>`;
   } else if (isFree) {
-    vipBadgeHtml = `<div class="vip-badge" style="background:#22c55e">FREE</div>`;
+    vipBadgeHtml = `<div class="vip-badge free-badge">FREE</div>`;
   } else {
     blurClass = "vip-lock";
   }
 
-  // Build feature agreement lists
   let agreeHtml = "";
   let disagreeHtml = "";
 
   if(sig.features){
-
     Object.entries(sig.features).forEach(([name,val]) => {
-
       const label = name
         .replace(/([A-Z])/g," $1")
         .replace(/^./,str=>str.toUpperCase());
-
-      if(val){
-        agreeHtml += `<li>✅ ${label}</li>`;
-      }else{
-        disagreeHtml += `<li>❌ ${label}</li>`;
-      }
-
+      if(val) agreeHtml += `<li>${label}</li>`;
+      else disagreeHtml += `<li>${label}</li>`;
     });
-
   }
 
   signals.innerHTML = `
     <div class="signal ${blurClass}">
       ${vipBadgeHtml}
-
-      <h3>${symbolVal}</h3>
-      <h2 class="${sig.signal.toLowerCase()}">${sig.signal}</h2>
-      ${sig.signal === "HOLD" && sig.blockedBy ? 
-`<p style="color:#fbbf24;">⚠️ Trade blocked by: <b>${sig.blockedBy}</b></p>` 
-: ""}
-
-      <p>Entry: ${entry.toFixed(2)} 
-        <span class="copy-link" data-copy="${entry.toFixed(2)}">🔗</span>
-      </p>
-
-      <p>SL: ${sltp.sl.toFixed(2)} 
-        <span class="copy-link" data-copy="${sltp.sl.toFixed(2)}">🔗</span>
-      </p>
-
-      <p>TP: ${sltp.tp.toFixed(2)} 
-        <span class="copy-link" data-copy="${sltp.tp.toFixed(2)}">🔗</span>
-      </p>
-
-      <p>Strength: ${sig.strength}%</p>
-
+      <div class="signal-header">
+        <span class="signal-symbol-title">${symbolVal}</span>
+        <span class="signal-type-badge ${sig.signal.toLowerCase()}">${sig.signal}</span>
+      </div>
+      ${sig.signal === "HOLD" && sig.blockedBy ?
+        `<div class="hold-warning">Trade blocked: <strong>${sig.blockedBy}</strong></div>` : ""}
+      <div class="signal-prices">
+        <div class="price-item">
+          <span class="price-label">Entry</span>
+          <span class="price-value">${entry.toFixed(2)}</span>
+          <button class="copy-btn" data-copy="${entry.toFixed(2)}">Copy</button>
+        </div>
+        <div class="price-item">
+          <span="price-label">SL</span>
+          <span class="price-value">${sltp.sl.toFixed(2)}</span>
+          <button class="copy-btn" data-copy="${sltp.sl.toFixed(2)}">Copy</button>
+        </div>
+        <div class="price-item">
+          <span class="price-label">TP</span>
+          <span class="price-value">${sltp.tp.toFixed(2)}</span>
+          <button class="copy-btn" data-copy="${sltp.tp.toFixed(2)}">Copy</button>
+        </div>
+      </div>
+      <div class="signal-strength">
+        <span class="strength-label">Strength</span>
+        <div class="strength-bar"><div class="strength-fill" style="width:${Math.min(sig.strength, 100)}%"></div></div>
+        <span class="strength-value">${sig.strength}%</span>
+      </div>
       ${(isVIP||isFree) ? `
         <div class="signal-analysis">
-
-          <h4>Features Agreeing</h4>
-          <ul class="agree-list">${agreeHtml || "<li>None</li>"}</ul>
-
-          <h4>Features Disagreeing</h4>
-          <ul class="disagree-list">${disagreeHtml || "<li>None</li>"}</ul>
-
+          <div class="analysis-column agree">
+            <h4>Agreeing</h4>
+            <ul>${agreeHtml || "<li>None</li>"}</ul>
+          </div>
+          <div class="analysis-column disagree">
+            <h4>Disagreeing</h4>
+            <ul>${disagreeHtml || "<li>None</li>"}</ul>
+          </div>
         </div>
-
-        <p>
-          <span class="copy-link" data-copy="${symbolVal} ${sig.signal}">
-            🔗 Copy Signal
-          </span>
-        </p>
+        <div class="signal-footer">
+          <button class="copy-btn copy-full" data-copy="${symbolVal} ${sig.signal} Entry:${entry.toFixed(2)} SL:${sltp.sl.toFixed(2)} TP:${sltp.tp.toFixed(2)}">Copy Full Signal</button>
+        </div>
       ` : ""}
-
     </div>
-
-    ${(isVIP||isFree) ? "" : "<p style='text-align:center'>🔒 Request VIP to unlock signals</p>"}
+    ${(isVIP||isFree) ? "" : `<div class="vip-unlock-msg">Request VIP to unlock full signal details</div>`}
   `;
 
-  // style
-  const style = document.createElement('style');
-  style.innerHTML = `
-    .copy-link{cursor:pointer;color:#2563eb;margin-left:5px;text-decoration:underline;}
-    .signal-analysis{margin-top:10px;font-size:13px}
-    .agree-list{color:#16a34a}
-    .disagree-list{color:#dc2626}
-  `;
-  document.head.appendChild(style);
-
-  // copy handlers
-  const copyLinks = signals.querySelectorAll('.copy-link');
-  copyLinks.forEach(el=>{
-    el.onclick=()=>{
-      const text=el.getAttribute('data-copy');
-      copySignal(text);
-    }
+  // Copy handlers with feedback
+  signals.querySelectorAll('.copy-btn').forEach(el => {
+    el.onclick = () => {
+      const text = el.getAttribute('data-copy');
+      navigator.clipboard.writeText(text)
+        .then(() => {
+          const orig = el.textContent;
+          el.textContent = 'Copied';
+          el.style.background = 'var(--buy)';
+          el.style.color = 'white';
+          el.style.borderColor = 'var(--buy)';
+          setTimeout(() => {
+            el.textContent = orig;
+            el.style.background = '';
+            el.style.color = '';
+            el.style.borderColor = '';
+          }, 1200);
+        })
+        .catch(err => alert("Copy failed: " + err));
+    };
   });
-
-}
-
-
-function copySignal(text){
-  navigator.clipboard.writeText(text)
-    .then(()=>alert(`✅ Copied: ${text}`))
-    .catch(err=>alert("❌ Copy failed: "+err));
 }
 
 // =============== VIP COUNTDOWN =================
 function startVipCountdown(expiryIso) {
-  clearInterval(vipCountdownInterval); // reset any old interval
+  clearInterval(vipCountdownInterval);
   const expiryTime = new Date(expiryIso).getTime();
 
   vipCountdownInterval = setInterval(() => {
     const diff = expiryTime - Date.now();
 
     if (diff <= 0) {
-  clearInterval(vipCountdownInterval);
-
-  isVIP = false;
-
-  if (auth.currentUser) {
-    vipExpired(auth.currentUser.uid);
-  }
-
-  vipTimerDiv.innerText = "⛔ VIP expired";
-  alert("⏳ Your VIP subscription has expired.");
-
-  // 🔄 FORCE FULL PAGE REFRESH
-  setTimeout(() => {
-    location.reload();
-  }, 1000); // short delay so Firebase writes complete
-
-  return;
-}
-
+      clearInterval(vipCountdownInterval);
+      isVIP = false;
+      if (auth.currentUser) {
+        vipExpired(auth.currentUser.uid);
+      }
+      vipTimerDiv.innerText = "VIP expired";
+      alert("Your VIP subscription has expired.");
+      setTimeout(() => { location.reload(); }, 1000);
+      return;
+    }
 
     const d = Math.floor(diff / 86400000);
     const h = Math.floor((diff % 86400000) / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);
     const s = Math.floor((diff % 60000) / 1000);
 
-    vipTimerDiv.innerText = `VIP expires in ${d}d ${h}h ${m}m ${s}s`;
+    vipTimerDiv.innerText = `VIP: ${d}d ${h}h ${m}m ${s}s`;
   }, 1000);
 }
 
@@ -861,42 +1345,28 @@ function vipExpired(uid) {
   get(userRef).then(snap => {
     const data = snap.val() || {};
     const key = data.vipKey;
-
     if (key) {
       set(ref(db, 'vip_keys/' + key + '/active'), false);
     }
-
-    // Clear VIP info for this user
     set(ref(db, 'users/' + uid + '/vip'), false);
     set(ref(db, 'users/' + uid + '/vipKey'), null);
     set(ref(db, 'users/' + uid + '/vipExpiry'), null);
   });
 }
 
-
-
 // =============== AUTH =================
 loginBtn.onclick = () => {
   const userEmail = email.value.trim();
   const userPassword = password.value.trim();
-
   signInWithEmailAndPassword(auth, userEmail, userPassword)
   .catch(e => alert(e.message));
 };
+
 registerBtn.onclick = () => {
   const userEmail = email.value.trim();
   const userPassword = password.value.trim();
-
-  if(!userEmail){
-    alert("Please enter an email.");
-    return;
-  }
-
-  if(!userPassword){
-    alert("Please enter a password.");
-    return;
-  }
-
+  if(!userEmail){ alert("Please enter an email."); return; }
+  if(!userPassword){ alert("Please enter a password."); return; }
   createUserWithEmailAndPassword(auth, userEmail, userPassword)
   .then(uc=>{
     set(ref(db,'users/'+uc.user.uid),{
@@ -904,7 +1374,7 @@ registerBtn.onclick = () => {
       vip:false,
       created:new Date().toISOString()
     });
-    alert("✅ Account created. Request VIP from the button.");
+    alert("Account created. Request VIP from the button.");
   })
   .catch(e=>{
     console.error(e);
@@ -912,57 +1382,44 @@ registerBtn.onclick = () => {
   });
 };
 
-
 onAuthStateChanged(auth, user => {
-  clearInterval(vipCountdownInterval); // clear old VIP countdown
-  vipTimerDiv.innerText = "";          // reset timer
+  clearInterval(vipCountdownInterval);
+  vipTimerDiv.innerText = "";
   isVIP = false;
 
   if (!user) {
-    // No user logged in, reset UI
     upgradeBtn.style.display = 'inline-block';
-    runSignals(); // show free signals only
+    runSignals();
     return;
   }
 
   const userRef = ref(db, 'users/' + user.uid);
 
-  // Fetch current user's VIP info
   get(userRef).then(snap => {
     const data = snap.val() || {};
 
-    // Check VIP status
     if (data.vip === true && data.vipExpiry) {
       const expiryTime = new Date(data.vipExpiry).getTime();
-
       if (expiryTime > Date.now()) {
         isVIP = true;
-        startVipCountdown(data.vipExpiry); // start countdown for this user
+        startVipCountdown(data.vipExpiry);
       } else {
-        // VIP expired
         vipExpired(user.uid);
       }
     }
 
-    // Show/hide VIP request button
     upgradeBtn.style.display = isVIP ? 'none' : 'inline-block';
 
-    // Check if user already has a pending VIP request
     return get(child(ref(db), 'vip_requests/' + user.uid));
   }).then(r => {
-    if (r.exists() && r.val().status === "pending") {
-      upgradeBtn.style.display = "none"; // hide button if request pending
+    if (r && r.exists() && r.val().status === "pending") {
+      upgradeBtn.style.display = "none";
     }
-
-    // Run signals after VIP check
     runSignals();
   }).catch(err => {
     console.error("Auth/VIP check error:", err);
   });
 });
-
-
-
 
 upgradeBtn.onclick=()=>{
   const user=auth.currentUser;
@@ -974,10 +1431,10 @@ upgradeBtn.onclick=()=>{
 activateVipBtn.onclick=()=>{
   const tidValue=tidInput.value.trim();
   const tidPattern=/^TID\s\d{12}$/;
-  if(!tidPattern.test(tidValue)){alert("❌ Invalid TID format. Use: TID 123456789012");return;}
+  if(!tidPattern.test(tidValue)){alert("Invalid TID format. Use: TID 123456789012");return;}
   const user=auth.currentUser;if(!user)return alert("Please login first.");
   set(ref(db,'vip_requests/'+user.uid),{email:user.email,requestedAt:new Date().toISOString(),tid:tidValue,status:"pending"})
-  .then(()=>{alert("✅ VIP request sent! Admin will verify payment.");activateVipBtn.disabled=true;activateVipBtn.innerText="TID Submitted";})
+  .then(()=>{alert("VIP request sent! Admin will verify payment.");activateVipBtn.disabled=true;activateVipBtn.innerText="TID Submitted";})
   .catch(err=>alert(err.message));
 };
 
@@ -985,15 +1442,10 @@ symbol.addEventListener('change',runSignals);
 setInterval(runSignals,15*60*1000);
 
 const openTVBtn = document.getElementById("openTVBtn");
-
 openTVBtn.onclick = () => {
   const symbolVal = symbol.value.replace("/", "");
-  window.open(
-    `TRADINGVIEW.html?symbol=${symbolVal}`, // URL to open
-    "_blank"                                // open in a new tab
-  );
+  window.open(`TRADINGVIEW.html?symbol=${symbolVal}`, "_blank");
 };
-
 </script>
 <script src="https://s3.tradingview.com/tv.js"></script>
 </body>

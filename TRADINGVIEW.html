@@ -4,87 +4,416 @@
 <meta charset="UTF-8">
 <title>AI Signal History</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <link rel="icon" type="image/png" href="logo_icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 
 <style>
-body{
-  margin:0;
-  background:#020617;
-  color:#e5e7eb;
-  font-family:Arial, sans-serif;
+/* ═══════════════════════════════════════════════════
+   DESIGN SYSTEM — Buddy Signal Dashboard
+   Deep warm dark. Brand-consistent with main page.
+   ═══════════════════════════════════════════════════ */
+
+:root {
+  --bg: #0C0C0C;
+  --surface: #161616;
+  --surface-raised: #1E1E1E;
+  --primary: #C45D3E;
+  --primary-hover: #A84830;
+  --secondary: #2B4A3E;
+  --secondary-hover: #1D3629;
+  --accent: #E8A838;
+  --accent-hover: #D4952E;
+  --buy: #22C55E;
+  --buy-bg: rgba(34,197,94,0.12);
+  --sell: #E5533A;
+  --sell-bg: rgba(229,83,58,0.12);
+  --text-primary: #E8E8E8;
+  --text-secondary: #A0A0A0;
+  --text-muted: #666666;
+  --border: #2A2A2A;
+  --border-strong: #333333;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.5);
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
 }
 
-#topBar{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  padding:10px 14px;
-  border-bottom:1px solid #1e293b;
+/* ═══════════ BASE ═══════════ */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  line-height: 1.5;
+  min-height: 100vh;
+  animation: pageIn 0.3s ease-out;
 }
 
-#stats{
-  margin-left:auto;
-  font-size:13px;
-  color:#94a3b8;
+@keyframes pageIn { from { opacity: 0 } to { opacity: 1 } }
+
+/* Subtle grain — matches main Buddy page */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.15;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.06'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
 }
 
-select, button{
-  padding:6px 10px;
-  border-radius:6px;
-  border:none;
-  font-size:13px;
+::selection { background: var(--accent); color: white; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+body > * { position: relative; z-index: 1; }
+
+/* ═══════════ TOOLBAR ═══════════ */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  background: var(--secondary);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  position: relative;
+  overflow: hidden;
 }
 
-button{
-  background:#ef4444;
-  color:white;
-  cursor:pointer;
+/* Subtle pattern matching main page header */
+.toolbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 50%, rgba(255,255,255,0.03) 1px, transparent 1px),
+    radial-gradient(circle at 80% 20%, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 30px 30px, 45px 45px;
+  pointer-events: none;
 }
 
-#signalsContainer{
-  padding:10px;
-  max-height:calc(100vh - 50px);
-  overflow-y:auto;
+.toolbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
-.signalCard{
-  border-radius:6px;
-  padding:10px;
-  margin-bottom:10px;
-  background:#1e293b;
-  font-size:13px;
+.brand-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--secondary);
 }
 
-.buy{ border-left:4px solid #16a34a; }
-.sell{ border-left:4px solid #dc2626; }
+.brand-text {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  color: white;
+}
 
-.status{
-  color:#94a3b8;
-  font-size:12px;
+.symbol-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  background: rgba(232,168,56,0.15);
+  border: 1px solid rgba(232,168,56,0.3);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+
+.toolbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.toolbar select {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255,255,255,0.15);
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  background: rgba(255,255,255,0.08);
+  color: white;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A0A0A0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 28px;
+}
+
+.toolbar select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.toolbar-btn {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: var(--font-body);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: white;
+}
+
+.toolbar-btn.refresh {
+  background: var(--accent);
+}
+.toolbar-btn.refresh:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.toolbar-btn.stop {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+.toolbar-btn.stop:hover {
+  background: rgba(229,83,58,0.15);
+  border-color: var(--sell);
+  color: var(--sell);
+}
+
+.toolbar-stats {
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.5);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.stat-buy { color: var(--buy); font-weight: 500; }
+.stat-sell { color: var(--sell); font-weight: 500; }
+.stat-total { color: var(--accent); font-weight: 600; }
+
+/* ═══════════ SIGNALS CONTAINER ═══════════ */
+#signalsContainer {
+  padding: 20px;
+  max-height: calc(100vh - 56px);
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+  align-content: start;
+}
+
+/* ═══════════ SIGNAL CARD ═══════════ */
+.signalCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.signalCard:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.signalCard.buy { border-left: 3px solid var(--buy); }
+.signalCard.sell { border-left: 3px solid var(--sell); }
+
+.signal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px 8px;
+}
+
+.signal-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+}
+
+.signal-type-badge.buy {
+  background: var(--buy-bg);
+  color: var(--buy);
+}
+
+.signal-type-badge.sell {
+  background: var(--sell-bg);
+  color: var(--sell);
+}
+
+.signal-symbol {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.signal-prices {
+  display: flex;
+  gap: 0;
+  padding: 0 14px 10px;
+}
+
+.price-item {
+  flex: 1;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.price-item:not(:last-child) {
+  border-right: 1px solid var(--border);
+  padding-right: 12px;
+}
+
+.price-item:not(:first-child) {
+  padding-left: 12px;
+}
+
+.price-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.price-value {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.signal-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  background: rgba(255,255,255,0.02);
+  border-top: 1px solid var(--border);
+}
+
+.signal-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.signal-status {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 2px 6px;
+  background: rgba(255,255,255,0.04);
+  border-radius: var(--radius-sm);
+}
+
+/* ═══════════ EMPTY STATE ═══════════ */
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.empty-state-icon {
+  font-size: 2rem;
+  margin-bottom: 12px;
+  opacity: 0.3;
+}
+
+/* ═══════════ RESPONSIVE ═══════════ */
+@media (max-width: 768px) {
+  .toolbar {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+  .toolbar-controls {
+    margin-left: 0;
+    order: 2;
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .toolbar-stats {
+    order: 3;
+    width: 100%;
+    text-align: left;
+  }
+  #signalsContainer {
+    padding: 14px;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+  #signalsContainer {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 </style>
 </head>
 
 <body>
 
-<div id="topBar">
-  <strong>📜 AI Signal History</strong>
+<!-- ══════ TOOLBAR ══════ -->
+<header class="toolbar">
+  <div class="toolbar-brand">
+    <div class="brand-icon">B</div>
+    <span class="brand-text">Signal History</span>
+    <span class="symbol-badge" id="symbolBadge"></span>
+  </div>
+  <div class="toolbar-controls">
+    <select id="dateFilter">
+      <option value="all">All Time</option>
+      <option value="today">Today</option>
+      <option value="week">This Week</option>
+    </select>
+    <button id="replayBtn" class="toolbar-btn refresh">Refresh</button>
+    <button id="stopBtn" class="toolbar-btn stop">Stop</button>
+  </div>
+  <div id="stats" class="toolbar-stats"></div>
+</header>
 
-  <select id="dateFilter">
-    <option value="all">All</option>
-    <option value="today">Today</option>
-    <option value="week">This Week</option>
-  </select>
-
-  <button id="replayBtn">▶ Refresh</button>
-  <button id="stopBtn">⏹ Stop</button>
-
-  <span id="stats"></span>
-</div>
-
+<!-- ══════ SIGNALS ══════ -->
 <div id="signalsContainer"></div>
 
+<!-- ══════ SCRIPTS ══════ -->
 <script type="module">
 (async function(){
 
@@ -127,7 +456,6 @@ button{
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, onValue, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-/* 🔴 FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyB1G6DhAZv70YLk65ESgZl0Cm1BHzab4a0",
   authDomain: "buddydownloads-72e3b.firebaseapp.com",
@@ -151,6 +479,9 @@ const symbol =
     ?.replace(/\//g,'')
     .toUpperCase() || "XAUUSD";
 
+// Display the active symbol in the badge
+document.getElementById("symbolBadge").textContent = symbol;
+
 const container = document.getElementById("signalsContainer");
 const statsEl = document.getElementById("stats");
 
@@ -173,30 +504,63 @@ function render(){
 
   const list = applyFilter();
 
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📊</div>
+        No signals found for this period
+      </div>`;
+    statsEl.innerHTML = `<span class="stat-total">0 signals</span>`;
+    return;
+  }
+
+  const buyCount = list.filter(s => s.type === "BUY").length;
+  const sellCount = list.filter(s => s.type === "SELL").length;
+
+  statsEl.innerHTML = `<span class="stat-buy">${buyCount} Buy</span> · <span class="stat-sell">${sellCount} Sell</span> · <span class="stat-total">${list.length} Total</span>`;
+
   for(const s of list){
 
     const card = document.createElement("div");
     card.className = `signalCard ${s.type.toLowerCase()}`;
 
+    const entryPrice = (s.price ?? s.entry)?.toFixed(2) ?? "—";
+    const slPrice = s.sl?.toFixed(2) ?? "—";
+    const tpPrice = s.tp?.toFixed(2) ?? "—";
+
     card.innerHTML = `
-      <strong>${s.symbol} - ${s.type}</strong><br>
-      Entry: ${(s.price ?? s.entry)?.toFixed(2) ?? "-"} |
-      SL: ${s.sl?.toFixed(2) ?? "-"} |
-      TP: ${s.tp?.toFixed(2) ?? "-"}<br>
-      Sent: ${formatLocalTime(s.time)}<br>
-      <span class="status">Status: Logged</span>
+      <div class="signal-header">
+        <span class="signal-type-badge ${s.type.toLowerCase()}">${s.type}</span>
+        <span class="signal-symbol">${s.symbol}</span>
+      </div>
+      <div class="signal-prices">
+        <div class="price-item">
+          <span class="price-label">Entry</span>
+          <span class="price-value">${entryPrice}</span>
+        </div>
+        <div class="price-item">
+          <span class="price-label">SL</span>
+          <span class="price-value">${slPrice}</span>
+        </div>
+        <div class="price-item">
+          <span class="price-label">TP</span>
+          <span class="price-value">${tpPrice}</span>
+        </div>
+      </div>
+      <div class="signal-meta">
+        <span class="signal-time">${formatLocalTime(s.time)}</span>
+        <span class="signal-status">Logged</span>
+      </div>
     `;
 
     container.appendChild(card);
   }
-
-  statsEl.innerText = `Total Signals: ${list.length}`;
 }
 
 /* =============================== TIME =============================== */
 function formatLocalTime(ms) {
   const date = new Date(ms);
-  return date.toLocaleString(undefined, { 
+  return date.toLocaleString(undefined, {
     hour12: false,
     year: "numeric",
     month: "2-digit",
@@ -219,7 +583,7 @@ onValue(signalsRef, snap=>{
       const sym = (s.symbol||"").replace(/\//g,'').toUpperCase();
       return sym === symbol && (s.type==="BUY" || s.type==="SELL");
     })
-    .sort((a,b)=>b.time-a.time); // newest first
+    .sort((a,b)=>b.time-a.time);
 
   render();
 });
@@ -241,7 +605,6 @@ stopBtn.onclick = () => {
     }
   }, 100);
 };
-
 </script>
 
 </body>
