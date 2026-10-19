@@ -13,7 +13,6 @@
   <style>
     /* ═══════════════════════════════════════════════════
        DESIGN SYSTEM — Buddy Products
-       Warm, grounded palette. No generic tech-blue.
        ═══════════════════════════════════════════════════ */
 
     :root {
@@ -46,6 +45,7 @@
       --cat-gaming: #C45D3E;
       --cat-business: #6366F1;
       --cat-strategy: #8B5CF6;
+      --cat-utility: #0891B2;
       --whatsapp: #25D366;
       --facebook: #1877F2;
       --twitter: #1DA1F2;
@@ -81,6 +81,7 @@
     body.dark-mode .category-badge.gaming { background: rgba(196,93,62,0.15); }
     body.dark-mode .category-badge.business { background: rgba(99,102,241,0.15); }
     body.dark-mode .category-badge.strategy { background: rgba(139,92,246,0.15); }
+    body.dark-mode .category-badge.utility { background: rgba(8,145,178,0.15); }
     body.dark-mode .vip-note,
     body.dark-mode .offline-note { background: rgba(232,168,56,0.12); }
     body.dark-mode #admin-contact { background: var(--surface-raised); }
@@ -103,7 +104,6 @@
     }
     @keyframes pageIn { from { opacity: 0 } to { opacity: 1 } }
 
-    /* Grain texture — tactile, not sterile */
     body::before {
       content: '';
       position: fixed;
@@ -321,6 +321,7 @@
     .card-accent.gaming { background: var(--cat-gaming); }
     .card-accent.business { background: var(--cat-business); }
     .card-accent.strategy { background: var(--cat-strategy); }
+    .card-accent.utility { background: var(--cat-utility); }
     .card-body { padding: 24px 24px 20px; }
     .category-badge {
       display: inline-block;
@@ -338,6 +339,7 @@
     .category-badge.gaming { background: rgba(196,93,62,0.1); color: var(--cat-gaming); }
     .category-badge.business { background: rgba(99,102,241,0.1); color: var(--cat-business); }
     .category-badge.strategy { background: rgba(139,92,246,0.1); color: var(--cat-strategy); }
+    .category-badge.utility { background: rgba(8,145,178,0.1); color: var(--cat-utility); }
     .product h2 { font-size: 1.25rem; margin: 0 0 8px; color: var(--text-primary); }
     .card-description {
       font-size: 0.9rem;
@@ -425,6 +427,43 @@
       object-fit: cover;
     }
     .screenshot-images img:hover { transform: scale(1.03); border-color: var(--primary); }
+
+    /* ═══════════ HOW IT WORKS ═══════════ */
+    .how-it-works { margin: 16px 0; }
+    .how-it-works h3 { font-size: 0.95rem; margin: 0 0 10px; color: var(--text-secondary); }
+    .how-it-works ol {
+      list-style: none;
+      counter-reset: step;
+      padding: 0;
+      margin: 0;
+    }
+    .how-it-works li {
+      counter-increment: step;
+      position: relative;
+      padding: 6px 0 6px 34px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      border-bottom: 1px solid var(--border);
+    }
+    .how-it-works li:last-child { border-bottom: none; }
+    .how-it-works li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 6px;
+      width: 22px;
+      height: 22px;
+      background: var(--cat-utility);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
 
     /* ═══════════ FEATURES LIST ═══════════ */
     .features { margin: 16px 0; }
@@ -710,20 +749,53 @@
       <h2 class="section-title">Our Products</h2>
       <div class="products">
 
-        <!-- CHLOE CHAT APP -->
-        <article class="product" data-app="chloe">
+        <!-- FLOURIQ STUDY APP -->
+        <article class="product" data-app="flouriq">
           <div class="card-accent communication"></div>
           <div class="card-body">
-            <span class="category-badge communication">Communication</span>
-            <h2>Chloe Chat App</h2>
-            <p class="card-description">A fast, modern real-time messaging app with smart features.</p>
-            <div class="download-count" id="chloe-count">Downloads: 0</div>
+            <span class="category-badge communication">Education</span>
+            <h2>Flouriq — Study Smarter</h2>
+            <p class="card-description">
+              A complete study companion for students — learn with flashcards and quizzes,
+              track your roadmap, book tutor sessions, sit mock exams, save notes, and
+              connect with a community of learners. Built to help you study well and stay ahead.
+            </p>
+            <div class="download-count" id="flouriq-count">Downloads: 0</div>
             <div class="card-actions">
-              <a href="Chloe.apk" class="btn primary" id="chloe-download" target="_blank">Download APK</a>
+              <a href="Flouriq.apk" class="btn primary" id="flouriq-download" target="_blank">Download APK</a>
+            </div>
+            <div class="security-note">
+              <strong>Security Notice</strong><br>
+              Flouriq stores all your study data locally on your device. Because it's installed outside
+              Google Play, Google may show a standard warning — this is normal. Only install if you trust the source.
+            </div>
+            <div class="screenshots">
+              <h3>Screenshots</h3>
+              <div class="screenshot-images">
+                <img src="flouriq1.JPG" alt="Flouriq Screenshot 1">
+                <img src="flouriq2.JPG" alt="Flouriq Screenshot 2">
+                <img src="flouriq3.JPG" alt="Flouriq Screenshot 3">
+                <img src="flouriq4.JPG" alt="Flouriq Screenshot 4">
+              </div>
+            </div>
+            <div class="features">
+              <h3>App Features</h3>
+              <ul>
+                <li>🗺️ Personal Roadmap — plan subjects and milestones</li>
+                <li>👥 Community — connect and learn with other students</li>
+                <li>🎓 Tutor Access — chat with a tutor</li>
+                <li>📝 Mock Exams — practice under real exam conditions</li>
+                <li>❓ Quizzes — test yourself on any topic</li>
+                <li>📚 Flashcards — spaced-repetition for faster recall</li>
+                <li>📒 Saved Notes — keep all your study notes in one place</li>
+                <li>📄 Smart Summaries — auto-generated  summaries</li>
+              </ul>
             </div>
             <div class="reviews">
               <h3>User Reviews</h3>
-              <div class="average-rating">Average Rating: <span class="avg-stars">⭐⭐⭐⭐⭐</span> (<span class="avg-value">0</span>/5)</div>
+              <div class="average-rating">
+                Average Rating: <span class="avg-stars">⭐⭐⭐⭐⭐</span> (<span class="avg-value">0</span>/5)
+              </div>
               <form class="rating-form">
                 <label>Rate this app:</label>
                 <select class="rating-select">
@@ -835,41 +907,6 @@
           </div>
         </article>
 
-        <!-- AI STREET RACER -->
-        <article class="product" data-app="aiStreetRacer">
-          <div class="card-accent gaming"></div>
-          <div class="card-body">
-            <span class="category-badge gaming">Gaming</span>
-            <h2>AI Street Racer (Windows)</h2>
-            <p class="card-description">Race through neon-lit streets against intelligent AI drivers. High-speed action, smooth controls, and adrenaline-packed gameplay.</p>
-            <div class="download-count" id="aiStreetRacer-count">Downloads: 0</div>
-            <div class="card-actions">
-              <a href="AI_Street_racer.zip" class="btn primary" id="aiStreetRacer-download" target="_blank">Download Game</a>
-            </div>
-            <div class="reviews">
-              <h3>User Reviews</h3>
-              <div class="average-rating">Average Rating: <span class="avg-stars">⭐⭐⭐⭐⭐</span> (<span class="avg-value">0</span>/5)</div>
-              <form class="rating-form">
-                <label>Rate this game:</label>
-                <select class="rating-select">
-                  <option value="1">1 ⭐</option>
-                  <option value="2">2 ⭐</option>
-                  <option value="3" selected>3 ⭐</option>
-                  <option value="4">4 ⭐</option>
-                  <option value="5">5 ⭐</option>
-                </select>
-                <button type="submit">Submit Rating</button>
-              </form>
-              <form class="review-form">
-                <input type="text" placeholder="Your name" class="review-name" required>
-                <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
-                <button type="submit">Submit Review</button>
-              </form>
-              <div class="reviews-list"></div>
-            </div>
-          </div>
-        </article>
-
         <!-- JOBCONNECTADMIN -->
         <article class="product" data-app="jobConnectAdmin">
           <div class="card-accent business"></div>
@@ -909,34 +946,70 @@
           </div>
         </article>
 
-        <!-- TIC TAC MIND WAR -->
-        <article class="product" data-app="tictacMindWar">
-          <div class="card-accent strategy"></div>
+        <!-- PHONEKB — PHONE AS KEYBOARD -->
+        <article class="product" data-app="phonekb">
+          <div class="card-accent utility"></div>
           <div class="card-body">
-            <span class="category-badge strategy">Strategy</span>
-            <h2>Tic Tac Mind War</h2>
-            <p class="card-description">Next-level Tic Tac Toe with AI-powered difficulty modes and real-time online multiplayer. Outsmart opponents with logic, timing challenges, and strategic moves.</p>
-            <div class="download-count" id="tictacMindWar-count">Visits: 0</div>
+            <span class="category-badge utility">Utility</span>
+            <h2>PhoneKB — Phone as Keyboard</h2>
+            <p class="card-description">
+              Turn your phone into a wireless keyboard and mouse for your PC. No cables,
+              no Bluetooth pairing headaches — just sign in on both devices, hotspot one to
+              the other, and start typing. Internet is only needed for registering and logging in.
+            </p>
+            <div class="download-count" id="phonekb-count">Downloads: 0</div>
             <div class="card-actions">
-              <a href="tictac_main_menu.apk" id="tictacMindWar-link" class="btn primary">Download APK</a>
+              <a href="PhoneKB_Bundle.zip" class="btn primary" id="phonekb-download" target="_blank" download>Download Bundle (ZIP)</a>
             </div>
-            <div class="offline-note">Online mode requires internet. AI mode works offline.</div>
+            <div class="vip-note">📦 Bundle includes: <strong>Phone App folder</strong> (APK) + <strong>PC App folder</strong> (installer)</div>
+            <div class="security-note">
+              <strong>Security Notice</strong><br>
+              PhoneKB only communicates over your local hotspot connection — no typing data,
+              keystrokes, or credentials are sent to any external server. Only account info
+              is transmitted during registration and login. Because it's installed outside
+              Google Play and the Microsoft Store, both Windows and Android may show a
+              standard warning — this is normal.
+            </div>
+            <div class="screenshots">
+              <h3>Screenshots</h3>
+              <div class="screenshot-images">
+                <img src="phonekb1.JPG" alt="PhoneKB Screenshot 1">
+                <img src="phonekb2.JPG" alt="PhoneKB Screenshot 2">
+                <img src="phonekb3.JPG" alt="PhoneKB Screenshot 3">
+                <img src="phonekb4.JPG" alt="PhoneKB Screenshot 4">
+                <img src="phonekb5.JPG" alt="PhoneKB Screenshot 5">
+              </div>
+            </div>
+            <div class="how-it-works">
+              <h3>How It Works</h3>
+              <ol>
+                <li>Download <strong>PhoneKB_Bundle.zip</strong> — you'll get two folders: <em>Phone App</em> and <em>PC App</em>.</li>
+                <li>Install <strong>PhoneKB</strong> on both your PC and your phone.</li>
+                <li>Open the app on your phone and <strong>create an account</strong> (internet required).</li>
+                <li>Sign in with the <strong>same account</strong> on the PC app (internet required).</li>
+                <li>Turn on <strong>hotspot</strong> on either your phone or your PC, and connect the other device to it.</li>
+                <li>Both apps auto-discover each other over the hotspot — start typing from your phone. <strong>No internet needed</strong> after login.</li>
+              </ol>
+            </div>
             <div class="features">
-              <h3>Game Features</h3>
+              <h3>Key Features</h3>
               <ul>
-                <li>Smart AI — Easy, Medium, and Hard Minimax</li>
-                <li>Real-time Online Multiplayer</li>
-                <li>Mind challenge system — riddles, math, color tests</li>
-                <li>General knowledge — Animals, Science, Geography, Myth</li>
-                <li>Win tracking and score system</li>
-                <li>Sound effects and animations</li>
+                <li>⌨️ Full keyboard — type from phone to PC instantly</li>
+                <li>🖱️ Built-in trackpad for cursor control</li>
+                <li>📡 Works over hotspot — no Wi-Fi router required</li>
+                <li>🔒 Local-only connection, no cloud typing data</li>
+                <li>⚡ Low latency, low battery drain</li>
+                <li>🔗 Auto-discovery once both devices are on the same hotspot</li>
+                <li>📦 One ZIP bundle — includes both phone app and PC app</li>
               </ul>
             </div>
             <div class="reviews">
               <h3>User Reviews</h3>
-              <div class="average-rating">Average Rating: <span class="avg-stars">⭐⭐⭐⭐⭐</span> (<span class="avg-value">0</span>/5)</div>
+              <div class="average-rating">
+                Average Rating: <span class="avg-stars">⭐⭐⭐⭐⭐</span> (<span class="avg-value">0</span>/5)
+              </div>
               <form class="rating-form">
-                <label>Rate this game:</label>
+                <label>Rate this app:</label>
                 <select class="rating-select">
                   <option value="1">1 ⭐</option>
                   <option value="2">2 ⭐</option>
@@ -948,7 +1021,7 @@
               </form>
               <form class="review-form">
                 <input type="text" placeholder="Your name" class="review-name" required>
-                <textarea placeholder="Your feedback about the game..." class="review-text" rows="2" required></textarea>
+                <textarea placeholder="Your comment..." class="review-text" rows="2" required></textarea>
                 <button type="submit">Submit Review</button>
               </form>
               <div class="reviews-list"></div>
@@ -973,6 +1046,10 @@
       <div class="faq-item">
         <strong>Can I trust this bot with my trading account?</strong>
         <p>The bot only reads credentials locally to connect with MetaTrader 5. Credentials are encrypted and never sent to any server other than subscription verification via Firebase.</p>
+      </div>
+      <div class="faq-item">
+        <strong>How does PhoneKB connect without internet?</strong>
+        <p>Once both devices are signed in, PhoneKB uses your local hotspot network to communicate. All keystrokes travel directly from your phone to your PC over that hotspot — no external server, no internet required. Only the initial registration and login need internet.</p>
       </div>
     </section>
 
@@ -1093,18 +1170,6 @@
   const ADMIN_WHATSAPP = "https://wa.me/256748244415";
 
   // ========================
-  // Contact Support Section
-  // ========================
-  function toggleContactOptions() {
-    const contactBox = document.getElementById("contact-options");
-    if (contactBox.style.display === "none") {
-      contactBox.style.display = "block";
-    } else {
-      contactBox.style.display = "none";
-    }
-  }
-
-  // ========================
   // Support Bot State
   // ========================
   let waitingForAdminConfirm = false;
@@ -1158,6 +1223,12 @@
     }
     else if (/share|reward/.test(msg)) {
       botReply("🎁 Want a reward? Share the website 5 times using the share buttons, and you'll get a reward key! Ready to try?");
+    }
+    else if (/flouriq|study|student|education|flashcard|quiz|mock|tutor|roadmap|summary|notes/.test(msg)) {
+      botReply("📚 Flouriq is a complete study companion — Flashcards, Quizzes, Mock Exams, Tutor booking, Community, a personal Roadmap, Saved Notes, and Smart Summaries — all in one app. Download it from the Education card above!");
+    }
+    else if (/phonekb|keyboard|remote|trackpad/.test(msg)) {
+      botReply("⌨️ PhoneKB turns your phone into a wireless keyboard + trackpad for your PC. Install on both devices, sign in with the same account (internet needed once), then hotspot one device to the other — no internet needed after login. Download links are on the Utility card above!");
     }
     else if (/download/.test(msg)) {
       botReply("📥 You can download apps directly from the product cards. Just click the 'Download' button under the app you want!");
@@ -1346,10 +1417,9 @@
     });
   }
 
-  setupGlobalDownloadCounter("apk-download", "apk-count", "buddyApk");
   setupGlobalDownloadCounter("exe-download", "exe-count", "buddyExe");
-  setupGlobalDownloadCounter("chloe-download", "chloe-count", "chloe");
-  setupGlobalDownloadCounter("aiStreetRacer-download", "aiStreetRacer-count", "aiStreetRacer");
+  setupGlobalDownloadCounter("flouriq-download", "flouriq-count", "flouriq");
+  setupGlobalDownloadCounter("phonekb-download", "phonekb-count", "phonekb");
 
   // ========================
   // Dashboard Visit Counter
@@ -1371,8 +1441,6 @@
   }
 
   setupDashboardCounter("#dashboard-link", "aiSignalDashboard-count", "aiSignalDashboard");
-  setupDashboardCounter("#footballDashboard-link", "footballDashboard-count", "footballDashboard");
-  setupDashboardCounter("#tictacMindWar-link", "tictacMindWar-count", "tictacMindWar");
 
   // ========================
   // Lightbox for Screenshots
